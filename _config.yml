@@ -11,6 +11,7 @@ sass:
 collections:
   posts:
     output          : true
+theme: minima
 
 # Handling Reading
 safe                : false
