@@ -1,471 +1,444 @@
-<!DOCTYPE HTML>
-<!--
-	Paradigm Shift by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
-<html>
-	<head>
-		<title>Chase van de Geijn</title>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<meta name="description" content="" />
-		<meta name="keywords" content="" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-	</head>
-	<body class="is-preload">
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chase vdG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .header {
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        text-align: center;
+        padding: 29px 0;
+      }
+      .header h1 {
+        text-align: center;
+        margin: 0 auto;
+        font-size: 48px;
+        /* font-weight: 600; */
+        line-height: 1.6;
+        color: #fff;
+        /* text-shadow: 0px 0px 4px #000000; */
+        /* background-color: rgba(0, 0, 0, 0.5); */
+        width: fit-content;
+        text-shadow: 0px 0px 2px #000000;      
+    }
+      /* Increase text <p> width*/
+      .header p {
+            width: 400px;
+            height: 30px;
+            padding: 10px 10px;
+            margin: 0 auto;
+            font-size: 18px;
+            font-weight: 600;
+            line-height: 1.6;
+            color: #fff;
+            /* solid outline text */
+            /* -webkit-text-stroke: .5px #000; */
+            /* shadow text */
+            text-shadow: 0px 0px 2px #000000;
+            /* background-color: rgba(0, 0, 0, 0.5); */
 
-		<!-- Wrapper -->
-			<div id="wrapper">
+         }
+      .header video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        object-fit: cover;
+      }
+    .header-icons {
+      background-color: #ffc782;
+      text-align: center;
+      padding: 5px 0;
+    }
+    
+    .header-icons a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 10px;
+      font-size: 20px;
+    }
+    
+    .header-icons a:hover {
+      color: #ffa041;
+      /* underline */
+      text-decoration: underline;
+      /*  bold text */
+      font-weight: bold;
+      /* text shadow */
+      text-shadow: 0px 0px 4px #000000;
 
-				<!-- Intro -->
-					<section class="intro">
-						<header>
-							<h1>Chase van de Geijn</h1>
-							<p>Theoretical AI Researcher and Orange Enthusiast</p>
-							<ul class="actions">
-								<li><a href="#first" class="arrow scrolly"><span class="label">Next</span></a></li>
-							</ul>
-						</header>
-						<div class="content">
-							<span class="image fill" data-position="center"><img src="images/pic01.jpg" alt="" /></span>
-						</div>
-					</section>
+    }
+    
+    .tabs {
+      display: flex;
+      justify-content: center;
+      background-color: #ffcb8b;
+      padding: 10px 0;
+    }
+      .tab-label {
+        cursor: pointer;
+        padding: 10px 20px;
+        color: #fff;
+        text-shadow: 0px 0px 2px  #000000;
+        
+        font-weight: bold;
+      }
+      .tab-label:hover {
+        /* background-color: #00fff7; */
+        color: #e4fffd;
+        /* underline */
+        text-decoration: underline;
+        /*  bold text */
+        font-weight: bold;
+        /* text shadow */
+        text-shadow: 0px 0px 4px #000000;
+        transition: background-color 0.3s;
+        border-radius: 20px;
+        background-color: #ff8c00;
+        /* background-shadow */
+        box-shadow: 0px 0px 4px #000000;
+      }
+      .tab-content {
+        display: none;
+        padding: 20px;
+        background-color: #fff;
+        border: 1px solid #ff8c00;
+        border-top: none;
 
-				<!-- Section -->
-					<section id="first">
-						<header>
-							<h2>Magna sed nullam nisl adipiscing</h2>
-						</header>
-						<div class="content">
-							<p><strong>Lorem ipsum dolor</strong> sit amet consectetur adipiscing elit. Duis dapibus rutrum facilisis. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Etiam tristique libero eu nibh porttitor amet fermentum. Nullam venenatis erat id vehicula ultrices sed ultricies condimentum. Magna sed etiam consequat, et lorem adipiscing sed nulla. Volutpat nisl et tempus et dolor libero, feugiat magna tempus, sed et lorem adipiscing.</p>
-							<span class="image main"><img src="images/pic02.jpg" alt="" /></span>
-						</div>
-					</section>
+        .about-content {
+      display: flex;
+    }
+    .about-text {
+      flex: 1;
+      /* padding: 0 10px; */
+      overflow: auto;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      padding: 5px 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      scrollbar-width: thin; /* Firefox */
+      scrollbar-color: #ff8c00 #f5f5f5; /* Firefox */
+      width: 60%; /* Adjust the width as needed */
+      max-height: 350px; /* Set the maximum height of the text box */
+    }
+    
+    .about-text p {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: justify;
+      color: #333;
+    }
+    
+    .about-text h3 {
+      font-size: 24px;
+      margin-bottom: 15px;
+      color: #ff8c00;
+    }
+    
+    .about-text strong {
+      font-weight: bold;
+    }
+    
+    .about-text em {
+      font-style: italic;
+    }
+    
+    .about-image {
+      flex: 1;
+      text-align: center;
+    }
+    
+    .about-image img {
+      max-width: 100%;
+      height: 400px;
+      border-radius: 10px;
+    }
+    
+    .about-text::-webkit-scrollbar {
+      width: 10px; /* Set the width of the scrollbar */
+    }
+    
+    .about-text::-webkit-scrollbar-thumb {
+      background-color:  #ffc082;
+      border-radius: 10px; /* Rounded corners for the thumb */
+    }
+    
+    .about-text::-webkit-scrollbar-track {
+      background-color: #f5f5f5; /* Track color */
+      border-radius: 5px; /* Rounded corners for the track */
+    }
+    .sub-tabs {
+        
+        display: flex;
+        justify-content: center;
+        background-color: #ff8c00;
+        padding: 10px 0;
+        border-radius: 20px;
+    }
 
-				<!-- Section -->
-					<section>
-						<header>
-							<h2>Feugiat consequat tempus ultrices</h2>
-						</header>
-						<div class="content">
-							<p><strong>Etiam tristique libero</strong> eu nibh porttitor amet fermentum. Nullam venenatis erat id vehicula ultrices sed ultricies condimentum.</p>
-							<ul class="feature-icons">
-								<li class="icon solid fa-laptop">Consequat tempus</li>
-								<li class="icon solid fa-bolt">Etiam adipiscing</li>
-								<li class="icon solid fa-signal">Libero nullam</li>
-								<li class="icon solid fa-cog">Blandit condimentum</li>
-								<li class="icon solid fa-map-marker-alt">Lorem ipsum dolor</li>
-								<li class="icon solid fa-code">Nibh amet venenatis</li>
-							</ul>
-							<p>Vehicula ultrices sed ultricies condimentum. Magna sed etiam consequat, et lorem adipiscing sed nulla. Volutpat nisl et tempus et dolor libero, feugiat magna tempus, sed et lorem adipiscing.</p>
-						</div>
-					</section>
+    .sub-tab-label {
+        cursor: pointer;
+      padding: 10px 20px;
+      color: #fff;
+      text-shadow: 0px 0px 4px #d07a00;
+      font-weight: bold;
+      font-size: 12px;
+      text-transform: uppercase;
+      background-color: #fbba6b;
+      border-radius: 20px;
+      margin: 0 10px; /* Adjust spacing between labels */
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); /* Add a subtle box shadow for glossiness */
+      }
+    .sub-tab-label:hover {
+      color: #fff;
+      /* underline */
+      text-decoration: underline;
+      /*  bold text */
+      font-weight: bold;
+      /* text shadow */
+      text-shadow: 0px 0px 8px #975100;
+      transition: background-color 0.3s;
+      background-color: #ffa02d;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    }
+    .sub-tab-content {
+      display: none;
+      padding: 20px;
+      background-color: #fff;
+      border: 1px solid #ff8c00;
+      border-top: none;
+      border-radius: 20px; /* Adjust the radius for rounded corners */
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for glossiness */
+    }
+    
+    .subtab-about-content {
+      display: flex;
+    }
+    
+    .subtab-about-text {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 20px; /* Adjust the radius for rounded corners */
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for glossiness */
+    }
+    
+    .subtab-about-image {
+      flex: 1;
+      text-align: center;
+    }
+    
+    .subtab-about-image img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 20px; /* Adjust the radius for rounded corners */
+    }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-icons">
+        <a href="mailto:your@email.com"><i class="far fa-envelope"></i></a>
+        <a href="https://github.com/yourusername" target="_blank"><i class="fab fa-github"></i></a>
+        <a href="https://www.linkedin.com/in/yourprofile" target="_blank"><i class="fab fa-linkedin"></i></a>
+      </div>
 
-				<!-- Section -->
-					<section>
-						<header>
-							<h2>Ultrices erat magna sed condimentum</h2>
-						</header>
-						<div class="content">
-							<p><strong>Integer mollis egestas</strong> nam maximus erat id euismod egestas. Pellentesque sapien ac quam. Lorem ipsum dolor sit nullam.</p>
+    <div class="header">
+      <video autoplay muted loop>
+        <source src="freq3.mp4" type="video/mp4">
+        <!-- Include additional source elements for other video formats (WebM, Ogg) -->
+        Your browser does not support the video tag.
+      </video>
+    <h1>Chase van de Geijn</h1>
+    <p  class="header-text" id="typing-header">ML Physicist</p>
+  </div>
+  <div class="tabs">
+    <div class="tab-label" onclick="showTab('about')">About Me</div>
+    <div class="tab-label" onclick="showTab('interests')">Interests</div>
+    <div class="tab-label" onclick="showTab('education')">Education</div>
+    <div class="tab-label" onclick="showTab('skills')">Skills</div>
+  </div>
+  <div class="tab-content" id="about">
+    <h2>About Me</h2>
+    <div class="about-content">
+      <div class="about-text">
+        <h3>Welcome to my Theory of Everything!</h3>
+        <p>
+            Howdy! I'm <strong>Chase van de Geijn</strong>, a passionate <strong>AI Researcher</strong> and <strong>Orange Enthusiast</strong> 
+            with an eccentric curiosity for understanding AI at a deep mathematical level. 
+            I have a penchant for <strong>innovation</strong> in both Machine Learning theory and application, and a proclivity toward unique and novel
+            perspectives on AI through learning and teaching.
+        </p>
+        <h3>Unveiling the Enigma</h3>
+        <p>
+            TODO
+        </p>
+        <h3>Learn with Me</h3>
+        <p>
+            TODO
+          <!-- <strong>Every pixel tells a story</strong>, and I am committed to weaving tales of elegance and functionality. My obsession with detail and my love for <strong>responsive design</strong> drive me to create immersive user experiences that stand the test of time. -->
+        </p>
+      </div>
+      <div class="about-image">
+        <img src="profile.jpg" alt="Profile Image">
+      </div>
+    </div>
+  </div>
+  <div class="tab-content" id="education">
+    <h2>Education</h2>
+    <div class="sub-tabs">
+      <div class="sub-tab-label" onclick="showSubTab('degree1')">Bachelor's Degree</div>
+      <div class="sub-tab-label" onclick="showSubTab('degree2')">Master's Degree</div>
+    </div>
+    <div class="tab-content sub-tab-content" id="degree1">
+            <h2>Subtab Title</h2>
+            <div class="subtab-about-content">
+              <div class="subtab-about-text">
+                <!-- Your subtab text content here -->
+              </div>
+              <div class="subtab-about-image">
+                <img src="your-subtab-image.jpg" alt="Subtab Image">
+              </div>
+            </div>
+          </div>
+    <div class="tab-content sub-tab-content" id="degree2">
+        <h2>Subtab Title</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <!-- Your subtab text content here -->
+          </div>
+          <div class="subtab-about-image">
+            <img src="your-subtab-image.jpg" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+</div>
+  <div class="tab-content" id="interests">
+    <h2>Interests</h2>
+    <div class="sub-tabs">
+        <div class="sub-tab-label" onclick="showSubTab('interest1')">Geometric Deep Learning</div>
+        <div class="sub-tab-label" onclick="showSubTab('interest2')">Fluid Dynamics</div>
+        <div class="sub-tab-label" onclick="showSubTab('interest3')">Clifford Algebra</div>
+        <div class="sub-tab-label" onclick="showSubTab('interest4')">Wavelet Theory</div>
+      </div>
+      <div class="tab-content sub-tab-content" id="interest1">
+              <h2>Subtab Title</h2>
+              <div class="subtab-about-content">
+                <div class="subtab-about-text">
+                  <!-- Your subtab text content here -->
+                </div>
+                <div class="subtab-about-image">
+                  <img src="your-subtab-image.jpg" alt="Subtab Image">
+                </div>
+              </div>
+            </div>
+      <div class="tab-content sub-tab-content" id="interest2">
+          <h2>Subtab Title</h2>
+          <div class="subtab-about-content">
+            <div class="subtab-about-text">
+              <!-- Your subtab text content here -->
+            </div>
+            <div class="subtab-about-image">
+              <img src="your-subtab-image.jpg" alt="Subtab Image">
+            </div>
+          </div>
+        </div>
+    </div>
+  <div class="tab-content" id="skills">
+    <h2>Skills</h2>
+    <ul>
+      <li>TODO</li>
+    </ul>
+  </div>
+  <script>
+    // Function to show a specific tab
+    function showTab(tabId) {
+      const tabs = document.querySelectorAll('.tab-content');
+      tabs.forEach(tab => {
+        tab.style.display = 'none';
+      });
+      
+      const tabToShow = document.getElementById(tabId);
+      tabToShow.style.display = 'block';
+    }
+    
+    // Function to show a sub-tab within the Education section
+    function showSubTab(subTabId) {
+      const subTabs = document.querySelectorAll('.sub-tab-content');
+      subTabs.forEach(subTab => {
+        subTab.style.display = 'none';
+      });
+      
+      const subTabToShow = document.getElementById(subTabId);
+      subTabToShow.style.display = 'block';
+    }
+    
+    // Show the "About Me" tab by default
+    showTab('about');
 
-							<!-- Section -->
-								<section>
-									<header>
-										<h3>Erat aliquam</h3>
-										<p>Vehicula ultrices dolor amet ultricies et condimentum. Magna sed etiam consequat, et lorem adipiscing sed dolor sit amet, consectetur amet do eiusmod tempor incididunt  ipsum suspendisse ultrices gravida.</p>
-									</header>
-									<div class="content">
-										<div class="gallery">
-											<a href="images/gallery/fulls/01.jpg" class="landscape"><img src="images/gallery/thumbs/01.jpg" alt="" /></a>
-											<a href="images/gallery/fulls/02.jpg"><img src="images/gallery/thumbs/02.jpg" alt="" /></a>
-											<a href="images/gallery/fulls/03.jpg"><img src="images/gallery/thumbs/03.jpg" alt="" /></a>
-											<a href="images/gallery/fulls/04.jpg" class="landscape"><img src="images/gallery/thumbs/04.jpg" alt="" /></a>
-										</div>
-									</div>
-								</section>
+    function getRandomTextIndex(textIndex) {
+      let newIndex = Math.floor(Math.random() * texts.length);
+      while (newIndex === textIndex) {
+        newIndex = Math.floor(Math.random() * texts.length);
+      }
+      return newIndex;
+    }
 
-							<!-- Section -->
-								<section>
-									<header>
-										<h3>Nisl consequat</h3>
-										<p>Aenean ornare velit lacus, ac varius enim ullamcorper eu. Proin aliquam sed facilisis ante interdum congue. Integer mollis, nisl amet convallis, porttitor magna ullamcorper, amet mauris. Ut magna finibus nisi nec lacinia ipsum maximus.</p>
-									</header>
-									<div class="content">
-										<div class="gallery">
-											<a href="images/gallery/fulls/05.jpg" class="landscape"><img src="images/gallery/thumbs/05.jpg" alt="" /></a>
-											<a href="images/gallery/fulls/06.jpg"><img src="images/gallery/thumbs/06.jpg" alt="" /></a>
-											<a href="images/gallery/fulls/07.jpg"><img src="images/gallery/thumbs/07.jpg" alt="" /></a>
-										</div>
-									</div>
-								</section>
+    const typingHeader = document.getElementById('typing-header');
+    const texts = [
+      'ML Researcher',
+      'AI Physicist',
+      'Statistician',
+      'Goofy Guy',
+      'Geo-Dude',
+      'Mathematician... kinda',
+      'Orange Connoisseur',
+      // Add more text values here
+    ];
 
-							<!-- Section -->
-								<section>
-									<header>
-										<h3>Lorem gravida</h3>
-										<p>Proin aliquam facilisis ante interdum. Sed nulla amet lorem feugiat tempus aenean ornare velit lacus, ac varius sed enim lorem ullamcorper dolore.  ac varius enim lorem ullamcorper dolore. Proin aliquam facilisis.</p>
-									</header>
-									<div class="content">
-										<div class="gallery">
-											<a href="images/gallery/fulls/08.jpg" class="portrait"><img src="images/gallery/thumbs/08.jpg" alt="" /></a>
-											<a href="images/gallery/fulls/09.jpg" class="portrait"><img src="images/gallery/thumbs/09.jpg" alt="" /></a>
-											<a href="images/gallery/fulls/10.jpg" class="landscape"><img src="images/gallery/thumbs/10.jpg" alt="" /></a>
-										</div>
-									</div>
-								</section>
-
-						</div>
-					</section>
-
-				<!-- Section -->
-					<section>
-						<header>
-							<h2>Duis sed adpiscing veroeros amet</h2>
-						</header>
-						<div class="content">
-							<p><strong>Proin tempus feugiat</strong> sed varius enim lorem ullamcorper dolore aliquam aenean ornare velit lacus, ac varius enim lorem ullamcorper dolore.</p>
-							<ul class="actions">
-								<li><a href="#" class="button primary large">Get Started</a></li>
-								<li><a href="#" class="button large">Learn More</a></li>
-							</ul>
-						</div>
-					</section>
-
-				<!-- Elements -->
-				<!--
-					<section>
-						<header>
-							<h2>Elements</h2>
-						</header>
-						<div class="content">
-
-							<section>
-								<header>
-									<h3>Text</h3>
-								</header>
-								<div class="content">
-									<p>This is <b>bold</b> and this is <strong>strong</strong>. This is <i>italic</i> and this is <em>emphasized</em>.
-									This is <sup>superscript</sup> text and this is <sub>subscript</sub> text.
-									This is <u>underlined</u> and this is code: <code>for (;;) { ... }</code>. Finally, <a href="#">this is a link</a>.</p>
-									<hr />
-									<h2>Heading Level 2</h2>
-									<h3>Heading Level 3</h3>
-									<h4>Heading Level 4</h4>
-									<h5>Heading Level 5</h5>
-									<hr />
-									<h5>Blockquote</h5>
-									<blockquote>Fringilla nisl. Donec accumsan interdum nisi, quis tincidunt felis sagittis eget tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan faucibus. Vestibulum ante ipsum primis in faucibus lorem ipsum dolor sit amet nullam adipiscing eu felis.</blockquote>
-									<h5>Preformatted</h5>
-									<pre><code>i = 0;
-
-while (!deck.isInOrder()) {
-  print 'Iteration ' + i;
-  deck.shuffle();
-  i++;
-}
-
-print 'Sorted in ' + i + ' iterations.';</code></pre>
-								</div>
-							</section>
-
-							<section>
-								<header>
-									<h3>Lists</h3>
-								</header>
-								<div class="content">
-
-									<h4>Unordered</h4>
-									<ul>
-										<li>Dolor pulvinar etiam.</li>
-										<li>Sagittis adipiscing.</li>
-										<li>Felis enim feugiat.</li>
-									</ul>
-
-									<h4>Alternate</h4>
-									<ul class="alt">
-										<li>Dolor pulvinar etiam.</li>
-										<li>Sagittis adipiscing.</li>
-										<li>Felis enim feugiat.</li>
-									</ul>
-
-									<h4>Ordered</h4>
-									<ol>
-										<li>Dolor pulvinar etiam.</li>
-										<li>Etiam vel felis viverra.</li>
-										<li>Felis enim feugiat.</li>
-										<li>Dolor pulvinar etiam.</li>
-										<li>Etiam vel felis lorem.</li>
-										<li>Felis enim et feugiat.</li>
-									</ol>
-									<h4>Icons</h4>
-									<ul class="icons">
-										<li><a href="#" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
-										<li><a href="#" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li>
-										<li><a href="#" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
-										<li><a href="#" class="icon brands fa-github"><span class="label">Github</span></a></li>
-									</ul>
-
-									<h4>Actions</h4>
-									<ul class="actions">
-										<li><a href="#" class="button primary">Default</a></li>
-										<li><a href="#" class="button">Default</a></li>
-									</ul>
-									<ul class="actions stacked">
-										<li><a href="#" class="button primary">Default</a></li>
-										<li><a href="#" class="button">Default</a></li>
-									</ul>
-								</div>
-							</section>
-
-							<section>
-								<header>
-									<h3>Table</h3>
-								</header>
-								<div class="content">
-									<h4>Default</h4>
-									<div class="table-wrapper">
-										<table>
-											<thead>
-												<tr>
-													<th>Name</th>
-													<th>Description</th>
-													<th>Price</th>
-												</tr>
-											</thead>
-											<tbody>
-												<tr>
-													<td>Item One</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Item Two</td>
-													<td>Vis ac commodo adipiscing arcu aliquet.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Item Three</td>
-													<td> Morbi faucibus arcu accumsan lorem.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Item Four</td>
-													<td>Vitae integer tempus condimentum.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Item Five</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-											</tbody>
-											<tfoot>
-												<tr>
-													<td colspan="2"></td>
-													<td>100.00</td>
-												</tr>
-											</tfoot>
-										</table>
-									</div>
-
-									<h4>Alternate</h4>
-									<div class="table-wrapper">
-										<table class="alt">
-											<thead>
-												<tr>
-													<th>Name</th>
-													<th>Description</th>
-													<th>Price</th>
-												</tr>
-											</thead>
-											<tbody>
-												<tr>
-													<td>Item One</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Item Two</td>
-													<td>Vis ac commodo adipiscing arcu aliquet.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Item Three</td>
-													<td> Morbi faucibus arcu accumsan lorem.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Item Four</td>
-													<td>Vitae integer tempus condimentum.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Item Five</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-											</tbody>
-											<tfoot>
-												<tr>
-													<td colspan="2"></td>
-													<td>100.00</td>
-												</tr>
-											</tfoot>
-										</table>
-									</div>
-								</div>
-							</section>
-
-							<section>
-								<header>
-									<h3>Buttons</h3>
-								</header>
-								<div class="content">
-									<ul class="actions">
-										<li><a href="#" class="button primary">Primary</a></li>
-										<li><a href="#" class="button">Default</a></li>
-									</ul>
-									<ul class="actions">
-										<li><a href="#" class="button large">Large</a></li>
-										<li><a href="#" class="button">Default</a></li>
-										<li><a href="#" class="button small">Small</a></li>
-									</ul>
-									<ul class="actions">
-										<li><a href="#" class="button primary icon solid fa-download">Icon</a></li>
-										<li><a href="#" class="button icon solid fa-download">Icon</a></li>
-									</ul>
-									<ul class="actions">
-										<li><span class="button primary disabled">Disabled</span></li>
-										<li><span class="button disabled">Disabled</span></li>
-									</ul>
-								</div>
-							</section>
-
-							<section>
-								<header>
-									<h3>Form</h3>
-								</header>
-								<div class="content">
-									<form method="post" action="#">
-										<div class="fields">
-											<div class="field half">
-												<label for="demo-name">Name</label>
-												<input type="text" name="demo-name" id="demo-name" value="" placeholder="Jane Doe" />
-											</div>
-											<div class="field half">
-												<label for="demo-email">Email</label>
-												<input type="email" name="demo-email" id="demo-email" value="" placeholder="jane@untitled.tld" />
-											</div>
-											<div class="field">
-												<label for="demo-category">Category</label>
-												<select name="demo-category" id="demo-category">
-													<option value="">-</option>
-													<option value="1">Manufacturing</option>
-													<option value="1">Shipping</option>
-													<option value="1">Administration</option>
-													<option value="1">Human Resources</option>
-												</select>
-											</div>
-											<div class="field half">
-												<input type="radio" id="demo-priority-low" name="demo-priority" checked>
-												<label for="demo-priority-low">Low</label>
-											</div>
-											<div class="field half">
-												<input type="radio" id="demo-priority-high" name="demo-priority">
-												<label for="demo-priority-high">High</label>
-											</div>
-											<div class="field half">
-												<input type="checkbox" id="demo-copy" name="demo-copy">
-												<label for="demo-copy">Email me a copy</label>
-											</div>
-											<div class="field half">
-												<input type="checkbox" id="demo-human" name="demo-human" checked>
-												<label for="demo-human">Not a robot</label>
-											</div>
-											<div class="field">
-												<label for="demo-message">Message</label>
-												<textarea name="demo-message" id="demo-message" placeholder="Enter your message" rows="6"></textarea>
-											</div>
-										</div>
-										<ul class="actions">
-											<li><input type="submit" value="Send Message" class="primary" /></li>
-											<li><input type="reset" value="Reset" /></li>
-										</ul>
-									</form>
-								</div>
-							</section>
-
-						</div>
-					</section>
-				-->
-
-				<!-- Section -->
-					<section>
-						<header>
-							<h2>Get in touch</h2>
-						</header>
-						<div class="content">
-							<p><strong>Auctor commodo</strong> interdum et malesuada fames ac ante ipsum primis in faucibus. Pellentesque venenatis dolor imperdiet dolor mattis sagittis.</p>
-							<form>
-								<div class="fields">
-									<div class="field half">
-										<input type="text" name="name" id="name" placeholder="Name" />
-									</div>
-									<div class="field half">
-										<input type="email" name="email" id="email" placeholder="Email" />
-									</div>
-									<div class="field">
-										<textarea name="message" id="message" placeholder="Message" rows="7"></textarea>
-									</div>
-								</div>
-								<ul class="actions">
-									<li><input type="submit" value="Send Message" class="button primary" /></li>
-								</ul>
-							</form>
-						</div>
-						<footer>
-							<ul class="items">
-								<li>
-									<h3>Email</h3>
-									<a href="#">information@untitled.ext</a>
-								</li>
-								<li>
-									<h3>Phone</h3>
-									<a href="#">(000) 000-0000</a>
-								</li>
-								<li>
-									<h3>Address</h3>
-									<span>1234 Somewhere Road, Nashville, TN 00000</span>
-								</li>
-								<li>
-									<h3>Elsewhere</h3>
-									<ul class="icons">
-										<li><a href="#" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
-										<li><a href="#" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li>
-										<li><a href="#" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
-										<li><a href="#" class="icon brands fa-linkedin-in"><span class="label">LinkedIn</span></a></li>
-										<li><a href="#" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
-										<li><a href="#" class="icon brands fa-codepen"><span class="label">Codepen</span></a></li>
-									</ul>
-								</li>
-							</ul>
-						</footer>
-					</section>
-
-				<!-- Copyright -->
-					<div class="copyright">&copy; Untitled. All rights reserved. Design: <a href="https://html5up.net">HTML5 UP</a>.</div>
-
-			</div>
-
-		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/jquery.scrolly.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
-
-	</body>
+    let index = 0;
+    let isDeleting = false;
+    let textIndex = 0;
+    
+    function type() {
+      const currentText = texts[textIndex];
+      
+      if (isDeleting) {
+        typingHeader.textContent = currentText.substring(0, index - 1);
+        index--;
+      } else {
+        typingHeader.textContent = currentText.substring(0, index + 1);
+        index++;
+      }
+      
+      if (!isDeleting && index === currentText.length + 1) {
+        isDeleting = true;
+        setTimeout(type, 1500);
+      } else if (isDeleting && index === 0) {
+        isDeleting = false;
+        // textIndex = (textIndex + 1) % texts.length;
+        textIndex = getRandomTextIndex(textIndex);
+        setTimeout(type, 500);
+      } else if (isDeleting) {
+        setTimeout(type, 100);
+      } else {
+        setTimeout(type, 150);
+      }
+    }
+    
+    window.onload = type;
+  </script>
+</body>
 </html>
