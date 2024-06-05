@@ -113,10 +113,12 @@
         padding: 20px;
         background-color: #fff;
         border: 1px solid #ff8c00;
-        border-top: none;
+        border-top: none;}
 
-        .about-content {
+    .about-content {
       display: flex;
+      flex-direction: horizontal;
+      /* height: 100vh; */
     }
     .about-text {
       flex: 1;
@@ -139,6 +141,14 @@
       text-align: justify;
       color: #333;
     }
+
+    .subtab-about-text p {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: justify;
+      color: #333;
+    }
     
     .about-text h3 {
       font-size: 24px;
@@ -155,14 +165,26 @@
     }
     
     .about-image {
-      flex: 1;
-      text-align: center;
+        flex: 1;
+        /* padding: 20px; */
+        /* max-width: 100%; */
+        /* height: auto; */
+        /* position: relative; */
+        
+        text-align: center;
     }
     
     .about-image img {
-      max-width: 100%;
-      height: 400px;
-      border-radius: 10px;
+        max-width: 100%;
+        height: 400px;
+        object-fit: cover;
+        /* position: absolute; */
+        /* top: 50%; */
+        /* left: 50%; */
+        /* transform: translate(-50%, -50%); */
+        border-radius: 20px; /* Adjust the radius for rounded corners */
+        
+        
     }
     
     .about-text::-webkit-scrollbar {
@@ -178,6 +200,8 @@
       background-color: #f5f5f5; /* Track color */
       border-radius: 5px; /* Rounded corners for the track */
     }
+    
+    /*Subtabs*/
     .sub-tabs {
         
         display: flex;
@@ -199,6 +223,8 @@
       border-radius: 20px;
       margin: 0 10px; /* Adjust spacing between labels */
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); /* Add a subtle box shadow for glossiness */
+      text-align: center;
+      min-width: 100px;
       }
     .sub-tab-label:hover {
       color: #fff;
@@ -224,6 +250,7 @@
     
     .subtab-about-content {
       display: flex;
+      flex-direction: row; 
     }
     
     .subtab-about-text {
@@ -234,25 +261,118 @@
       border-radius: 20px; /* Adjust the radius for rounded corners */
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for glossiness */
     }
-    
     .subtab-about-image {
-      flex: 1;
-      text-align: center;
+        flex: 1;
+        padding: 40px;
+        /* max-width: 100%; */
+        /* height: auto; */
+        /* position: relative; */
+        
+        text-align: center;
+    }
+    .subtab-about-image-logo {
+        flex: 1;
+        padding: 40px;
+        /* max-width: 100%; */
+        /* height: auto; */
+        /* position: relative; */
+        
+        text-align: center;
+    }
+    .subtab-about-image img {
+        max-width: 100%;
+        height: auto;
+        object-fit: cover;
+        /* position: absolute; */
+        /* top: 50%; */
+        /* left: 50%; */
+        /* transform: translate(-50%, -50%); */
+        border-radius: 20px; /* Adjust the radius for rounded corners */
+    }
+    .subtab-about-image-logo img{
+        max-width: 100%;
+        max-height: 300px;
+        height: auto;
+        object-fit: cover;
+        /* position: absolute; */
+        /* top: 50%; */
+        /* left: 50%; */
+        /* transform: translate(-50%, -50%); */
+        border-radius: 20px; /* Adjust the radius for rounded corners */
     }
     
-    .subtab-about-image img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 20px; /* Adjust the radius for rounded corners */
-    }
-      }
+    /* Shrunken Screen Settings */
+    @media screen and (max-width: 768px) {
+        .about-content {
+        flex-direction: column;
+        }
+  
+        /* .about-image,
+        .about-text {
+            padding: 10px;
+        } */
+        .about-image{
+            flex: 1;
+            width: 80%;
+            padding: 10px 10px;
+            border-radius: 20px;
+        }
+        .about-text {
+            
+            padding: 0 10px;
+            overflow: auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            /* padding: 25px; */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #ff8c00 #f5f5f5; /* Firefox */
+            width: 80%; /* Adjust the width as needed */
+            max-height: 350px; /* Set the maximum height of the text box */
+            }
+            
+        
+        .about-image img {
+            /* width: 80; */
+            max-width: 50%;
+            height: auto;
+            object-fit: cover; /* Crop the image while maintaining aspect ratio */
+            /* position: absolute; */
+            /* top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); */
+             /* Adjust the radius for rounded corners */
+        }
+        /* Styles for Smaller resolution screens */
+        .sub-tab-label {
+            font-size: 10px;
+            padding: 8px 15px;
+            margin: 0 5px;
+            text-align: center;
+        }
+        
+        .sub-tab-content {
+            padding: 15px;
+        }
+        
+        .subtab-about-text {
+            padding: 15px;
+        }
+        .subtab-about-image img{
+            max-width: 100%;
+            height: auto;
+            object-fit: cover;
+            width: 80;
+        }
+
+            }
     </style>
   </head>
   <body>
     <div class="header-icons">
-        <a href="mailto:your@email.com"><i class="far fa-envelope"></i></a>
-        <a href="https://github.com/yourusername" target="_blank"><i class="fab fa-github"></i></a>
-        <a href="https://www.linkedin.com/in/yourprofile" target="_blank"><i class="fab fa-linkedin"></i></a>
+        <a href="mailto:C.M.Van-De-Geijn@sms.ed.ac.uk"><i class="far fa-envelope"></i></a>
+        <a href="https://github.com/ChasevdG" target="_blank"><i class="fab fa-github"></i></a>
+        <a href="https://www.linkedin.com/in/chase-van-de-geijn-517946196/" target="_blank"><i class="fab fa-linkedin"></i></a>
       </div>
 
     <div class="header">
@@ -273,54 +393,88 @@
   <div class="tab-content" id="about">
     <h2>About Me</h2>
     <div class="about-content">
+        <div class="about-image">
+            <img src="profile.jpg" alt="Profile Image">
+        </div>
       <div class="about-text">
         <h3>Welcome to my Theory of Everything!</h3>
         <p>
-            Howdy! I'm <strong>Chase van de Geijn</strong>, a passionate <strong>AI Researcher</strong> and <strong>Orange Enthusiast</strong> 
-            with an eccentric curiosity for understanding AI at a deep mathematical level. 
-            I have a penchant for <strong>innovation</strong> in both Machine Learning theory and application, and a proclivity toward unique and novel
-            perspectives on AI through learning and teaching.
+            Howdy! I'm <strong>Chase van de Geijn</strong>, a eccentric <strong>AI Researcher</strong> and <strong>Orange Enthusiast</strong> 
+            with an interest in understanding AI at a deep mathematical level. I am doing my PhD in <strong>Applied Math</strong> at the 
+            University of Edinburgh mainly focusing on <strong>Machine Learning for learning  Turbelent Dynamics</strong>.
+
         </p>
-        <h3>Unveiling the Enigma</h3>
+        <h3>Research Interests</h3>
         <p>
-            TODO
+          My main specialty is in <strong>Geometric Deep Learning</strong>
+          particularly <strong>Clifford Algebra</strong>. However, I also have done work in <strong>Bayesian Neural Networks</strong>, <strong>Wavelet Theory</strong>, 
+          <strong>AI4Histopathology</strong> and have recently gotten into <strong>Computational Neuroscience</strong>, particularly sparse coding, 
+          Vector Symbolic Architectures, and geometric perception. 
+          Generally, I can be described as a highly opinionated, <strong>goofy guy</strong>, who loves to learn and teach.
         </p>
         <h3>Learn with Me</h3>
         <p>
-            TODO
-          <!-- <strong>Every pixel tells a story</strong>, and I am committed to weaving tales of elegance and functionality. My obsession with detail and my love for <strong>responsive design</strong> drive me to create immersive user experiences that stand the test of time. -->
+          I am always looking for new opportunities to learn and teach. If you are interested in collaborating on a project, 
+          or if you would like to learn more about my research, feel free to reach out to me via email or LinkedIn. I intend to
+          start a Group-Equivariant Deep Learning reading group in Fall 2024, so if you are interested in joining, please let me know!
         </p>
       </div>
-      <div class="about-image">
-        <img src="profile.jpg" alt="Profile Image">
-      </div>
+      
     </div>
   </div>
   <div class="tab-content" id="education">
     <h2>Education</h2>
     <div class="sub-tabs">
-      <div class="sub-tab-label" onclick="showSubTab('degree1')">Bachelor's Degree</div>
+      <div class="sub-tab-label" onclick="showSubTab('degree3')">PhD</div>
       <div class="sub-tab-label" onclick="showSubTab('degree2')">Master's Degree</div>
+      <div class="sub-tab-label" onclick="showSubTab('degree1')">Bachelor's Degree</div>
     </div>
     <div class="tab-content sub-tab-content" id="degree1">
-            <h2>Subtab Title</h2>
+            <h2>Bachelors Degree</h2>
             <div class="subtab-about-content">
               <div class="subtab-about-text">
-                <!-- Your subtab text content here -->
+                <p>
+                I started my academic journey at the University of Texas at Austin, where I studied Computer Science 
+                as part of the Turing Scholars Honors Program. After three semesters, I transferred to the Amsterdam University College 
+                where I studied Physics. While at AUC I did a semester of exchange to the University of Sydney where I took courses in Computer Vision. 
+                I graduated with a Bachelor of Liberal Arts and Science Honours Degree in 2019 after completing my 
+                thesis on <strong>"Bayesian Neural Networks for Learning the Schrodinger Equation"</strong>.
+                </p>
               </div>
-              <div class="subtab-about-image">
-                <img src="your-subtab-image.jpg" alt="Subtab Image">
+              <div class="subtab-about-image-logo">
+                <img src="AUC_kleur.png" alt="Subtab Image">
               </div>
             </div>
           </div>
     <div class="tab-content sub-tab-content" id="degree2">
-        <h2>Subtab Title</h2>
+        <h2>Master's Degree</h2>
         <div class="subtab-about-content">
           <div class="subtab-about-text">
-            <!-- Your subtab text content here -->
+            <p>
+            During the pandemic, I took online master's courses in AI adjacent topics from the University of Texas at Austin's MCSO
+            program. After the pandemic, I once again transferred to the University of Amsterdam where I completed my Master's in 
+            Artificial Intelligence in Oct 2023. My thesis, <strong>Lifting to SE(2) should be a piece of Cake</strong> supervised 
+            by Erik Bekkers, Remco Duits and David Knigge, motivated Cake wavelets as an optimal directional wavelet for lifting 
+            images to SE(2).
+            </p>
           </div>
-          <div class="subtab-about-image">
-            <img src="your-subtab-image.jpg" alt="Subtab Image">
+          <div class="subtab-about-image-logo">
+            <img src="uva_logo.png" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+      <div class="tab-content sub-tab-content" id="degree3">
+        <h2>PhD</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <p>
+            In January 2024, I started my PhD at The Maxwell Institute for Mathematical Sciences at the University of Edinburgh under the supervision of Jacob Page. 
+            My research is focused on Interpretable Machine Learning for Fluids, PDEs, and Turbulent Dynamics.
+            My position is funded by a grant given by the European Research Council.
+            </p>
+          </div>
+          <div class="subtab-about-image-logo">
+            <img src="University_of_Edinburgh-Logo.wine.png" alt="Subtab Image">
           </div>
         </div>
       </div>
@@ -334,33 +488,202 @@
         <div class="sub-tab-label" onclick="showSubTab('interest4')">Wavelet Theory</div>
       </div>
       <div class="tab-content sub-tab-content" id="interest1">
-              <h2>Subtab Title</h2>
+              <h2>Geometric Deep Learning</h2>
               <div class="subtab-about-content">
                 <div class="subtab-about-text">
-                  <!-- Your subtab text content here -->
-                </div>
+                    <p>
+                    Geometric Deep Learning is a sub-discipline focused on enforcing symmetries in a neural network to enforce 
+                    the symmetries in the task. Intuitively, if the models task is to classify whether an image is a cat 
+                    or a dog, then it should not matter whether the input is rotated. This behavior of the output being unchanged is 
+                    known as an <strong>invariance</strong> symmetry of the task. On the other hand, if the task is to segment the
+                    pixels which correspond to the cat, then the output should rotate with the input. This behavior is known
+                    as an <strong>equivariance</strong> symmetry of the task. 
+                    </p>
+                    <p>
+                    These symmetries arise in computer vision, primarily because the task is often grounded in the physics 
+                    of the real world. In physics, the laws of nature are invariant under certain transformations. For example,
+                    the laws of physics are invariant to changes in the reference frame, such as translations, rotations,
+                    reflections, and a constant speed boost (Lorentz boosts). 
+                    These symmetries can be expressed mathematically using the language of group theory and are known as 
+                    the <strong>Poincare group</strong>.
+                    </p>
+                    <p>
+                    Convolutional neural networks are a popular choice in computer vision because they exibit translation equivariance.
+                    However, they do not exibit equivariance to the rest of the Poincare transformations. The goal of geometric deep learning
+                    is to extend the success of convolutional neural networks to this broader family of symmetries.
+                    </p>
+                  </div>
                 <div class="subtab-about-image">
-                  <img src="your-subtab-image.jpg" alt="Subtab Image">
+                  <img src="equiv.png" alt="Subtab Image" >
                 </div>
               </div>
             </div>
       <div class="tab-content sub-tab-content" id="interest2">
-          <h2>Subtab Title</h2>
+          <h2>Fluid Dynamics</h2>
           <div class="subtab-about-content">
             <div class="subtab-about-text">
-              <!-- Your subtab text content here -->
+              <p>
+              My PhD is in Machine Learning for Fluids and PDEs. Solutions to PDEs often form a low-dimensional manifold in the
+              function space. This is because the solutions to PDEs are often smooth and have a low number of degrees of freedom.
+              These low-dimensional manifolds are often approximated using machine learning techniques such as Galerkin Methods, Principle Component
+              Analysis, and Autoencoders. However these techniques often fail to capture the topology of the system and the symmetries that entails.
+              In other words, these techniques often ignore that the fluid is one, two or three dimensional or perhaps living on a sphere like ocean flows.
+              </p>
+              <p>
+              My research aims to incorporate information about the topology of the system through incorportating geometric transformations into the representation process.
+              The low order manifolds are often described by a linear combination of scaling factors and basis functions, such as the eigenvalue-eigenvector representation of PCA.
+              While this representation works well for stationary systems, it often fails to capture interpretable dynamics for traveling waves.
+              However, if we incorporate Euclidean transformations into the representation process, we can capture the dynamics of the system in a more compact and interpretable way. 
+              </p>
+              <p>
+              While this notion has been captured by previous literature, they often assume that the entire system is traveling at the same speed. However, in many systems, such as ocean flows,
+              the system is composed of multiple waves traveling at different speeds. This is where the notion of local versus global equivariant neural networks comes in. 
+              By incorporating local geometric transformations into the representation process, we can capture the dynamics of the system with more meaningful representations.
+              </p>
             </div>
             <div class="subtab-about-image">
               <img src="your-subtab-image.jpg" alt="Subtab Image">
             </div>
           </div>
         </div>
+        <div class="tab-content sub-tab-content" id="interest3">
+          <h2>Clifford Algebra</h2>
+          <div class="subtab-about-content">
+            <div class="subtab-about-text">
+              <p>
+              Clifford Algebra is a generalization of complex numbers and quaternions. It is a unifying language for
+              rigid body transformations, which includes all of the Poincare group. At its core, Clifford Algebra is a
+              generalization of the dot product and cross product which makes it a powerful tool for expressing the
+              symmetries of physics. 
+              </p>
+              <p>
+              Like its sub-algebra, the quaternions, Clifford Algebra is capable of expressing rotations in 3D space using
+              the sandwhich product. Moreover, it is capable of expressing rotations and reflections around lines and planes, 
+              as well as points. This has made it primarily useful in graphics and game design in the past. However, it has 
+              begun making its way into the world of physics and machine learning.
+              </p>
+              <p>
+              Like the complex numbers, Clifford Algebra comes with exponentiation and a Fourier Transform and an Uncertainty 
+              Principle. Making it also a powerful tool direction for extending signal processing more rigorously to higher 
+              dimensions.
+              </p>
+
+            </div>
+            <div class="subtab-about-image">
+              <img src="basisblades.png" alt="Subtab Image">
+            </div>
+          </div>
+        </div>
+      <div class="tab-content sub-tab-content" id="interest4">
+    <h2>Wavelet Theory</h2>
+    <div>
+        <label for="num_slices">Slice Width: <span id="num_slices_Value">8</span></label>
+        <input type="range" id="num_slices" name="num_slices" min="0" max="5" value="3">
     </div>
+    <canvas id="waveletCanvas" width="400" height="400"></canvas>
+    <canvas id="ifftCanvas" width="400" height="400"></canvas>
+</div>
+    </div>
+
   <div class="tab-content" id="skills">
     <h2>Skills</h2>
-    <ul>
-      <li>TODO</li>
-    </ul>
+    <div class="sub-tabs">
+      <div class="sub-tab-label" onclick="showSubTab('skills1')">Teaching</div>
+      <div class="sub-tab-label" onclick="showSubTab('skills2')">Organization</div>
+      <div class="sub-tab-label" onclick="showSubTab('interest3')">Clifford Algebra</div>
+      <div class="sub-tab-label" onclick="showSubTab('interest4')">Wavelet Theory</div>
+    </div>
+    <div class="tab-content sub-tab-content" id="skills1">
+            <h2>Teaching</h2>
+            <div class="subtab-about-content">
+              <div class="subtab-about-text">
+                <p>
+                  I am passionate about teaching and take every opportunity to share my knowledge with others. I have experience as a teaching
+                  assistant in both Bachelor's and Master's level courses. 
+                  I have TAed Autonomous Robotics and Applied Machine Learning for Bachelor's students at the University of Amsterdam, as well as
+                  Machine Learning 1 for Master's students.
+                </p>
+                <p>
+                  I frequently give colloquium lectures about my research for various groups at the University of Edinburgh.
+                  I have given the following lectures:
+                  <ul>
+                      <li>Geometric Deep Learning for Fluid Dynamics</li>
+                      <li>Clifford Algebra for Machine Learning</li>
+                      <li>Lifting to SE(2) should be a Piece of Cake</li>
+                      <li>Wavelet Theory for Signal Processing</li>
+                  </ul>
+                </p>
+                </div>
+              <div class="subtab-about-image">
+                <img src="hierarchical.gif" alt="Subtab Image" >
+              </div>
+            </div>
+          </div>
+    <div class="tab-content sub-tab-content" id="interest2">
+        <h2>Fluid Dynamics</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <p>
+            My PhD is in Machine Learning for Fluids and PDEs. Solutions to PDEs often form a low-dimensional manifold in the
+            function space. This is because the solutions to PDEs are often smooth and have a low number of degrees of freedom.
+            These low-dimensional manifolds are often approximated using machine learning techniques such as Galerkin Methods, Principle Component
+            Analysis, and Autoencoders. However these techniques often fail to capture the topology of the system and the symmetries that entails.
+            In other words, these techniques often ignore that the fluid is one, two or three dimensional or perhaps living on a sphere like ocean flows.
+            </p>
+            <p>
+            My research aims to incorporate information about the topology of the system through incorportating geometric transformations into the representation process.
+            The low order manifolds are often described by a linear combination of scaling factors and basis functions, such as the eigenvalue-eigenvector representation of PCA.
+            While this representation works well for stationary systems, it often fails to capture interpretable dynamics for traveling waves.
+            However, if we incorporate Euclidean transformations into the representation process, we can capture the dynamics of the system in a more compact and interpretable way. 
+            </p>
+            <p>
+            While this notion has been captured by previous literature, they often assume that the entire system is traveling at the same speed. However, in many systems, such as ocean flows,
+            the system is composed of multiple waves traveling at different speeds. This is where the notion of local versus global equivariant neural networks comes in. 
+            By incorporating local geometric transformations into the representation process, we can capture the dynamics of the system with more meaningful representations.
+            </p>
+          </div>
+          <div class="subtab-about-image">
+            <img src="your-subtab-image.jpg" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+      <div class="tab-content sub-tab-content" id="interest3">
+        <h2>Clifford Algebra</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <p>
+            Clifford Algebra is a generalization of complex numbers and quaternions. It is a unifying language for
+            rigid body transformations, which includes all of the Poincare group. At its core, Clifford Algebra is a
+            generalization of the dot product and cross product which makes it a powerful tool for expressing the
+            symmetries of physics. 
+            </p>
+            <p>
+            Like its sub-algebra, the quaternions, Clifford Algebra is capable of expressing rotations in 3D space using
+            the sandwhich product. Moreover, it is capable of expressing rotations and reflections around lines and planes, 
+            as well as points. This has made it primarily useful in graphics and game design in the past. However, it has 
+            begun making its way into the world of physics and machine learning.
+            </p>
+            <p>
+            Like the complex numbers, Clifford Algebra comes with exponentiation and a Fourier Transform and an Uncertainty 
+            Principle. Making it also a powerful tool direction for extending signal processing more rigorously to higher 
+            dimensions.
+            </p>
+
+          </div>
+          <div class="subtab-about-image">
+            <img src="basisblades.png" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+    <div class="tab-content sub-tab-content" id="interest4">
+  <h2>Wavelet Theory</h2>
+  <div>
+      <label for="num_slices">Slice Width: <span id="num_slices_Value">8</span></label>
+      <input type="range" id="num_slices" name="num_slices" min="0" max="5" value="3">
+  </div>
+  <canvas id="waveletCanvas" width="400" height="400"></canvas>
+  <canvas id="ifftCanvas" width="400" height="400"></canvas>
+</div>
   </div>
   <script>
     // Function to show a specific tab
@@ -439,6 +762,92 @@
     }
     
     window.onload = type;
+
+    // Wavelet Theory
+    function drawRotatingSlice(rotationAngle, num_slices, cutoffRadius) {
+      var canvas = document.getElementById('waveletCanvas');
+      var ctx = canvas.getContext('2d');
+      var canvas_2 = document.getElementById('ifftCanvas');
+      var ctx_2 = canvas.getContext('2d');
+      var size = canvas.width;
+      var center = size / 2;
+      var imageData = ctx.createImageData(size, size);
+      var sliceWidth = 360 / num_slices;
+
+      // Convert angles to radians
+      let startAngle = (rotationAngle - sliceWidth / 2) * Math.PI / 180;
+      if (startAngle < 0) startAngle += 2 * Math.PI; // Normalize angle
+
+      let endAngle = (rotationAngle + sliceWidth / 2) * Math.PI / 180;
+      if (endAngle > 2 * Math.PI) endAngle -= 2 * Math.PI; // Normalize angle
+      
+
+      // Function to check if a point is within the slice and cutoff radius
+      function isInSlice(x, y) {
+          let dx = x - center;
+          let dy = y - center;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          let angle = Math.atan2(dy, dx);
+          if (angle < 0) angle += 2 * Math.PI; // Normalize angle
+          if (startAngle >= endAngle) {
+              return (angle >= startAngle || angle <= endAngle) && distance <= cutoffRadius;
+          } else {
+              return (angle >= startAngle && angle <= endAngle) && distance <= cutoffRadius;
+          }
+
+      }
+
+      // Populate the imageData array
+      for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+              let index = (y * size + x) * 4;
+              if (isInSlice(x, y)) {
+                  imageData.data[index + 0] = 200; // Red
+                  imageData.data[index + 1] = 100; // Green
+                  imageData.data[index + 2] = 50;  // Blue
+                  imageData.data[index + 3] = 255; // Alpha (opacity)
+              }
+          }
+      }
+
+      // Draw the image data to the canvas
+      ctx.putImageData(imageData, 0, 0);
+      ctx_2.putImageData(idft2d(imageData), 0, 0);
+  }
+
+
+// Initialize rotation angle, slice width, and cutoff radius
+let rotationAngle = 0;
+let num_slices = 8; // Default slice width
+let cutoffRadius = 200; // Default cutoff radius (half of the canvas width)
+let update_amount = 45; // Amount to update the rotation angle by
+
+// Event listener for the slice width slider
+document.getElementById('num_slices').addEventListener('input', function (e) {
+    num_slices = 2**e.target.value;
+    update_amount = 360/num_slices;
+    // rotationAngle = 0; // Reset rotation angle
+    document.getElementById('num_slices_Value').textContent = num_slices; // Update displayed value
+    drawRotatingSlice(rotationAngle, num_slices, cutoffRadius);
+});
+
+// Function to update rotation
+function updateRotation() {
+    rotationAngle = (rotationAngle + update_amount) % 360; // Increase the angle by the slice width
+    drawRotatingSlice(rotationAngle, num_slices, cutoffRadius);
+
+}
+
+
+// Update proportionally to the slice width
+setInterval(updateRotation, interval);
+
+// Initial draw
+drawRotatingSlice(rotationAngle, num_slices, cutoffRadius);
+
   </script>
-</body>
-</html>
+
+  
+<!-- </body>
+<a href="https://www.vecteezy.com/video/21256861-general-mathematics-equation-math-formula-text-background-teaching-engineering-teaching-equations-and-formulas-backgrounds-for-teaching-presentations-graphic-background-animation">General Mathematics equation math formula text background teaching engineering, teaching equations and formulas backgrounds for teaching presentations graphic background animation Stock Videos by Vecteezy</a>
+</html> -->
