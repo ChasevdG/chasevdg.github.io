@@ -4,6 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chase vdG</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -149,6 +151,20 @@
       text-align: justify;
       color: #333;
     }
+    .subtab-about-text ul {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: justify;
+      color: #333;
+    }
+    .subtab-about-text li {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: justify;
+      color: #333;
+    }
     
     .about-text h3 {
       font-size: 24px;
@@ -173,7 +189,19 @@
         
         text-align: center;
     }
-    
+    #hoverVideo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+    }
+
+    #lastFrame {
+        width: 100%;
+        height: 100%;
+    }
     .about-image img {
         max-width: 100%;
         height: 400px;
@@ -226,6 +254,7 @@
       text-align: center;
       min-width: 100px;
       }
+
     .sub-tab-label:hover {
       color: #fff;
       /* underline */
@@ -247,12 +276,23 @@
       border-radius: 20px; /* Adjust the radius for rounded corners */
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for glossiness */
     }
-    
+    .subtab-about-content-right {
+      display: flex;
+      flex-direction: row; 
+    }
+    .subtab-about-content strong {
+      font-weight: bold;
+      color: #ff8c00; 
+    }
+
     .subtab-about-content {
       display: flex;
       flex-direction: row; 
     }
-    
+    .subtab-about-title {
+      display: flex;
+      flex-direction: row; 
+    }
     .subtab-about-text {
       flex: 1;
       padding: 20px;
@@ -261,6 +301,15 @@
       border-radius: 20px; /* Adjust the radius for rounded corners */
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for glossiness */
     }
+    .subtab-about-video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        object-fit: cover;
+      }
     .subtab-about-image {
         flex: 1;
         padding: 40px;
@@ -278,6 +327,16 @@
         /* position: relative; */
         
         text-align: center;
+    }
+    .subtab-about-image video {
+        max-width: 100%;
+        height: auto;
+        object-fit: cover;
+        /* position: absolute; */
+        /* top: 50%; */
+        /* left: 50%; */
+        /* transform: translate(-50%, -50%); */
+        border-radius: 20px; /* Adjust the radius for rounded corners */
     }
     .subtab-about-image img {
         max-width: 100%;
@@ -388,6 +447,7 @@
     <div class="tab-label" onclick="showTab('about')">About Me</div>
     <div class="tab-label" onclick="showTab('interests')">Interests</div>
     <div class="tab-label" onclick="showTab('education')">Education</div>
+    <div class="tab-label" onclick="showTab('research')">Research</div>
     <div class="tab-label" onclick="showTab('skills')">Skills</div>
   </div>
   <div class="tab-content" id="about">
@@ -400,7 +460,7 @@
         <h3>Welcome to my Theory of Everything!</h3>
         <p>
             Howdy! I'm <strong>Chase van de Geijn</strong>, a eccentric <strong>AI Researcher</strong> and <strong>Orange Enthusiast</strong> 
-            with an interest in understanding AI at a deep mathematical level. I am doing my PhD in <strong>Applied Math</strong> at the 
+            with an interest in understanding AI at a deep mathematical level. I was doing my PhD in <strong>Applied Math</strong> at the 
             University of Edinburgh mainly focusing on <strong>Machine Learning for learning  Turbelent Dynamics</strong>.
 
         </p>
@@ -412,12 +472,12 @@
           Vector Symbolic Architectures, and geometric perception. 
           Generally, I can be described as a highly opinionated, <strong>goofy guy</strong>, who loves to learn and teach.
         </p>
-        <h3>Learn with Me</h3>
+        <!-- <h3>Learn with Me</h3>
         <p>
           I am always looking for new opportunities to learn and teach. If you are interested in collaborating on a project, 
           or if you would like to learn more about my research, feel free to reach out to me via email or LinkedIn. I intend to
           start a Group-Equivariant Deep Learning reading group in Fall 2024, so if you are interested in joining, please let me know!
-        </p>
+        </p> -->
       </div>
       
     </div>
@@ -550,30 +610,142 @@
           <h2>Clifford Algebra</h2>
           <div class="subtab-about-content">
             <div class="subtab-about-text">
-              <p>
-              Clifford Algebra is a generalization of complex numbers and quaternions. It is a unifying language for
-              rigid body transformations, which includes all of the Poincare group. At its core, Clifford Algebra is a
-              generalization of the dot product and cross product which makes it a powerful tool for expressing the
-              symmetries of physics. 
+              <p><strong>Clifford Algebra</strong> serves as a unifying language for
+                <strong>rigid body transformations</strong>, and offers an easy way to express Poincare group transformations. At its core, Clifford Algebra is a
+                generalization of the dot product and cross product which makes it a powerful tool for expressing the
+                symmetries of physics. The ability to express physical symmetries is what makes it especially useful in <strong>robotics, game design</strong> and <strong>particle physics</strong>.
+                However, I think it will also become <strong>key in creating interpretable and generalizable machine learning models across all physical systems</strong>.
               </p>
-              <p>
-              Like its sub-algebra, the quaternions, Clifford Algebra is capable of expressing rotations in 3D space using
-              the sandwhich product. Moreover, it is capable of expressing rotations and reflections around lines and planes, 
-              as well as points. This has made it primarily useful in graphics and game design in the past. However, it has 
-              begun making its way into the world of physics and machine learning.
-              </p>
-              <p>
-              Like the complex numbers, Clifford Algebra comes with exponentiation and a Fourier Transform and an Uncertainty 
-              Principle. Making it also a powerful tool direction for extending signal processing more rigorously to higher 
-              dimensions.
-              </p>
-
             </div>
+          </div>
+          <div class="subtab-about-content">
+            <div class="subtab-about-text">
+              <p>
+              Clifford Algebra is a way of multiplying vectors and allows for the generalization of complex numbers and quaternions. 
+              The algebra is simply motivated from two axioms : 
+              <p>$$\vec{e}_i \vec{e}_i = \{1,0,-1\}$$</p>
+              <p>$$\vec{e}_i \vec{e}_j = - \vec{e}_j \vec{e}_i$$</p>
+              <p>
+              Like in Linear Algebra, a vector can be expressed as a linear combination of basis vectors. For example,
+              </p>
+              <p>$$a = a_1 \vec{e}_1 + a_2 \vec{e}_2$$</p>
+              <p>
+              The geometric product between two vectors, is defined to be <i>bilinear</i> ie it is left and right distributive. Using this, we can show (right) that,
+              </p>
+              <p>$$ab = a \cdot b + a \wedge b$$</p>
+              <p>
+              Where the dot product is the inner product and the wedge product is the exterior product.
+              </p>
+            </div>
+            <div class="subtab-about-image">
+              <video id="myVideo" muted controls autoplay>
+                <source src="GP.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            </div>
+          </div>
+          <div class="subtab-about-content-right">
             <div class="subtab-about-image">
               <img src="basisblades.png" alt="Subtab Image">
             </div>
+            <div class="subtab-about-text">
+              <p>
+              The dot product, like in Linear Algebra, produces a <i>scalar</i>, whereas the wedge product produces a <i>bivector</i> which is a 2D object that represents a plane.
+              The wedge product can be thought of as the oriented area of the parallelogram formed by the two vectors as shown left.
+              When the order of the vectors is switched, the orientation switches from clockwise to counterclockwise creating a negative in the equations.
+              </p>
+              <p>
+              The wedge product is intimately related to the cross product in 3D space.
+              In a 3D Clifford Algebra, a bivector can be uniquely identified with its (signed) normal vector.
+              The cross product is precisely the normal vector of the plane formed by the wedge product of two vectors.
+              </p>
+            </div>
+          </div>
+        <div class="subtab-about-content-right">
+            <div class="subtab-about-text">
+              <p>
+                The summation of these two products means that the geometric product can produce a <i>multivector</i> which is a generalization of a vector that can represent any dimension.
+                If a bivector is multiplied by an additional vector, it produces a trivector which is a 3D object that represents a volume. 
+                This can be thought of as the oriented volume of the parallelepiped formed by the three vectors.
+              </p> 
+              <p>
+                The maximum <i>grade</i> of the multivector is limited by the dimension of the space.
+                For example, in 3D space, the maximum grade is 3.
+                Thus, Clifford algebras are often defined by the dimension of the space they are defined in, or more specifically by the number of basis vectors.
+                A Clifford algebra, \(Cl(p,q,r)\) is defined by the number of positive (\(p\)), negative (\(q\)), and zero (\(r\)) basis vectors.
+                The total dimensionality of the algebra is \(n = p + q + r\). 
+                However, I will use purely positive bases unless otherwise specified.
+              </p>
+              <p>
+                The total number of <i>blades</i> grows exponentially with the dimension of the space as \(2^n\). 
+                For example, 3D space is given by 8 basis blades (See right).
+              </p>
+            </div>
+            <div class="subtab-about-image">
+              <video id="myVideo" muted controls autoplay>
+                <source src="GeometricBlades.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            </div>
+        </div>
+        <div class="subtab-about-content-right">
+          <div class="subtab-about-image">
+            <video id="myVideo" muted controls autoplay>
+              <source src="Quaternion.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+          </video>
+          </div>
+          <div class="subtab-about-text">
+              <p>
+                The even grades of a Clifford algebra are closed under addition and geometric product, ie starting with only even grade bases can produce only even grade multivectors.
+                This means that the even grades form a sub-algebra of the Clifford algebra. 
+                The even grade sub-algebra of a \(Cl(2)\) is equivalent to the complex numbers.
+                Moreover, the even grade sub-algebra of a \(Cl(3)\) is equivalent to the quaternions in 3D space, as shown Left.
+              </p>
           </div>
         </div>
+        <div class="subtab-about-content-right">
+          <div class="subtab-about-text">
+              <p>
+                Quaternions are a powerful tool in 3D graphics because they can represent rotations in 3D space without the <i>Gimbal Lock</i> problem that Euler angles have.
+                In quaternion algebra, one can express rotations in 3D space using the <i>sandwich product</i> or <i>conjugate product</i>.
+              </p>
+              <p>
+                $$\hat{v}' = \hat{q}\hat{\mathbf{v}}\hat{q}^{-1}.$$
+              </p>
+              <p>
+              Likewise, the even sub-algebras of a Clifford algebra can be rotated with the conjugate product.
+              In /(Cl(2)), this results in a rotation in the complex plane, and in \(Cl(3)\) this corresponds to the quaternion rotation.
+              </p>
+              More generally, the conjugate product of two vectors, \(-\mathbf{a}\mathbf{b}\mathbf{a}^{-1}\) <i>reflects</i> \(\mathbf{b}\) across \(\mathbf{a}\).
+              </p>
+            </div>
+            <div class="subtab-about-image">
+              <video id="myVideo" muted controls autoplay>
+                <source src="GeometricAlgebra.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            </div>
+          </div>
+          <div class="subtab-about-content-right">
+            <div class="subtab-about-image">
+              <video id="myVideo" muted controls autoplay>
+                <source src="GeometricAlgebra.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            </div>
+            <div class="subtab-about-text">
+                <p>
+                Like the complex numbers, Clifford Algebra comes with exponentiation and a Fourier Transform and an Uncertainty 
+                Principle. Making it also a powerful tool direction for extending signal processing more rigorously to higher 
+                dimensions.
+                </p>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
       <div class="tab-content sub-tab-content" id="interest4">
     <!-- <h2>Wavelet Theory</h2>
     <div>
@@ -584,7 +756,163 @@
     <canvas id="ifftCanvas" width="400" height="400"></canvas> -->
 </div>
     </div>
+    <div class="tab-content" id="research">
+      <h2>Research</h2>
+      <div class="sub-tabs">
+        <div class="sub-tab-label" onclick="showSubTab('CHASE')">Hierarchical Equivariance</div>
+        <div class="sub-tab-label" onclick="showSubTab('ENF')">Equivariant Neural Fields</div>
+        <div class="sub-tab-label" onclick="showSubTab('GPOD')">Group Generalized POD</div>
+        <div class="sub-tab-label" onclick="showSubTab('CAKE')">Cake Wavelets</div>
+      </div>
+      <div class="tab-content sub-tab-content" id="CHASE">
+        <h2>Clifford Hierarchical Algebras for Structural Equivariance</h2>
+        <div class="subtab-about-content">
+        <div class="subtab-about-text">
+          <p>
+            Most research in Geometric Deep Learning (GDL) has focused on enforcing global equivariance in the neural network.
+            However, most tasks such as images are compositional, where scenes are composed of objects, which are composed of parts, which are composed of subparts.
+            These structures are often themselves equivariant, which induces a global equivariance in the system.
+            Thus, the global equivariance, which is often the focus of GDL, does not capture the full <strong>compositional equivariance</strong> of the system.
+          </p>
+          <p>
+            In the previous work of Shewmake et al. (--), they propose <i>hierarchically equivariant sparse coding</i> to capture the symmetries of the part-whole hierarchy.
+            In this work, they motivate hierarchical equivariance using product groups and with elementwise products.
+            Similarly, in Wang et al.(--) the formalize instead motivated by wreath products.
+            <strong> By contrast, in this work, I propose a new algebraic framework for formalizing part-whole hierarchies.</strong>
+          </p>
+          <p>
+            In GDL, emphasis is often put on representing symmetries as groups and equivariances as <i>group homomorphisms</i>.
+            However, part-whole hierarchies can be intuitively represented as <i>algebras</i>, typically <i>rings</i>, which leads to a hierarchical equivariances being naturally expressed as <i>algebraic homomorphisms</i>.
+            In formulating the problem algebraicly, I naturally motivate an architecture for learning part whole hierarchies, through the use of a neural field parameterized as a <i>ring</i>.
+            To parameterize the ring, I use <i>Clifford Algebras</i> which naturally captures the rigid body motion transformations in images.
+            Thus, we call our architecture <strong>Clifford Hierarchical Algebras for Structural Equivariance</strong>
+          </p>
+        </div>
+      </div>
+      <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <!-- <p>
+              Many of the advances in modern physics have been attributed to Noether's theorem, which states that every symmetry in a system corresponds to a conserved quantity.
+              This has led to the development of the Standard Model of particle physics, from the conservation of energy and momentum to the conservation of charge and spin, as well as Relativity from the conservation of the speed of light.
+              As a neural network will not naturally respect these symmetries, it has led to the rich sub-field of Geometric Deep Learning to enforce these symmetries in the architecture of the neural network.
+            </p> -->
+            <p>
+              The motivation behind geometric deep learning is often simplified to the idea that <i>"a rotation to the input should result in an equal rotation to the output"</i>.
+              Thus, our task (Right) domain (images) has an <i>equivariant</i> symmetry with its codomain under rotations.
+              An equivariant symmetry under a group \(G\) for a function, \(f : X \rightarrow Y\), is defined as,
+            </p>
+              <p>$$f(g \cdot x) = \phi(g) \cdot f(x)$$</p>
+            <p>
+              where \(g \in G\) is the group action (rotation) on the input \(x \in X\) and \(\phi(g)\) is the corresponding group action on the output \(f(x) \in Y\).
+              In the above phrasing, rotation is assumed to act identically on the input and output.
+              While this serves as a good starting point, it is often not enough to capture the full symmetries of the system.
+            </p>
+          </div>
+          <div class="subtab-about-image">
+            <img src="symmetry.GIF" alt="Subtab Image">
+          </div>
+          </div>
+          <div class="subtab-about-content">
+            <div class="subtab-about-image">
+              <img src="hierarchical.gif" alt="Subtab Image">
+            </div>
+            <div class="subtab-about-text">
+            <p>
+              In the case of images, the task is often compositional, where the image is composed of objects, which are composed of parts, which are composed of subparts.
+              These sub-structures are often equivariant.
+              For example, our task may be to segment an image composed of a cat and a dog.
+              The cat can be translated and rotated, and the segmentation of the cat will follow that transformation.
+              However, the segmentation of the dog will remain unchanged.
+              Likewise, the segmentation map will follow the transformations to the dog and the segmentation of the cat will remain unchanged.
+              Let's begin formalizing this idea.
+            </p>
+            </div>
+          </div>
+          <div class="subtab-about-content">
+            <div class="subtab-about-text">
+            <p>
+              To translate this intuition into equations, we are given an image, \(I\), at wish to create a segmentation map, \(S\), using a neural network \(f\).
+            </p>
+            <p>$$S = f(I)$$</p>
+            <p>
+              Moreover, we know that our image is composed of objects,
+            </p>
+            <p>$$I = \{O_1, O_2, ..., O_n\}$$</p>
+            <p>
+              and that our segmentation map is composed of segmentations of these objects,
+            </p>
+            <p>$$S = \{S_1, S_2, ..., S_n\}$$</p>
+            <p>
+              If we were to rotate the full image, the segmentation of the cat and dog would both rotate with the image.
+              Thus, <i>if the task is compositionally equivariant, the task is also globally equivariant</i>.
+            </p>
+          </div>
+          <div class="subtab-about-image">
+            <img src="hierarchical.gif" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+      <div class="tab-content sub-tab-content" id="ENF">
+        <h2>Equivariant Neural Fields</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <p>
+              Neural Fields are gaining traction in a number of different fields in machine learning.
+              Neural Fields can be thought of as neural networks trained to represent a single datapoint.
+              Training a neural network to represent the datapoint offers two advantages:
+              <ol>
+                <li> The neural network can be trained to represent the datapoint in a way that is invariant to the symmetries of the system.</li>
+                <li> The neural network can be trained to represent the datapoint in a way that is equivariant to the symmetries of the system.</li>
+              </ol>
 
+
+              The term "Neural Fields" serves as the umbrella term for coordinate
+            </p>
+          </div>
+          <div class="subtab-about-image">
+            <img src="equivariant_neural_fields.png" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+      <div class="tab-content sub-tab-content" id="GPOD">
+        <h2>Group Generalized POD</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <p>
+              Group Generalized POD is a way of representing the symmetries of a system using the Generalized Proper Orthogonal Decomposition. 
+              The idea is to represent the symmetries of the system as a hierarchy of Generalized PODs. 
+              The lowest level of the hierarchy is the Generalized POD of the space the system is defined in. 
+              The next level is the Generalized POD of the Poincare group of the space. 
+              The next level is the Generalized POD of the Poincare group of the Poincare group of the space. 
+              This continues until the symmetries of the system are fully represented.
+            </p>
+          </div>
+          <div class="subtab-about-image">
+            <img src="group_generalized_pod.png" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+      <div class="tab-content sub-tab-content" id="CAKE">
+        <h2>Cake Wavelets</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+            <p>
+              Cake Wavelets are a way of representing the symmetries of a system using wavelets. 
+              The idea is to represent the symmetries of the system as a hierarchy of wavelets. 
+              The lowest level of the hierarchy is the wavelet of the space the system is defined in. 
+              The next level is the wavelet of the Poincare group of the space. 
+              The next level is the wavelet of the Poincare group of the Poincare group of the space. 
+              This continues until the symmetries of the system are fully represented.
+            </p>
+          </div>
+          <div class="subtab-about-image">
+            <img src="cake_wavelets.png" alt="Subtab Image">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+      
   <div class="tab-content" id="skills">
     <h2>Skills</h2>
     <div class="sub-tabs">
@@ -598,16 +926,21 @@
                 <p>
                   I am passionate about teaching and take every opportunity to share my knowledge with others. I have experience as a teaching
                   assistant in both Bachelor's and Master's level courses. 
-                  I have TAed Autonomous Robotics and Applied Machine Learning for Bachelor's students at the University of Amsterdam, as well as
-                  Machine Learning 1 for Master's students.
+                  <ul>
+                    <li> <strong> Autonomous Mobile Robots</strong>  : UvA AI, Bachelors Level</li>
+                    <li> <strong> Applied Machine Learning</strong>  : UvA Datascience, Bachelors Level</li>
+                    <li> <strong> Machine Learning 1</strong>  : UvA AI, Masters Level</li>
+                  </ul>
                 </p>
                 <p>
                   I frequently give colloquium lectures about my research for various groups at the University of Edinburgh.
                   I have given the following lectures:
                   <ul>
-                      <li>Geometric Deep Learning for Fluid Dynamics</li>
-                      <li>Clifford Algebra for Machine Learning</li>
-                      <li>Lifting to SE(2) should be a Piece of Cake</li>
+                      <li><strong>Hierarchical Geometric Deep Learning : Pure Math for AI</strong> - Post Graduate Applied Math Colloquium , The University of Edinburgh, May 2024</li>
+                      <li><strong>Lifting to SE(2) should be a Piece of Cake</strong> - Machine Learning Reading Group, The University of Edinburgh, April 2024</li>
+                      <li><strong>Lifting to SE(2) should be a Piece of Cake</strong> - Redwood Center of Theoretical Neuroscience Berkeley, Dec 2023</li>
+                      <li><strong>Lifting to SE(2) should be a Piece of Cake</strong> - Machine Learning and Simulation Science Lab, University of Stuttgart Aug 2023</li>
+                      <li><strong>Learning the Schrodinger Equation with Uncertainty with Bayesian Neural Networks</strong> - AMLab, University of Amsterdam June 2019</li>
                       <li>Wavelet Theory for Signal Processing</li>
                   </ul>
                 </p>
@@ -659,7 +992,7 @@
       'Statistician',
       'Goofy Guy',
       'Geo-Dude',
-      'Mathematician... kinda',
+      'Mathemagician',
       'Orange Connoisseur',
       // Add more text values here
     ];
@@ -778,9 +1111,28 @@ setInterval(updateRotation, interval);
 // Initial draw
 drawRotatingSlice(rotationAngle, num_slices, cutoffRadius);
 
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('myVideo');
+
+    video.addEventListener('click', function() {
+        if (video.paused) {
+            video.play();
+            video.loop = true;
+        } else {
+            video.pause();
+        }
+    });
+
+    video.addEventListener('ended', function() {
+        if (video.loop) {
+            video.play();
+        }
+    });
+});
   </script>
 
-  
 <!-- </body>
 <a href="https://www.vecteezy.com/video/21256861-general-mathematics-equation-math-formula-text-background-teaching-engineering-teaching-equations-and-formulas-backgrounds-for-teaching-presentations-graphic-background-animation">General Mathematics equation math formula text background teaching engineering, teaching equations and formulas backgrounds for teaching presentations graphic background animation Stock Videos by Vecteezy</a>
 </html> -->
