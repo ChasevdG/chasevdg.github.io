@@ -6,426 +6,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-      }
-      .header {
-        position: relative;
-        overflow: hidden;
-        color: #fff;
-        text-align: center;
-        padding: 29px 0;
-      }
-      .header h1 {
-        text-align: center;
-        margin: 0 auto;
-        font-size: 48px;
-        /* font-weight: 600; */
-        line-height: 1.6;
-        color: #fff;
-        /* text-shadow: 0px 0px 4px #000000; */
-        /* background-color: rgba(0, 0, 0, 0.5); */
-        width: fit-content;
-        text-shadow: 0px 0px 2px #000000;      
-    }
-      /* Increase text <p> width*/
-      .header p {
-            width: 400px;
-            height: 30px;
-            padding: 10px 10px;
-            margin: 0 auto;
-            font-size: 18px;
-            font-weight: 600;
-            line-height: 1.6;
-            color: #fff;
-            /* solid outline text */
-            /* -webkit-text-stroke: .5px #000; */
-            /* shadow text */
-            text-shadow: 0px 0px 2px #000000;
-            /* background-color: rgba(0, 0, 0, 0.5); */
-
-         }
-      .header video {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-        object-fit: cover;
-      }
-    .header-icons {
-      background-color: #ffc782;
-      text-align: center;
-      padding: 5px 0;
-    }
-    
-    .header-icons a {
-      color: #fff;
-      text-decoration: none;
-      margin: 0 10px;
-      font-size: 20px;
-    }
-    
-    .header-icons a:hover {
-      color: #ffa041;
-      /* underline */
-      text-decoration: underline;
-      /*  bold text */
-      font-weight: bold;
-      /* text shadow */
-      text-shadow: 0px 0px 4px #000000;
-
-    }
-    
-    .tabs {
-      display: flex;
-      justify-content: center;
-      background-color: #ffcb8b;
-      padding: 10px 0;
-    }
-      .tab-label {
-        cursor: pointer;
-        padding: 10px 20px;
-        color: #fff;
-        text-shadow: 0px 0px 2px  #000000;
-        
-        font-weight: bold;
-      }
-      .tab-label:hover {
-        /* background-color: #00fff7; */
-        color: #e4fffd;
-        /* underline */
-        text-decoration: underline;
-        /*  bold text */
-        font-weight: bold;
-        /* text shadow */
-        text-shadow: 0px 0px 4px #000000;
-        transition: background-color 0.3s;
-        border-radius: 20px;
-        background-color: #ff8c00;
-        /* background-shadow */
-        box-shadow: 0px 0px 4px #000000;
-      }
-      .tab-content {
-        display: none;
-        padding: 20px;
-        background-color: #fff;
-        border: 1px solid #ff8c00;
-        border-top: none;}
-
-    .about-content {
-      display: flex;
-      flex-direction: horizontal;
-      /* height: 100vh; */
-    }
-    .about-text {
-      flex: 1;
-      padding: 0 10px;
-      overflow: auto;
-      background-color: rgba(255, 255, 255, 0.9);
-      border-radius: 10px;
-      padding: 25px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      scrollbar-width: thin; /* Firefox */
-      scrollbar-color: #ff8c00 #f5f5f5; /* Firefox */
-      width: 60%; /* Adjust the width as needed */
-      max-height: 350px; /* Set the maximum height of the text box */
-    }
-    
-    .about-text p {
-      font-size: 18px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-      text-align: justify;
-      color: #333;
-    }
-
-    .subtab-about-text p {
-      font-size: 18px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-      text-align: justify;
-      color: #333;
-    }
-    .subtab-about-text ul {
-      font-size: 18px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-      text-align: justify;
-      color: #333;
-    }
-    .subtab-about-text li {
-      font-size: 18px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-      text-align: justify;
-      color: #333;
-    }
-    
-    .about-text h3 {
-      font-size: 24px;
-      margin-bottom: 15px;
-      color: #ff8c00;
-    }
-    
-    .about-text strong {
-      font-weight: bold;
-    }
-    
-    .about-text em {
-      font-style: italic;
-    }
-    
-    .about-image {
-        flex: 1;
-        /* padding: 20px; */
-        /* max-width: 100%; */
-        /* height: auto; */
-        /* position: relative; */
-        
-        text-align: center;
-    }
-    #hoverVideo {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: none;
-    }
-
-    #lastFrame {
-        width: 100%;
-        height: 100%;
-    }
-    .about-image img {
-        max-width: 100%;
-        height: 400px;
-        object-fit: cover;
-        /* position: absolute; */
-        /* top: 50%; */
-        /* left: 50%; */
-        /* transform: translate(-50%, -50%); */
-        border-radius: 20px; /* Adjust the radius for rounded corners */
-        
-        
-    }
-    
-    .about-text::-webkit-scrollbar {
-      width: 10px; /* Set the width of the scrollbar */
-    }
-    
-    .about-text::-webkit-scrollbar-thumb {
-      background-color:  #ffc082;
-      border-radius: 10px; /* Rounded corners for the thumb */
-    }
-    
-    .about-text::-webkit-scrollbar-track {
-      background-color: #f5f5f5; /* Track color */
-      border-radius: 5px; /* Rounded corners for the track */
-    }
-    
-    /*Subtabs*/
-    .sub-tabs {
-        
-        display: flex;
-        justify-content: center;
-        background-color: #ff8c00;
-        padding: 10px 0;
-        border-radius: 20px;
-    }
-
-    .sub-tab-label {
-        cursor: pointer;
-      padding: 10px 20px;
-      color: #fff;
-      text-shadow: 0px 0px 4px #d07a00;
-      font-weight: bold;
-      font-size: 12px;
-      text-transform: uppercase;
-      background-color: #fbba6b;
-      border-radius: 20px;
-      margin: 0 10px; /* Adjust spacing between labels */
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); /* Add a subtle box shadow for glossiness */
-      text-align: center;
-      min-width: 100px;
-      }
-
-    .sub-tab-label:hover {
-      color: #fff;
-      /* underline */
-      text-decoration: underline;
-      /*  bold text */
-      font-weight: bold;
-      /* text shadow */
-      text-shadow: 0px 0px 8px #975100;
-      transition: background-color 0.3s;
-      background-color: #ffa02d;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-    }
-    .sub-tab-content {
-      display: none;
-      padding: 20px;
-      background-color: #fff;
-      border: 1px solid #ff8c00;
-      border-top: none;
-      border-radius: 20px; /* Adjust the radius for rounded corners */
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for glossiness */
-    }
-    .subtab-about-content-right {
-      display: flex;
-      flex-direction: row; 
-    }
-    .subtab-about-content strong {
-      font-weight: bold;
-      color: #ff8c00; 
-    }
-
-    .subtab-about-content {
-      display: flex;
-      flex-direction: row; 
-    }
-    .subtab-about-title {
-      display: flex;
-      flex-direction: row; 
-    }
-    .subtab-about-text {
-      flex: 1;
-      padding: 20px;
-      overflow: auto;
-      background-color: rgba(255, 255, 255, 0.9);
-      border-radius: 20px; /* Adjust the radius for rounded corners */
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow for glossiness */
-    }
-    .subtab-about-video {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-        object-fit: cover;
-      }
-    .subtab-about-image {
-        flex: 1;
-        padding: 40px;
-        /* max-width: 100%; */
-        /* height: auto; */
-        /* position: relative; */
-        
-        text-align: center;
-    }
-    .subtab-about-image-logo {
-        flex: 1;
-        padding: 40px;
-        /* max-width: 100%; */
-        /* height: auto; */
-        /* position: relative; */
-        
-        text-align: center;
-    }
-    .subtab-about-image video {
-        max-width: 100%;
-        height: auto;
-        object-fit: cover;
-        /* position: absolute; */
-        /* top: 50%; */
-        /* left: 50%; */
-        /* transform: translate(-50%, -50%); */
-        border-radius: 20px; /* Adjust the radius for rounded corners */
-    }
-    .subtab-about-image img {
-        max-width: 100%;
-        height: auto;
-        object-fit: cover;
-        /* position: absolute; */
-        /* top: 50%; */
-        /* left: 50%; */
-        /* transform: translate(-50%, -50%); */
-        border-radius: 20px; /* Adjust the radius for rounded corners */
-    }
-    .subtab-about-image-logo img{
-        max-width: 100%;
-        max-height: 300px;
-        height: auto;
-        object-fit: cover;
-        /* position: absolute; */
-        /* top: 50%; */
-        /* left: 50%; */
-        /* transform: translate(-50%, -50%); */
-        border-radius: 20px; /* Adjust the radius for rounded corners */
-    }
-    
-    /* Shrunken Screen Settings */
-    @media screen and (max-width: 768px) {
-        .about-content {
-        flex-direction: column;
-        }
-  
-        /* .about-image,
-        .about-text {
-            padding: 10px;
-        } */
-        .about-image{
-            flex: 1;
-            width: 80%;
-            padding: 10px 10px;
-            border-radius: 20px;
-        }
-        .about-text {
-            
-            padding: 0 10px;
-            overflow: auto;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
-            /* padding: 25px; */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            scrollbar-width: thin; /* Firefox */
-            scrollbar-color: #ff8c00 #f5f5f5; /* Firefox */
-            width: 80%; /* Adjust the width as needed */
-            max-height: 350px; /* Set the maximum height of the text box */
-            }
-            
-        
-        .about-image img {
-            /* width: 80; */
-            max-width: 50%;
-            height: auto;
-            object-fit: cover; /* Crop the image while maintaining aspect ratio */
-            /* position: absolute; */
-            /* top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%); */
-             /* Adjust the radius for rounded corners */
-        }
-        /* Styles for Smaller resolution screens */
-        .sub-tab-label {
-            font-size: 10px;
-            padding: 8px 15px;
-            margin: 0 5px;
-            text-align: center;
-        }
-        
-        .sub-tab-content {
-            padding: 15px;
-        }
-        
-        .subtab-about-text {
-            padding: 15px;
-        }
-        .subtab-about-image img{
-            max-width: 100%;
-            height: auto;
-            object-fit: cover;
-            width: 80;
-        }
-
-            }
-    </style>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <div class="header-icons">
@@ -436,7 +17,7 @@
 
     <div class="header">
       <video autoplay muted loop>
-        <source src="freq3.mp4" type="video/mp4">
+        <source src="images/freq3.mp4" type="video/mp4">
         <!-- Include additional source elements for other video formats (WebM, Ogg) -->
         Your browser does not support the video tag.
       </video>
@@ -454,7 +35,7 @@
     <h2>About Me</h2>
     <div class="about-content">
         <div class="about-image">
-            <img src="profile.jpg" alt="Profile Image">
+            <img src="images/profile.jpg" alt="Profile Image">
         </div>
       <div class="about-text">
         <h3>Welcome to my Theory of Everything!</h3>
@@ -502,7 +83,7 @@
                 </p>
               </div>
               <div class="subtab-about-image-logo">
-                <img src="AUC_kleur.png" alt="Subtab Image">
+                <img src="images/AUC_kleur.png" alt="Subtab Image">
               </div>
             </div>
           </div>
@@ -519,7 +100,7 @@
             </p>
           </div>
           <div class="subtab-about-image-logo">
-            <img src="uva_logo.png" alt="Subtab Image">
+            <img src="images/uva_logo.png" alt="Subtab Image">
           </div>
         </div>
       </div>
@@ -534,7 +115,7 @@
             </p>
           </div>
           <div class="subtab-about-image-logo">
-            <img src="University_of_Edinburgh-Logo.wine.png" alt="Subtab Image">
+            <img src="images/University_of_Edinburgh-Logo.wine.png" alt="Subtab Image">
           </div>
         </div>
       </div>
@@ -574,7 +155,7 @@
                     </p>
                   </div>
                 <div class="subtab-about-image">
-                  <img src="equiv.png" alt="Subtab Image" >
+                  <img src="images/equiv.png" alt="Subtab Image" >
                 </div>
               </div>
             </div>
@@ -602,7 +183,7 @@
               </p>
             </div>
             <div class="subtab-about-image">
-              <img src="your-subtab-image.jpg" alt="Subtab Image">
+              <img src="images/your-subtab-image.jpg" alt="Subtab Image">
             </div>
           </div>
         </div>
@@ -639,14 +220,14 @@
             </div>
             <div class="subtab-about-image">
               <video id="myVideo" muted controls autoplay>
-                <source src="GP.mp4" type="video/mp4">
+                <source src="images/GP.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             </div>
           </div>
           <div class="subtab-about-content-right">
             <div class="subtab-about-image">
-              <img src="basisblades.png" alt="Subtab Image">
+              <img src="images/basisblades.png" alt="Subtab Image">
             </div>
             <div class="subtab-about-text">
               <p>
@@ -683,7 +264,7 @@
             </div>
             <div class="subtab-about-image">
               <video id="myVideo" muted controls autoplay>
-                <source src="GeometricBlades.mp4" type="video/mp4">
+                <source src="images/GeometricBlades.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             </div>
@@ -691,7 +272,7 @@
         <div class="subtab-about-content-right">
           <div class="subtab-about-image">
             <video id="myVideo" muted controls autoplay>
-              <source src="Quaternion.mp4" type="video/mp4">
+              <source src="images/Quaternion.mp4" type="video/mp4">
               Your browser does not support the video tag.
           </video>
           </div>
@@ -722,7 +303,7 @@
             </div>
             <div class="subtab-about-image">
               <video id="myVideo" muted controls autoplay>
-                <source src="GeometricAlgebra.mp4" type="video/mp4">
+                <source src="images/GeometricAlgebra.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             </div>
@@ -730,7 +311,7 @@
           <div class="subtab-about-content-right">
             <div class="subtab-about-image">
               <video id="myVideo" muted controls autoplay>
-                <source src="GeometricAlgebra.mp4" type="video/mp4">
+                <source src="images/GeometricAlgebra.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             </div>
@@ -765,9 +346,14 @@
         <div class="sub-tab-label" onclick="showSubTab('CAKE')">Cake Wavelets</div>
       </div>
       <div class="tab-content sub-tab-content" id="CHASE">
-        <h2>Clifford Hierarchical Algebras for Structural Equivariance</h2>
+        <!-- center header-->
+        <div class="subtab-about-content"></div>
+        <div class="subtab-about-header" style="text-align: center;">
+          <h1>Clifford Hierarchical Algebras for Structural Equivariance</h1>
+        </div>
         <div class="subtab-about-content">
         <div class="subtab-about-text">
+          <h2>Overview</h2>
           <p>
             Most research in Geometric Deep Learning (GDL) has focused on enforcing global equivariance in the neural network.
             However, most tasks such as images are compositional, where scenes are composed of objects, which are composed of parts, which are composed of subparts.
@@ -791,11 +377,7 @@
       </div>
       <div class="subtab-about-content">
           <div class="subtab-about-text">
-            <!-- <p>
-              Many of the advances in modern physics have been attributed to Noether's theorem, which states that every symmetry in a system corresponds to a conserved quantity.
-              This has led to the development of the Standard Model of particle physics, from the conservation of energy and momentum to the conservation of charge and spin, as well as Relativity from the conservation of the speed of light.
-              As a neural network will not naturally respect these symmetries, it has led to the rich sub-field of Geometric Deep Learning to enforce these symmetries in the architecture of the neural network.
-            </p> -->
+            <h2>Motivation</h2>
             <p>
               The motivation behind geometric deep learning is often simplified to the idea that <i>"a rotation to the input should result in an equal rotation to the output"</i>.
               Thus, our task (Right) domain (images) has an <i>equivariant</i> symmetry with its codomain under rotations.
@@ -809,12 +391,12 @@
             </p>
           </div>
           <div class="subtab-about-image">
-            <img src="symmetry.GIF" alt="Subtab Image">
+            <img src="images/symmetry.GIF" alt="Subtab Image">
           </div>
           </div>
           <div class="subtab-about-content">
             <div class="subtab-about-image">
-              <img src="hierarchical.gif" alt="Subtab Image">
+              <img src="images/CompEquiv.gif" alt="Subtab Image">
             </div>
             <div class="subtab-about-text">
             <p>
@@ -843,14 +425,148 @@
             </p>
             <p>$$S = \{S_1, S_2, ..., S_n\}$$</p>
             <p>
-              If we were to rotate the full image, the segmentation of the cat and dog would both rotate with the image.
-              Thus, <i>if the task is compositionally equivariant, the task is also globally equivariant</i>.
+              This structure is shown on the right.
             </p>
           </div>
           <div class="subtab-about-image">
-            <img src="hierarchical.gif" alt="Subtab Image">
+            <img src="images/structure.jpeg" alt="Subtab Image">
           </div>
         </div>
+        <div class="subtab-about-content">
+          <div class="subtab-about-image">
+            <img src="images/composition.gif" alt="Subtab Image">
+          </div>
+          <div class="subtab-about-text">
+          <p>
+            This part-whole structure lets us intuitively define compositional equivariance.
+            If a part is transformed, the segmentation of the part should also transform.
+            Thus, a neural network is compositional equivariant if,
+          </p>
+          <p>$$f(O_1, ..., {\color{cyan}\mathbf{O_i}}, ..., O_n) = (S_1, ..., {\color{cyan}\mathbf{S_i}}, ... S_n)$$
+            $$ \implies f((O_1, ..., {\color{orange}\mathbf{gO_i}}, ..., O_n)) = (S_1, ..., {\color{orange}\mathbf{\phi(g)S_i}}, ... S_n)$$
+          </p>
+          <p>
+            where \(g\) is the group action (rotation) on the object \(O_i\) and \(\phi(g)\) is the corresponding group action on the segmentation \(S_i\).
+            This is shown in the left image.
+          <p>
+            If we were to rotate the full image, the segmentation of the cat and dog would both rotate with the image.
+            Thus, <i>if the task is compositionally equivariant, the task is also globally equivariant</i>. 
+          </p>
+          <p>
+            (Note in the left image the objects are <i>not</i> rotated around the same center hence it is not equivalent to a global rotation)
+          </p>
+        </div>
+      </div>
+      <p></p>
+      <div class="subtab-about-content">
+        <div class="subtab-about-text">
+          <p>
+            So far, we have shown scenes which are composed of objects. 
+            However, objects are themselves composed of parts, which are composed of subparts.
+            We call this hierarchical structure the <strong>part-whole hierarchy</strong>.
+            <strong>Hierarchical equivariance</strong> is the idea of compositional equivariance extended to this hierarchy.
+            Analogous to global rotations resulting in a rotation of all objects, a rotation at the object-level is equivalent to a rotation of all its parts.
+            A neural network is then hierarchically equivariant if the output preserves the part-whole structure of the input.
+          </p>
+          <p>
+            We must first construct the part-whole hierarchy in order to apply these ideas.
+            Thus, we propose an unsupervised method of constructing the part-whole hierarchy.
+            We will focus on this construction for the rest of the explanation.
+          </p>
+        </div>
+      </div>
+        <div class="subtab-about-content">
+          
+          <div class="subtab-about-text">
+          <h2>Part-Whole Hierarchy</h2>
+          <p>
+            Our intuition for the part-whole hierarchy is that we can rotate objects and parts independently from one another.
+            While we can rotate an image, we can also rotate a face or tree within the image, or even the parts which compose the mouth.
+          </p>
+          <p>
+            We can continue this process recursively down until we reach indivisible parts.
+            In this case, the indivisible parts are the basic shapes -- lines, rectangles, circles and triangles -- which compose the objects.
+            I will call these basic building blocks <strong>primitives</strong>, though one could also call them <i>atoms</i>.
+          </p>
+          <p>
+            To be explicit about terms, continuing on, I will refer to the global level as a <strong>scene</strong>, and all intermediate levels as <strong>objects</strong>.
+            The objects which compose a particular object are its <strong>parts</strong>.
+          </p>
+        </div>
+        <div class="subtab-about-image">
+          <img src="images/PHHier.gif" alt="Subtab Image">
+        </div>
+      </div>
+    <div class="subtab-about-content">
+      <div class="subtab-about-image">
+        <img src="images/tree.gif" alt="Subtab Image">
+      </div>
+      <div class="subtab-about-text">
+      <p>
+        These intuitions allows us to construct a tree structure of the part-whole hierarchy.
+        The full tree acts as a representation of the full scene and each branch represents a part-whole relationship.
+        Each node in the tree has a corresponding attribute -- such as position, orientation, or scale -- which we represent as a <strong>group element</strong> which transforms the object.
+      </p>
+      <p>
+        For a primer on group theory, see the <strong>Geometric Deep Learning</strong> tab in <strong>Interests</strong>.
+      </p>
+      <p>
+        As an example, an object can be represented at a node.
+        The group element at that node determines the position and orientation of that object, and the object can be rotated and translated by changing that group element.
+        The object itself is determined by the relative positions and orientations of the sub-tree below it with the exception of the leaves of the tree which are the primitive objects which have no sub-trees.
+      </p>
+      <p>
+        This tree structure hinges on two operations.
+        One is that an object is the composition of its parts, meaning that we need a <i>binding operator</i> which combines the parts into the object.
+        The other operation is the <i>group action</i> which transforms the object.
+        These two operations with our primitives allows us to construct a <strong>compositional algebra</strong>.
+      </p>
+    </div>
+    
+  </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <h2>Binding</h2>
+    <p>
+      Our intuition motivates the need for a <strong>binding operator</strong> to compose the parts into the object.
+      The binding operator simply takes two objects and combines them into a new object.
+      While this is done by a simple <i>superposition</i>, ie summation, in this work, the binding operator can be more complex.
+      The summation is a symmetric binding operator, ie the order of the objects does not matter.
+      However, in general, the binding operator can be asymmetric.
+      For example, while in PDEs and physics superposition is often enough, in images there is often occlusion which makes the order important while binding.
+    </p>
+    <p>
+      The term "binding" is borrowed from neuroscience where it refers to the process by which the brain integrates information from different sources to create a unified perception or experience.
+      Binding operations are one of the pillars of Vector Symbolic Architectures (VSAs), or Hyperdimensional Computing. 
+      These architectures are based on the idea that the brain represents information as high-dimensional vectors; manipulating and combining these vectors using binding operations.
+    </p>
+  </div>
+  <div class="subtab-about-image">
+    <img src="images/tree.gif" alt="Subtab Image">
+  </div>
+  </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-image">
+      <img src="images/tree.gif" alt="Subtab Image">
+    </div>
+    <div class="subtab-about-text">
+      <h2>Binding</h2>
+    <p>
+      Our intuition motivates the need for a <strong>binding operator</strong> to compose the parts into the object.
+      The binding operator simply takes two objects and combines them into a new object.
+      While this is done by a simple <i>superposition</i>, ie summation, in this work, the binding operator can be more complex.
+      The summation is a symmetric binding operator, ie the order of the objects does not matter.
+      However, in general, the binding operator can be asymmetric.
+      For example, while in PDEs and physics superposition is often enough, in images there is often occlusion which makes the order important while binding.
+    </p>
+    <p>
+      The term "binding" is borrowed from neuroscience where it refers to the process by which the brain integrates information from different sources to create a unified perception or experience.
+      Binding operations are one of the pillars of Vector Symbolic Architectures (VSAs), or Hyperdimensional Computing. 
+      These architectures are based on the idea that the brain represents information as high-dimensional vectors; manipulating and combining these vectors using binding operations.
+    </p>
+  </div>
+  </div>
+ 
       </div>
       <div class="tab-content sub-tab-content" id="ENF">
         <h2>Equivariant Neural Fields</h2>
@@ -858,37 +574,182 @@
           <div class="subtab-about-text">
             <p>
               Neural Fields are gaining traction in a number of different fields in machine learning.
-              Neural Fields can be thought of as neural networks trained to represent a single datapoint.
-              Training a neural network to represent the datapoint offers two advantages:
-              <ol>
-                <li> The neural network can be trained to represent the datapoint in a way that is invariant to the symmetries of the system.</li>
-                <li> The neural network can be trained to represent the datapoint in a way that is equivariant to the symmetries of the system.</li>
-              </ol>
-
-
-              The term "Neural Fields" serves as the umbrella term for coordinate
+              These methods represent a data point -- such as an image-- as a neural network, thus the data is implicitly represented in the weights of the neural network.
+              This implicit representation can have less parameters than the resolution of the data -- e.g. less pixels then are in an image -- allows for non-integer evaluation of the image, which is useful in continuous domains such as PDEs.
+              However, for these methods to be useful representations, they need to be useful for downstream tasks, such as classification or segmentation.
+            </p>
+            <p>
+              Naively training a network from scratch for each data results in a results in a highly distributed representation in weight space.
+              This makes it difficult to transfer knowledge between datapoints and use the representation downstream.
+              Instead, it has been shown to be preferable to train <i>conditional neural fields</i>.
+              These methods seperate the representation into a base field which is shared across a dataset and a latent variable which conditions the field.
+            </p>
+            <p>
+              In Wang et al. (--), they propose that a zoo of popular neural operator methods, such as DeepONets and Fourier Neural Operators, can be connected by thinking of them as specialized neural fields conditioning methods.
+              Through this, they motivate continuous vision transformers.
+              While many of these methods already rely on an encoder-decoder structure, I will specifically focus on drawing the connections between conditional neural fields and autoencoders.
+              This allows for the natural construction of what I dub <strong>neural autofields</strong>.
+            </p>
+            <p>
+              Creating a base field and relative conditioning improves the usablility of the representation for downstream tasks.
+              However, it is often difficult to represent simple transformations while working in the latent space.
+              For example, in the case of images, it is difficult to represent the translation of an object by changing the latent variable.
+              To this end, Wessels et al (--) propose equivariant neural fields.
+            </p>
+            <p>
+              In their work, they show that an equivariant neural field results from a <i>bi-invariant</i> between the latent variable and the coordinate.
+              More over, they show that the bi-invariant condition is equivalent to the steerability condition.
+              Thus, the latent vectors act as <i>steerable representations</i> with respect the group.
+              We will use this to construct <strong>steerable neural autofields</strong>.
+            </p>
+            <p>
+              In my explanation, I will focus on motivating and interpretting this bi-invariant condition from a more theoretical physics perspective through Noether's theorem.
+              I will show that the bi-invariant condition is equivalent to the conservation of a quantity under some action which naturally creates reference frame equivariances.
+              I believe this interpretation can naturally lead to the construction of <strong>energy conserving neural fields</strong> by enforcing local conservation laws with the bivariant.
             </p>
           </div>
-          <div class="subtab-about-image">
-            <img src="equivariant_neural_fields.png" alt="Subtab Image">
+        </div>
+
+        <div class="subtab-about-content">
+          
+          <div class="subtab-about-text">
+            <h3>Neural Fields</h3>
+            <p>
+              The term "Neural Fields" (NeFs) serves as the umbrella term for coordinate neural networks, such as Implicit Neural Representations (INRs), Physics Informed Neural Networks (PINNs), and Neural Radiance Fields (NeRFs).
+            </p>
+            <p>
+              The main intuition of NeFs is that they are neural networks trained to represent a single datapoint.
+              For example, one can train a neural network to represent an image by outputting the pixel value when given a coordinate as shown on the right.
+            </p>
+            
           </div>
+          <div class="subtab-about-image" muted controls autoplay>
+            <video id="myVideo" muted controls autoplay loop>
+              <source src="images/NeF.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+        <div class="subtab-about-content">
+          <div class="subtab-about-image">
+            <img src="images/Training.gif" alt="Subtab Image" autoplay>
+          </div>
+          <div class="subtab-about-text">
+            <p>
+              To train a NeF for an image, one can use a shallow neural network and train it to minimize the MSE between the output given a coordinate and the true pixel value.
+              </p>
+              <p>
+                $$ 
+                  \mathcal{L} = \sum_{i=1}^{X}\sum_{j=1}^{Y} \left( ~f(x_i, y_j) - I[i,j] ~\right)^2
+                $$
+              </p>
+              <p>
+              where \(f\) is the neural network, \(I\) is the image to encode, and \(i\in X, j\in Y\) are integer-valued coordinates in the image and \(x_i, y_j\) are the corresponding points to evaluate the NeF.
+              While \(i, j\) and \(x_i, y_j\) can be the same, it is common practice to make \(x_i, y_j\) range from -1 to 1.
+              To recreate the image, the neural field can be reevaluated on the grid of the image.
+              The training process of a NeF over 200 iterations can be seen on the left.
+              </p>
+              <p>
+              Training a neural network to represent the datapoint offers two advantages: continuity and compressions.
+            </p>
+          </div>
+        </div>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+              <h2> Continuity</h2>
+              <p>
+                While the NeF is often trained at one resolution, it can be evaluated at any resolution.
+                This is because the NeF is a continuous function which can be evaluated at any point in the domain.
+                This makes NeFs especially useful in <i>continuum systems</i>, i.e. systems where one can zoom in infinitely such as PDEs or images.
+                This zooming property is shown on the right.
+                While NeFs do a decent job of interpolation between points, they cannot extrapolate beyond the boundaries as shown when zooming out.
+              </p>
+              <p>
+                An additional benefit of NeFs being a continuous function is that they are not tied to any grid system.
+                While images are often uniform grids, in numerics it is often more practical to use non-uniform grids.
+                Other compression methods, such as autoencoders or the Fast Fourier Transform, are tied to the uniformity of sampling.
+                This makes PINNs, a variant of NeFs which incorporate PDE constraints into their loss, especially popular for real world data where sensor data is sparsely sampled at irregular locations.
+              </p>
+          </div>
+          <div class="subtab-about-image">
+            <img src="images/zoom.gif" alt="Subtab Image">
+          </div>
+        </div>
+        <div class="subtab-about-content">
+          <div class="subtab-about-image">
+            <img src="images/params.gif" alt="Subtab Image">
+          </div>
+          <div class="subtab-about-text">
+              <h2> Compression </h2>
+              <p>
+                Images are displayed as pixel grids; however, it is rarely stored that way.
+                Because pixel values within an image are highly correlated, the data is often compressed using various algorithms.
+                Naively, one could take the Discrete Fourier Transform and store the frequencies up to a cutoff.
+                The representation of the image as its frequencies is its <i>encoding</i> and it is <i>decoded</i> by evaluating each pixel at each frequency.
+              </p>
+              <p>
+                Rather than using the Fourier basis, one could instead learn a basis through the principle components of a dataset.
+                Alternatively, one could also represent an image through a sparse dictionary of bases with <i>Sparse Coding</i>.
+                
+              </p>
+          </div>
+        </div>
+
+        <div class="subtab-about-content">
+          <p>
+            Training a neural network to represent the datapoint offers two advantages: continuity and compressions.
+            <ol>
+              <li> The NeF can be evaluated continuously allowing for interpolation. This is often useful for systems which are a continuum such as PDEs or images.</li>
+              <li> The weights express a unique function which allows one to represent the datapoint as the weights which can be much fewer than the number of pixels.</li>
+            </ol>
+          </p>
+
         </div>
       </div>
       <div class="tab-content sub-tab-content" id="GPOD">
-        <h2>Group Generalized POD</h2>
+        <h2>Group-Aware Galerkin Methods</h2>
         <div class="subtab-about-content">
           <div class="subtab-about-text">
             <p>
-              Group Generalized POD is a way of representing the symmetries of a system using the Generalized Proper Orthogonal Decomposition. 
-              The idea is to represent the symmetries of the system as a hierarchy of Generalized PODs. 
-              The lowest level of the hierarchy is the Generalized POD of the space the system is defined in. 
-              The next level is the Generalized POD of the Poincare group of the space. 
-              The next level is the Generalized POD of the Poincare group of the Poincare group of the space. 
-              This continues until the symmetries of the system are fully represented.
+              Galerkin Methods have long been one of the most effective methods in Machine Learning(ML) and continue to be a driving paradigm in data driven PDEs.
+              Reduced-order modeling methods, such as Proper Orthogonal Decompositions, or Principle Component Analysis as it is known in statistics and ML, are specific Galerkin Methods which have been used to approximate the solution to PDEs.
+              These methods have been shown to be effective in capturing the low-dimensional manifolds that the solutions to PDEs often form.
+              These low-dimensional manifolds are favorable as it is often cheaper to learn dynamics on these low-dimensional manifolds than on the full-dimensional space.
+              However, these methods fail to learn useful bases for advection dominated systems as they are agnostic to the geometry of the system.
+            </p>
+            <p>
+              With the advent of deep learning, autoencoders have also been used to learn low-order representations of the data.
+              Autoencoders with no non-linearities can be shown to be equivalent to PCA.
+              Thus, the autoencoder can be thought of as a generalization of PCA and is often refered to as non-linear PCA.
+              While more expressive than PCA, the autoencoder the dynamics on the latent space are often not as interpretable.
+            </p>
+            <p>
+              In their general form, autoencoders are also agnostic to the geometry of the system.
+              However, autoencoders are often implemented as convolutional neural networks which are partially equivariant to translations.
+              This contributes to their better performance and has been exploited in the previous work of Page et al.
+              However, in many PDEs have known symmetries that can be exploited to reduce the dimensionality of the system.
+              These symmetries can be induced by the geometry of the system, or vise versa.
+              For example, a system which lives on a cylinder will have a discrete translation symmetry in the azimuthal direction.
+              Alternatively, a system with a discrete translation symmetry can be thought of as living on a cylinder.
+            </p>
+            <p>
+              While there has been some work in the literature on incorporating symmetries into the autoencoder, such as the work of -- et al. (--), these methods often assume that the symmetries are global invariants. 
+              That is to say, if the entire system is translated, the latent space remains fixed.
+              This is useful for enforcing that global translations are irrelevant and reducing the need for data augmentation.
+              However, many systems are composed of bases which can be transformed independently.
+              For example, a system composed of two basis waves which advect at different speeds.
+            </p>
+            <p>
+              <strong>In this work, I propose a new method for geometry-aware Galerkin Methods.</strong>
+              First, I formalize steerable Galerkin Methods using the steerability condition of Wessels et al. (--).
+              This allows us to construct a more appropriate basis for advecting systems.
+              <strong>To this end, I construct a neural field using the Neural Implicit Flow framework of -- et al. (--), while exchanging the linear POD basis for a group-steerable basis.<strong>
             </p>
           </div>
+        </div>
+          <div class="subtab-about-content">
           <div class="subtab-about-image">
-            <img src="group_generalized_pod.png" alt="Subtab Image">
+            <img src="images/group_generalized_pod.png" alt="Subtab Image">
           </div>
         </div>
       </div>
@@ -906,7 +767,7 @@
             </p>
           </div>
           <div class="subtab-about-image">
-            <img src="cake_wavelets.png" alt="Subtab Image">
+            <img src="images/cake_wavelets.png" alt="Subtab Image">
           </div>
         </div>
       </div>
@@ -946,7 +807,7 @@
                 </p>
                 </div>
               <div class="subtab-about-image">
-                <img src="hierarchical.gif" alt="Subtab Image" >
+                <img src="images/CompEquiv.gif" alt="Subtab Image" >
               </div>
             </div>
           </div>
@@ -1132,7 +993,3 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
   </script>
-
-<!-- </body>
-<a href="https://www.vecteezy.com/video/21256861-general-mathematics-equation-math-formula-text-background-teaching-engineering-teaching-equations-and-formulas-backgrounds-for-teaching-presentations-graphic-background-animation">General Mathematics equation math formula text background teaching engineering, teaching equations and formulas backgrounds for teaching presentations graphic background animation Stock Videos by Vecteezy</a>
-</html> -->
