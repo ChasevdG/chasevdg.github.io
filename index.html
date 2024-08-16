@@ -5,7 +5,20 @@
     <title>Chase vdG</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+      MathJax = {
+          tex: {
+            packages: {'[+]': ['amsmath']},
+              macros: {
+                  llbracket: "{\\mathopen{\\lbrack\\!\\lbrack}}",
+                  rrbracket: "{\\mathclose{\\rbrack\\!\\rbrack}}",
+
+                  ostar: ["{\\bigcirc\\kern-0.73em\\star}", 0]
+              }
+          }
+      };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
@@ -550,15 +563,50 @@
       <img src="images/tree.gif" alt="Subtab Image">
     </div>
     <div class="subtab-about-text">
-      <h2>To Be Continued</h2>
+      <h2>Group Product</h2>
+      <p>
+        The second operation is the <strong>group action</strong> which transforms the object.
+        If a group action is applied to two objects which are bound together, the group action should be applied to both objects.
+        That is, the group action should <i>distribute</i> over the binding operator.
+        </p>
+        <p>
+        $$
+          g \cdot (O_1 \oplus O_2) = (g \cdot O_1) \oplus (g \cdot O_2)
+        $$
+        </p>
+        <p>
+        This is shown in the right image. 
+        The group product can act in two ways, either group element to group element or group element to object.
+        <p>
+        $$
+          g_1 \cdot (g_2 \cdot O_2) = (g_1 \circ g_2) \cdot O_2
+        $$
+        </p>
+        <p>
+          where \(\circ\) is the group product and \(\cdot\) is the group action on an object.
+        </p>
+        <p>
+        These two properties lets us propogate the group action down the tree until we reach the primitives.
+        </p>
   </div>
   </div>
- 
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <h2>Group Product</h2>
+      
+  </div>
+  <div class="subtab-about-image">
+    <img src="images/tree.gif" alt="Subtab Image">
+  </div>
+  </div>
       </div>
       <div class="tab-content sub-tab-content" id="ENF">
-        <h2>Equivariant Neural Fields</h2>
+        <div class="subtab-about-header" style="text-align: center;">
+          <h1>Equivariant Neural Fields</h1>
+        </div>
         <div class="subtab-about-content">
           <div class="subtab-about-text">
+            <h2>Overview</h2>
             <p>
               Neural Fields are gaining traction in a number of different fields in machine learning.
               These methods represent a data point -- such as an image-- as a neural network, thus the data is implicitly represented in the weights of the neural network.
@@ -683,7 +731,6 @@
         </div>
 
         </div>
-      </div>
       <div class="tab-content sub-tab-content" id="GPOD">
         <h2>Group-Aware Galerkin Methods</h2>
         <div class="subtab-about-content">
@@ -721,7 +768,7 @@
               <strong>In this work, I propose a new method for geometry-aware Galerkin Methods.</strong>
               First, I formalize steerable Galerkin Methods using the steerability condition of Wessels et al. (--).
               This allows us to construct a more appropriate basis for advecting systems.
-              <strong>To this end, I construct a neural field using the Neural Implicit Flow framework of -- et al. (--), while exchanging the linear POD basis for a group-steerable basis.<strong>
+              <strong>To this end, I construct a neural field using the Neural Implicit Flow framework of -- et al. (--), while exchanging the linear POD basis for a group-steerable basis.</strong>
             </p>
           </div>
         </div>
@@ -736,13 +783,270 @@
         <div class="subtab-about-content">
           <div class="subtab-about-text">
             <p>
-              Cake Wavelets are a way of representing the symmetries of a system using wavelets. 
-              The idea is to represent the symmetries of the system as a hierarchy of wavelets. 
-              The lowest level of the hierarchy is the wavelet of the space the system is defined in. 
-              The next level is the wavelet of the Poincare group of the space. 
-              The next level is the wavelet of the Poincare group of the Poincare group of the space. 
-              This continues until the symmetries of the system are fully represented.
+                One of the original geometric deep learning~\cite{bronstein2021geometric} architectures achieved equivariance by extending the classical 2D translation convolutions to group convolutions \cite{bekkers2018roto, cohen2016group}. 
+                Because images can be treated as scalar (or RGB) fields over 2D, convolving over 2D translations results in another 2D scalar field as an output, thus the layers of a convolutional neural network are endofunctions, and more specifically endomorphisms as they are linear operators. 
+                However, for the more general group convolutional, the output is a field over the group -- e.g. for the roto-translation group SE(2), the result will be a field with three parameters \((x,y,\theta)\) -- regardless of the input dimensions. 
+                As a result, the first group convolution layer changes the domain while the subsequent layers are endomorphisms up until the final layer, which projects from the group to the output domain.
             </p>
+            <p> 
+              This discrepancy between the layers' dimensions has led to distinguishing between lifting, convolutional, and projection layers within the architecture. 
+              In the case of regular group convolutional networks, the lifting layer follows directly from the structure of group convolution operation. 
+              However, for architectures such as PDE-GCNNs~\cite{smets2023pde}, the layers are defined strictly as endomorphic due to the nature of the PDEs being solved. 
+              This means that the lifting must be done by a separate operation. 
+              This is the same problem in Geometric Clifford Algebra networks~\cite{ruhe2023geometric, ruhe2024clifford} in which the image must first be embedded into the Clifford algebra.
+            </p>
+            <p>
+            This can be resolved by determining a lifting and projection layer. While this can be, and often is, learned,
+            it is beneficial to have a principled way to lift into the group by using a fixed lifting kernel. This can also be done
+            in regular GCNNs allowing added mathematical interpretability. Since we can limit tunable parameters of the neural network to the convolutional layers, one can interpret the network as just the portion of the model that is an endomorphism over the group.
+            </p>
+            <p>
+            A natural question arises of what constitutes the optimal method to lift into the group. From the theory of directional wavelets, we propose two major properties that a fixed lifting operation should have: reconstructability~\cite{janssen2018design} 
+            and locality/sparsity~\cite{bengio2013representation}. In this work, we motivate orientations score transforms with Cake Wavelets~\cite{duits2005perceptual, duits2007image} to be 
+            the near-optimal way to lift to a discretized group of roto-translations. In this abstract,
+            we will motivate Cake Wavelets through numerical optimization. However, there is a more rigorous
+            mathematical derivation via the general uncertainty principle that could be presented if time permits for a full paper.
+            </p>
+          </div>
+          </div>
+          <div class="subtab-about-content">
+            <div class="subtab-about-text">
+            <h2>Group Convolutions</h2>
+            
+            <p>
+            Much of the success of convolutions in computer vision is attributed to their translation equivariance. 
+            In this work, we will refer to convolutions and correlations synonymously and use the continuous form of convolutions,
+            </p>
+            <p>
+            \begin{align}
+                \llbracket f \ostar ~k \rrbracket (\tau) 
+                &= \int_{\mathbb{R}^2} f(x) k(x-\tau) dx \\
+                &= \int_{\mathbb{R}^2} f(x) T_\tau\llbracket k\rrbracket(x) dx
+                \\
+                &= \left< f, T_\tau\llbracket k\rrbracket \right>
+            \end{align}
+            </p>
+            <p>
+            where \(k\) is the kernel, \(f\) is the input image, and \(\tau\) is a coordinate in the activation map, ie 
+            the output domain, and \(\left< \cdot, \cdot \right>\) denotes the inner product of two functions. The translation operator \(T_\tau\) is defined as \(T_\tau \llbracket k\rrbracket(x) = k(x-\tau)\).
+            </p>
+            <p>
+            The core of a group convolution is to replace the translation operator with an arbitrary left-regular 
+            group action,
+            \begin{align}
+                \llbracket f \ostar_{~G} k \rrbracket (g) 
+                &= \int_{\Omega} f(x) \mathcal{L}_g\llbracket k\rrbracket(x) dx
+            \end{align}
+            Notice that the output is a field over the group \(G\) and not the input domain \(\Omega\). 
+
+            This form of convolution is not new and has been used in the context of wavelet theory, 
+            and alternatively called a wavelet transform, where \(k\) is referred to as a mother wavelet.
+            In the context of wavelets, the lifting operation to SE(2) is often referred to as the orientation score transform.
+            This link will let us leverage the literature on wavelet optimality to determine an appropriate fixed lifting kernel.
+            We will focus on two wavelet properties as criteria for optimality: the fast reconstruction property and locality.
+            </p>
+          </div>
+          </div>
+          <h2>Fast Reconstruction</h2>
+        <div class="subtab-about-content">
+          <div class="subtab-about-text">
+          <p>
+            For a fixed kernel in a lifting layer to be useful, it should retain the model's ability to be a universal approximator.
+            This means that the lifting layer should not contaminate the input signal, ie lose information. 
+            The reconstruction property of a wavelet ensures that the lift is invertible which guarantees that the information is retained.
+            Within orientation score transforms, there is a more restrictive property known as the fast reconstruction property~\cite{janssen2018design}.
+            This property ensures that the image, \(f\), can be reconstructed from its orientation score transform, \(U_f\), by 
+            summing over the orientation axis.
+          </p>
+          <p>
+          \begin{equation}
+              f(i,j) = \sum_{\theta} U_f (i,j,\theta)
+          \end{equation}
+          </p>
+          <p>
+            Rather than the more general reconstruction property which ensures that information is retained \textit{somewhere} in the orientation score,
+            the fast reconstruction property ensures that a pixel's information is fully contained in the orientation axis.
+            From this property, we get the following constraint on the kernel,
+          </p>
+          <p>
+          \begin{align}
+              \sum_{\theta} U_f (i,j,\theta)
+              &= \sum_{\theta} \left<~f~, ~\mathcal{L}_{(i,j,\theta)}\llbracket k\rrbracket \right> \\
+              &=  \left< f, \sum_{\theta} \mathcal{L}_{(i,j,\theta)}\llbracket k\rrbracket \right>,
+          \end{align}
+          </p>
+          <p>
+          This implies that summing over orientations of the kernel should yield the identity operator of a convolution, ie a delta function, 
+          or equivalently a constant function in the Fourier domain.
+          </p>
+</div>
+</div>
+<h2>Localization</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+    The fast reconstruction property restricts the wavelet to sum to a delta function. However, this does not have a unique solution. For example, the 
+    trivial solution to fast reconstruction property would be the kernel which is itself a delta function that is weighted by \(\frac{1}{N_\theta}\) where \(N_\theta\) is the number of orientations.
+    This kernel results in the copying of the input image to each orientation channel. In the trivial solution, the information is \textit{maximally entangled}
+    as the pixel information is completely spread out over the orientation axis. We would rather observe a sparse set of activations in the orientation axis
+    as this would allow us to attribute the information to a specific orientation ie for the response to be localized.    
+    </p>
+    <p>
+    We can quantify locality with the spread of activations. 
+    Spread is synonymous with uncertainty, or variance, in probability, but the kernel is not a probability distribution.
+    Borrowing from the uncertainty principle of quantum mechanics, we can interpret our wavelet as an unnormalized probability amplitude. Thus, we can quantify the spread of activations across orientations with the variance along the fiber.
+    Moreover, it can be shown\footnote{There is not room in this abstract, so it is simply assumed.} that minimizing the spread of the 
+    activations in the orientation axis is equivalent to minimizing the variance of the kernel.
+    </p>
+</div>
+</div>
+<h2>Regularity</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  <p>
+    It is often useful in practice to impose an extra regularization constraint on the locality of the wavelet itself. While the previous localization term imposes localization on the responses when preforming a convolution, this imposes locality in the frequency domain, and not the spatial domain. One can add an additional term to encourage localization in the spatial domain. If viewing the wavelet in the Fourier domain, this translates to imposing a smoothness term and minimizing the gradient of the wavelet. This is often associated with the \textit{condition number} of the wavelet.
+  </p>
+  <p>
+    $$\mathcal{L}_{cond} = |\nabla \hat{k}|^2$$
+  </p>
+  </div>
+</div>
+<h2>Numerical Optimization</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The fast reconstruction and localization conditions lead to the following loss functions for numerical optimization,
+      \begin{equation}
+          \mathcal{L} = \mathcal{L}_{\text{reconstruction}} + \lambda \mathcal{L}_{\text{localization}}
+      \end{equation}
+      where the reconstruction loss is the squared error between the summed kernel and the identity,
+      \begin{equation}
+          \mathcal{L}_{\text{reconstruction}} = \sum_{i,j} \left( \mathbb{I} - \sum_{\theta} \mathcal{L}_\theta \llbracket k \rrbracket (i,j) \right)^2
+      \end{equation}
+      and the localization loss is the variance of the kernel,
+      \begin{equation}
+          \mathcal{L}_{\text{localization}} = \sum_{i,j} \left|\\mathtext{arctan}\left(\frac{j}{i}\right) - \bar{\theta}\right|^2 ~p(i,j)
+      \end{equation}
+      where \(p(i,j)= \frac{|k(i,j)|^2}{\sum_{x,y}|k(x,y)|^2}\) and \(\bar{\theta}\) is an arbitrarily determined target Fréchet mean orientation.
+    </p>
+    </div>
+  </div>
+<h2>Cake-Wavelet</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p> ...</p>
+  </div>
+</div>
+
+<h2>Theoretic Derivation</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    
+    <p>
+      While we show that the numerical optimization tends to look like Cake-Wavelets, we would like to theoretically derive the optimal wavelet. In this section, we propose a derivation of the optimal coherent state for lifting to a discretized SE(2).
+    </p>
+
+    <h3>Uncertainty Principle</h3>
+    <p>
+      The optimality of Gabor Wavelets with respect to position-momentum is well known in signal processing and computational neuroscience. 
+      These wavelets can be derived from the Heisenberg Uncertainty Principle, given by the Cauchy-Schwartz inequality,
+    </p>
+      $$
+          <\hat{X}^2>_\psi <\hat{P}^2>_\psi \geq \frac{1}{4} \hbar^2
+      $$
+    <p>
+      where \(\hat{X}\) and \(\hat{P}\) are the position and momentum operators.
+      This equation means that the variance of the position of a wavefunction \(\psi\), given by \(<\hat{X}^2>_\psi\), and the variance of the momentum, given by \(<\hat{P}^2>_\psi\), cannot be arbitrarily small at the same time. 
+      Strict equality for a function \(\psi^*\) holds when,
+    </p>
+    <p>
+      $$
+          \hat{X}[\psi^*] =  i\lambda \hat{P}[\psi^*]
+      $$
+    </p>
+    <p>
+      For the position operator, \(X[\psi] = x\psi\), and momentum operator, \(P[\psi] = i\hbar \frac{\partial}{\partial x}\), equality holds for the Gaussian, or more generally \textit{Gabor}, wavefunction.
+    </p>
+    <p>
+      More generally, the Uncertainty Principle can be generalized to
+      $$
+          <\hat{X}^2>_\psi <\hat{Y}^2>_\psi \geq <\frac{1}{2} [\hat{X}, \hat{Y}]^2>_\psi
+      $$
+      where \([\hat{X}, \hat{Y}]\) is the commutator, or Lie bracket, of the operators \(\hat{X}\) and \(\hat{Y}\).
+    </p>
+    <p>
+      If we consider the generators for position and orientation, \(\hat{X}\) and \(\hat{\Theta}\), we can derive the optimal wavelet for lifting to SE(2).
+      The generators are given by the operators,
+      $$
+          \hat{X} = x\frac{\partial}{\partial x} + y\frac{\partial}{\partial y}
+      $$
+      $$
+          \hat{\Theta} = \frac{\partial}{\partial \theta}
+      $$
+      where \(x\) and \(y\) are the position coordinates, and \(\theta\) is the orientation coordinate.
+      Thus, \(\psi^*\) is optimal when,
+      $$
+          \frac{\partial}{\partial \theta}\psi^* =  \frac{\rho}{\lambda} \sin \theta \psi,
+      $$
+      making \(\psi^*\)
+      $$
+          \psi^* = \frac{1}{C(\rho)} e^{\frac{\lambda}{\rho} \cos \theta},
+      $$
+      which is the Von Mises distribution.
+      If we consider the continuous form of the fast reconstruction constraint,
+      $$
+          \int_{0}^{2\pi} \frac{1}{C(\rho)} e^{\frac{\lambda}{\rho} \cos \theta} d\theta = 1
+      $$
+      we can solve for \(C(\rho)\) as the normalization constant of the Von Mises distribution, which is given by
+      $$
+          C(\rho) = 2\pi I_0(\frac{\lambda}{\rho}).
+      $$
+      This gives the optimal wavelet if we consider the continuous form of the fast reconstruction constraint.
+      However, for the discrete form, we must consider the discretization of the SE(2) group.
+    </p>
+<h3>Slicing</h3>
+      <p>
+      To account for the discretization of the SE(2) group, we must propose a rearrangement of the fast reconstruction property, by partitioning the integral.
+      For a continuous Lie group \(G\), we can restate the fast reconstruction property as
+      $$
+          \int_{G} \psi_g dg = \mathbb{1}
+      $$
+      then we can partition the integral as
+      $$
+          \int_{G} \psi^*(g) dg = \sum_{h\in H} \int_{G/H} \psi_{hg} dg = \mathbb{1}
+      $$
+      for some discrete subgroup \(H\) of \(G\).
+      We can then consider the optimal wavelet, \(\phi^*\), for the discrete subgroup \(H\), in terms of the optimal wavelet for the full group, \(\psi^*\), by integrating over the quotient space \(G/H\).
+      $$
+          \phi^*_h = \int_{G/H} \psi^*(hg) dg
+      $$
+      Thus, we can derive the optimal wavelet for the discrete SE(2) group by integrating the Von Mises distribution over the quotient space of the SE(2) group,
+
+      $$
+          \phi^*_0 = \int_0^{\pi/N} \frac{1}{C(\rho)} e^{\frac{\lambda}{\rho} \cos \theta} d\theta
+      $$
+      </p>
+      <h3> Smoothness Penalty</h3>
+      <p>
+      When considering the smoothness penalty, the continuous coherent state becomes that of SIM(2), rather than SE(2).
+      This was derived in JP Antoinne's paper. 
+      As SE(2) is a subgroup of SIM(2), one can obtain the von Mises distribution by integrating over the quotient space of SIM(2)/SE(2) using the above slicing trick.
+      (I think this is the case, but I am not sure. I need to check this.)
+</div>
+</div>
+
+<h2>Results</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+<p>
+  The results of running this optimization in the Fourier domain are shown in Figure \ref{fig:opt},
+  where the kernel. The kernel converges to a ``wedge" in the Fourier domain which is equivalent to the \(B_0\) Cake Wavelet.
+</p>
+<p>
+A more rigorous derivation can be done via the Uncertainty Principle to further motivate the general family of Cake wavelets to be optimal for lifting to the discretized roto-translation group, but that is beyond this abstract. 
+Moreover, there is an extension of the Uncertainty Principle to Clifford algebras and Clifford wavelets~\cite{banouh2019clifford}, which has potential implications for the embedding of images in Clifford networks. 
+            </p>
+          
           </div>
           <div class="subtab-about-image">
             <img src="images/cake_wavelets.png" alt="Subtab Image">
