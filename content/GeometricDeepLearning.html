@@ -1,0 +1,49 @@
+<h2>Geometric Deep Learning</h2>
+              <div class="subtab-about-content">
+                <div class="subtab-about-text">
+                    <p>
+                      Many problems we want to solve have intrinsic symmetries. Intuitively, if the models task is to classify whether an image is a cat 
+                    or a dog, then it should not matter whether the input is rotated. Often, in applications, we try to incorporate these symmetries through
+                    data augmentation. In generality, <strong>Geometric Deep Learning (GDL)</strong> is about incorporating these symmetries into the model as guarentees. 
+                    </p>
+                    <p>
+                      GDL can roughly be divided into three disciplines.
+                      The most well-known and popularized form of GDL is as <strong>topological</strong> deep learning.
+                      This includes <i>graph neural networks</i> as well as their extensions such as symplicial complex, sheafs and other concepts from topology such as persistent homology.
+                      GDL can also be interpretted through the lens of differential geometry. 
+                      These papers tend to focus on terminology such as fibers, tangent spaces, and metric tensors.
+                      Finally, one can view GDL through the lens of <i>algebras</i>.
+                      Often this is through the algebraic structure known as <i>groups</i> which are known as the language of symmetries.
+                      Much of my work is in <strong>group-equivariant deep learning</strong>.
+                    </p>
+                  </div>
+                </div>
+                <div class="subtab-about-content">
+                  <div class="subtab-about-text">
+                    <h2>
+                      Symmetries
+                    </h2>
+                    <p>
+                    This behavior of the output being unchanged is 
+                    known as an <strong>invariance</strong> symmetry of the task. On the other hand, if the task is to segment the
+                    pixels which correspond to the cat, then the output should rotate with the input. This behavior is known
+                    as an <strong>equivariance</strong> symmetry of the task. 
+                    </p>
+                    <p>
+                    These symmetries arise in computer vision, primarily because the task is often grounded in the physics 
+                    of the real world. In physics, the laws of nature are invariant under certain transformations. For example,
+                    the laws of physics are invariant to changes in the reference frame, such as translations, rotations,
+                    reflections, and a constant speed boost (Lorentz boosts). 
+                    These symmetries can be expressed mathematically using the language of group theory and are known as 
+                    the <strong>Poincare group</strong>.
+                    </p>
+                    <p>
+                    Convolutional neural networks are a popular choice in computer vision because they exibit translation equivariance.
+                    However, they do not exibit equivariance to the rest of the Poincare transformations. The goal of geometric deep learning
+                    is to extend the success of convolutional neural networks to this broader family of symmetries.
+                    </p>
+                  </div>
+                <div class="subtab-about-image">
+                  <img src="images/equiv.png" alt="Subtab Image" >
+                </div>
+              </div>

@@ -1,0 +1,128 @@
+<div class="subtab-about-header" style="text-align: center;">
+    <h1>Equivariant Neural Fields</h1>
+  </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <h2>Overview</h2>
+      <p>
+        Neural Fields are gaining traction in a number of different fields in machine learning.
+        These methods represent a data point -- such as an image-- as a neural network, thus the data is implicitly represented in the weights of the neural network.
+        This implicit representation can have less parameters than the resolution of the data -- e.g. less pixels then are in an image -- allows for non-integer evaluation of the image, which is useful in continuous domains such as PDEs.
+        However, for these methods to be useful representations, they need to be useful for downstream tasks, such as classification or segmentation.
+      </p>
+      <p>
+        Naively training a network from scratch for each data results in a results in a highly distributed representation in weight space.
+        This makes it difficult to transfer knowledge between datapoints and use the representation downstream.
+        Instead, it has been shown to be preferable to train <i>conditional neural fields</i>.
+        These methods seperate the representation into a base field which is shared across a dataset and a latent variable which conditions the field.
+      </p>
+      <p>
+        In Wang et al. (--), they propose that a zoo of popular neural operator methods, such as DeepONets and Fourier Neural Operators, can be connected by thinking of them as specialized neural fields conditioning methods.
+        Through this, they motivate continuous vision transformers.
+        While many of these methods already rely on an encoder-decoder structure, I will specifically focus on drawing the connections between conditional neural fields and autoencoders.
+        This allows for the natural construction of what I dub <strong>neural autofields</strong>.
+      </p>
+      <p>
+        Creating a base field and relative conditioning improves the usablility of the representation for downstream tasks.
+        However, it is often difficult to represent simple transformations while working in the latent space.
+        For example, in the case of images, it is difficult to represent the translation of an object by changing the latent variable.
+        To this end, Wessels et al (--) propose equivariant neural fields.
+      </p>
+      <p>
+        In their work, they show that an equivariant neural field results from a <i>bi-invariant</i> between the latent variable and the coordinate.
+        More over, they show that the bi-invariant condition is equivalent to the steerability condition.
+        Thus, the latent vectors act as <i>steerable representations</i> with respect the group.
+        We will use this to construct <strong>steerable neural autofields</strong>.
+      </p>
+      <p>
+        In my explanation, I will focus on motivating and interpretting this bi-invariant condition from a more theoretical physics perspective through Noether's theorem.
+        I will show that the bi-invariant condition is equivalent to the conservation of a quantity under some action which naturally creates reference frame equivariances.
+        I believe this interpretation can naturally lead to the construction of <strong>energy conserving neural fields</strong> by enforcing local conservation laws with the bivariant.
+      </p>
+    </div>
+  </div>
+
+  <div class="subtab-about-content">
+    
+    <div class="subtab-about-text">
+      <h3>Neural Fields</h3>
+      <p>
+        The term "Neural Fields" (NeFs) serves as the umbrella term for coordinate neural networks, such as Implicit Neural Representations (INRs), Physics Informed Neural Networks (PINNs), and Neural Radiance Fields (NeRFs).
+      </p>
+      <p>
+        The main intuition of NeFs is that they are neural networks trained to represent a single datapoint.
+        For example, one can train a neural network to represent an image by outputting the pixel value when given a coordinate as shown on the right.
+      </p>
+      
+    </div>
+    <div class="subtab-about-image" muted controls autoplay>
+      <video id="myVideo" muted controls autoplay loop>
+        <source src="images/NeF.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-image">
+      <img src="images/Training.gif" alt="Subtab Image" autoplay>
+    </div>
+    <div class="subtab-about-text">
+      <p>
+        To train a NeF for an image, one can use a shallow neural network and train it to minimize the MSE between the output given a coordinate and the true pixel value.
+        </p>
+        <p>
+          $$ 
+            \mathcal{L} = \sum_{i=1}^{X}\sum_{j=1}^{Y} \left( ~f(x_i, y_j) - I[i,j] ~\right)^2
+          $$
+        </p>
+        <p>
+        where \(f\) is the neural network, \(I\) is the image to encode, and \(i\in X, j\in Y\) are integer-valued coordinates in the image and \(x_i, y_j\) are the corresponding points to evaluate the NeF.
+        While \(i, j\) and \(x_i, y_j\) can be the same, it is common practice to make \(x_i, y_j\) range from -1 to 1.
+        To recreate the image, the neural field can be reevaluated on the grid of the image.
+        The training process of a NeF over 200 iterations can be seen on the left.
+        </p>
+        <p>
+        Training a neural network to represent the datapoint offers two advantages: continuity and compressions.
+      </p>
+    </div>
+  </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+        <h2> Continuity</h2>
+        <p>
+          While the NeF is often trained at one resolution, it can be evaluated at any resolution.
+          This is because the NeF is a continuous function which can be evaluated at any point in the domain.
+          This makes NeFs especially useful in <i>continuum systems</i>, i.e. systems where one can zoom in infinitely such as PDEs or images.
+          This zooming property is shown on the right.
+          While NeFs do a decent job of interpolation between points, they cannot extrapolate beyond the boundaries as shown when zooming out.
+        </p>
+        <p>
+          An additional benefit of NeFs being a continuous function is that they are not tied to any grid system.
+          While images are often uniform grids, in numerics it is often more practical to use non-uniform grids.
+          Other compression methods, such as autoencoders or the Fast Fourier Transform, are tied to the uniformity of sampling.
+          This makes PINNs, a variant of NeFs which incorporate PDE constraints into their loss, especially popular for real world data where sensor data is sparsely sampled at irregular locations.
+        </p>
+    </div>
+    <div class="subtab-about-image">
+      <img src="images/zoom.gif" alt="Subtab Image">
+    </div>
+  </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-image">
+      <img src="images/params.gif" alt="Subtab Image">
+    </div>
+    <div class="subtab-about-text">
+        <h2> Compression </h2>
+        <p>
+          Images are displayed as pixel grids; however, it is rarely stored that way.
+          Because pixel values within an image are highly correlated, the data is often compressed using various algorithms.
+          Naively, one could take the Discrete Fourier Transform and store the frequencies up to a cutoff.
+          The representation of the image as its frequencies is its <i>encoding</i> and it is <i>decoded</i> by evaluating each pixel at each frequency.
+        </p>
+        <p>
+          Rather than using the Fourier basis, one could instead learn a basis through the principle components of a dataset.
+          Alternatively, one could also represent an image through a sparse dictionary of bases with <i>Sparse Coding</i>.
+          
+        </p>
+    </div>
+  </div>

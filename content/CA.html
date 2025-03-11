@@ -1,0 +1,133 @@
+<h2>Clifford Algebra</h2>
+          <div class="subtab-about-content">
+            <div class="subtab-about-text">
+              <p><strong>Clifford Algebra</strong> serves as a unifying language for
+                <strong>rigid body transformations</strong>, and offers an easy way to express Poincare group transformations. At its core, Clifford Algebra is a
+                generalization of the dot product and cross product which makes it a powerful tool for expressing the
+                symmetries of physics. The ability to express physical symmetries is what makes it especially useful in <strong>robotics, game design</strong> and <strong>particle physics</strong>.
+                However, I think it will also become <strong>key in creating interpretable and generalizable machine learning models across all physical systems</strong>.
+              </p>
+            </div>
+          </div>
+          <div class="subtab-about-content">
+            <div class="subtab-about-text">
+              <p>
+              Clifford Algebra is a way of multiplying vectors and allows for the generalization of complex numbers and quaternions. 
+              The algebra is simply motivated from two axioms : 
+              <p>$$\vec{e}_i \vec{e}_i = \{1,0,-1\}$$</p>
+              <p>$$\vec{e}_i \vec{e}_j = - \vec{e}_j \vec{e}_i$$</p>
+              <p>
+              Like in Linear Algebra, a vector can be expressed as a linear combination of basis vectors. For example,
+              </p>
+              <p>$$a = a_1 \vec{e}_1 + a_2 \vec{e}_2$$</p>
+              <p>
+              The geometric product between two vectors, is defined to be <i>bilinear</i> ie it is left and right distributive. Using this, we can show (right) that,
+              </p>
+              <p>$$ab = a \cdot b + a \wedge b$$</p>
+              <p>
+              Where the dot product is the inner product and the wedge product is the exterior product.
+              </p>
+            </div>
+            <div class="subtab-about-image">
+              <video id="myVideo" muted controls autoplay>
+                <source src="images/GP.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            </div>
+          </div>
+          <div class="subtab-about-content-right">
+            <div class="subtab-about-image">
+              <img src="images/basisblades.png" alt="Subtab Image">
+            </div>
+            <div class="subtab-about-text">
+              <p>
+              The dot product, like in Linear Algebra, produces a <i>scalar</i>, whereas the wedge product produces a <i>bivector</i> which is a 2D object that represents a plane.
+              The wedge product can be thought of as the oriented area of the parallelogram formed by the two vectors as shown left.
+              When the order of the vectors is switched, the orientation switches from clockwise to counterclockwise creating a negative in the equations.
+              </p>
+              <p>
+              The wedge product is intimately related to the cross product in 3D space.
+              In a 3D Clifford Algebra, a bivector can be uniquely identified with its (signed) normal vector.
+              The cross product is precisely the normal vector of the plane formed by the wedge product of two vectors.
+              </p>
+            </div>
+          </div>
+        <div class="subtab-about-content-right">
+            <div class="subtab-about-text">
+              <p>
+                The summation of these two products means that the geometric product can produce a <i>multivector</i> which is a generalization of a vector that can represent any dimension.
+                If a bivector is multiplied by an additional vector, it produces a trivector which is a 3D object that represents a volume. 
+                This can be thought of as the oriented volume of the parallelepiped formed by the three vectors.
+              </p> 
+              <p>
+                The maximum <i>grade</i> of the multivector is limited by the dimension of the space.
+                For example, in 3D space, the maximum grade is 3.
+                Thus, Clifford algebras are often defined by the dimension of the space they are defined in, or more specifically by the number of basis vectors.
+                A Clifford algebra, \(Cl(p,q,r)\) is defined by the number of positive (\(p\)), negative (\(q\)), and zero (\(r\)) basis vectors.
+                The total dimensionality of the algebra is \(n = p + q + r\). 
+                However, I will use purely positive bases unless otherwise specified.
+              </p>
+              <p>
+                The total number of <i>blades</i> grows exponentially with the dimension of the space as \(2^n\). 
+                For example, 3D space is given by 8 basis blades (See right).
+              </p>
+            </div>
+            <div class="subtab-about-image">
+              <video id="myVideo" muted controls autoplay>
+                <source src="images/GeometricBlades.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            </div>
+        </div>
+        <div class="subtab-about-content-right">
+          <div class="subtab-about-image">
+            <video id="myVideo" muted controls autoplay>
+              <source src="images/Quaternion.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+          </video>
+          </div>
+          <div class="subtab-about-text">
+              <p>
+                The even grades of a Clifford algebra are closed under addition and geometric product, ie starting with only even grade bases can produce only even grade multivectors.
+                This means that the even grades form a sub-algebra of the Clifford algebra. 
+                The even grade sub-algebra of a \(Cl(2)\) is equivalent to the complex numbers.
+                Moreover, the even grade sub-algebra of a \(Cl(3)\) is equivalent to the quaternions in 3D space, as shown Left.
+              </p>
+          </div>
+        </div>
+        <div class="subtab-about-content-right">
+          <div class="subtab-about-text">
+              <p>
+                Quaternions are a powerful tool in 3D graphics because they can represent rotations in 3D space without the <i>Gimbal Lock</i> problem that Euler angles have.
+                In quaternion algebra, one can express rotations in 3D space using the <i>sandwich product</i> or <i>conjugate product</i>.
+              </p>
+              <p>
+                $$\hat{v}' = \hat{q}\hat{\mathbf{v}}\hat{q}^{-1}.$$
+              </p>
+              <p>
+              Likewise, the even sub-algebras of a Clifford algebra can be rotated with the conjugate product.
+              In \(Cl(2)\), this results in a rotation in the complex plane, and in \(Cl(3)\) this corresponds to the quaternion rotation.
+              </p>
+              <p>
+                More generally, the conjugate product of two vectors, \(-\mathbf{a}\mathbf{b}\mathbf{a}^{-1}\) <i>reflects</i> \(\mathbf{b}\) across \(\mathbf{a}.\)
+              </p>
+            </div>
+            <div class="subtab-about-image">
+              <video id="myVideo" muted controls autoplay>
+                <source src="images/GeometricAlgebra.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            </div>
+          </div>
+          <div class="subtab-about-content-right">
+            </div>
+            <div class="subtab-about-text">
+                <p>
+                Like the complex numbers, Clifford Algebra comes with exponentiation and a Fourier Transform and an Uncertainty 
+                Principle. Making it also a powerful tool direction for extending signal processing more rigorously to higher 
+                dimensions.
+                </p>
+              </div>
+              
+            </div>
+          </div>

@@ -4,8 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chase vdG</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script>
+    <!-- <script>
       MathJax = {
           tex: {
             packages: {'[+]': ['amsmath']},
@@ -17,29 +16,37 @@
               }
           }
       };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <link rel="stylesheet" href="style.css">
+  </script> -->
+  <!-- MathJax Configuration -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+  <script src="js/mathjax-config.js"></script>
+
+    <link rel="stylesheet" href="styles/style.css">
   </head>
+  
+
   <body>
+    
     <div class="header-icons">
         <a href="mailto:C.M.Van-De-Geijn@sms.ed.ac.uk"><i class="far fa-envelope"></i></a>
         <a href="https://github.com/ChasevdG" target="_blank"><i class="fab fa-github"></i></a>
         <a href="https://www.linkedin.com/in/chase-van-de-geijn-517946196/" target="_blank"><i class="fab fa-linkedin"></i></a>
       </div>
 
-    <div class="header">
-      <video autoplay muted loop>
-        <source src="images/freq3.mp4" type="video/mp4">
-        <!-- Include additional source elements for other video formats (WebM, Ogg) -->
-        Your browser does not support the video tag.
-      </video>
-    <h1>Chase van de Geijn</h1>
-    <p  class="header-text" id="typing-header">ML Physicist</p>
-  </div>
+      <div class="header">
+        <video autoplay muted loop>
+          <source src="images/freq3.mp4" type="video/mp4">
+          <!-- Include additional source elements for other video formats (WebM, Ogg) -->
+          Your browser does not support the video tag.
+        </video>
+      <h1>Chase van de Geijn</h1>
+      <p  class="header-text" id="typing-header">ML Physicist</p>
+    </div>
+
   <div class="tabs">
     <div class="tab-label" onclick="showTab('about')">About Me</div>
-    <div class="tab-label" onclick="showTab('interests')">Interests</div>
+    <div class="tab-label" onclick="showTab('interests', 'Geometric Deep Learning', 'content/GeometricDeepLearning.html' )">Interests</div>
     <div class="tab-label" onclick="showTab('education')">Education</div>
     <div class="tab-label" onclick="showTab('research')">Research</div>
     <div class="tab-label" onclick="showTab('skills')">Skills</div>
@@ -54,24 +61,25 @@
         <h3>Welcome to my Theory of Everything!</h3>
         <p>
             Howdy! I'm <strong>Chase van de Geijn</strong>, a eccentric <strong>AI Researcher</strong> and <strong>Orange Enthusiast</strong> 
-            with an interest in understanding AI at a deep mathematical level. I was doing my PhD in <strong>Applied Math</strong> at the 
-            University of Edinburgh mainly focusing on <strong>Machine Learning for learning  Turbelent Dynamics</strong>.
-
+            with an interest in understanding AI at a deep mathematical level. I was doing my PhD at the 
+            <strong>University of Göttingen</strong> mainly focusing on <strong>Foundation models for Neuroscience</strong>. 
+            In the past, I had started a PhD in Edinburgh in Applied Math target towards Geometric DL for Fluid Dynamics. 
+            I am also a co-organizer of the NeurReps global seminar series. 
         </p>
         <h3>Research Interests</h3>
         <p>
           My main specialty is in <strong>Geometric Deep Learning</strong>
           particularly <strong>Clifford Algebra</strong>. However, I also have done work in <strong>Bayesian Neural Networks</strong>, <strong>Wavelet Theory</strong>, 
           <strong>AI4Histopathology</strong> and have recently gotten into <strong>Computational Neuroscience</strong>, particularly sparse coding, 
-          Vector Symbolic Architectures, and geometric perception. 
+          Vector Symbolic Architectures, and geometric perception/neurogeometry. 
           Generally, I can be described as a highly opinionated, <strong>goofy guy</strong>, who loves to learn and teach.
         </p>
-        <!-- <h3>Learn with Me</h3>
+        <h3>Personal Interests</h3>
         <p>
-          I am always looking for new opportunities to learn and teach. If you are interested in collaborating on a project, 
-          or if you would like to learn more about my research, feel free to reach out to me via email or LinkedIn. I intend to
-          start a Group-Equivariant Deep Learning reading group in Fall 2024, so if you are interested in joining, please let me know!
-        </p> -->
+          In my free time, I enjoy <strong>walking</strong>, <strong>baking</strong>, and <strong>board games</strong>.
+          I am also an enthusiast of the color <strong>orange</strong> and <strong>Dungeons and Dragons</strong>.
+          I am an avid fan of <strong>Dimension 20</strong> and <strong>Dungeons and Dads</strong>.
+        </p>
       </div>
       
     </div>
@@ -79,45 +87,15 @@
   <div class="tab-content" id="education">
     <h2>Education</h2>
     <div class="sub-tabs">
-      <div class="sub-tab-label" onclick="showSubTab('degree3')">PhD</div>
-      <div class="sub-tab-label" onclick="showSubTab('degree2')">Master's Degree</div>
-      <div class="sub-tab-label" onclick="showSubTab('degree1')">Bachelor's Degree</div>
+      <div class="sub-tab-label" onclick="showSubTab('phd', 'content/education/PhD.html')">PhD</div>
+      <div class="sub-tab-label" onclick="showSubTab('masters', 'content/education/masters.html')">Master's Degree</div>
+      <div class="sub-tab-label" onclick="showSubTab('bachelors', 'content/education/bachelors.html')">Bachelor's Degree</div>
     </div>
-    <div class="tab-content sub-tab-content" id="degree1">
-            <h2>Bachelors Degree</h2>
-            <div class="subtab-about-content">
-              <div class="subtab-about-text">
-                <p>
-                I started my academic journey at the University of Texas at Austin, where I studied Computer Science 
-                as part of the Turing Scholars Honors Program. After three semesters, I transferred to the Amsterdam University College 
-                where I studied Physics. While at AUC I did a semester of exchange to the University of Sydney where I took courses in Computer Vision. 
-                I graduated with a Bachelor of Liberal Arts and Science Honours Degree in 2019 after completing my 
-                thesis on <strong>"Bayesian Neural Networks for Learning the Schrodinger Equation"</strong>.
-                </p>
-              </div>
-              <div class="subtab-about-image-logo">
-                <img src="images/AUC_kleur.png" alt="Subtab Image">
-              </div>
-            </div>
+    <div class="tab-content sub-tab-content" id="bachelors">
           </div>
-    <div class="tab-content sub-tab-content" id="degree2">
-        <h2>Master's Degree</h2>
-        <div class="subtab-about-content">
-          <div class="subtab-about-text">
-            <p>
-            During the pandemic, I took online master's courses in AI adjacent topics from the University of Texas at Austin's MCSO
-            program. After the pandemic, I once again transferred to the University of Amsterdam where I completed my Master's in 
-            Artificial Intelligence in Oct 2023. My thesis, <strong>Lifting to SE(2) should be a piece of Cake</strong> supervised 
-            by Erik Bekkers, Remco Duits and David Knigge, motivated Cake wavelets as an optimal directional wavelet for lifting 
-            images to SE(2).
-            </p>
-          </div>
-          <div class="subtab-about-image-logo">
-            <img src="images/uva_logo.png" alt="Subtab Image">
-          </div>
-        </div>
+    <div class="tab-content sub-tab-content" id="masters">
       </div>
-      <div class="tab-content sub-tab-content" id="degree3">
+      <div class="tab-content sub-tab-content" id="phd">
         <h2>PhD</h2>
         <div class="subtab-about-content">
           <div class="subtab-about-text">
@@ -136,209 +114,14 @@
   <div class="tab-content" id="interests">
     <h2>Interests</h2>
     <div class="sub-tabs">
-        <div class="sub-tab-label" onclick="showSubTab('interest3')">Clifford Algebra</div>
-        <div class="sub-tab-label" onclick="showSubTab('interest1')">Geometric Deep Learning</div>
-        <div class="sub-tab-label" onclick="showSubTab('interest2')">Fluid Dynamics</div>
+        <div class="sub-tab-label" onclick="showSubTab('CA', 'content/CA.html')">Clifford Algebra</div>
+        <div class="sub-tab-label" onclick="showSubTab('Geometric Deep Learning', 'content/GeometricDeepLearning.html')">Geometric Deep Learning</div>
+        <div class="sub-tab-label" onclick="showSubTab('Fluid Dynamics', 'content/FluidDynamics.html')">Fluid Dynamics</div>
         <!-- <div class="sub-tab-label" onclick="showSubTab('interest4')">Wavelet Theory</div> -->
       </div>
-      <div class="tab-content sub-tab-content" id="interest1">
-              <h2>Geometric Deep Learning</h2>
-              <div class="subtab-about-content">
-                <div class="subtab-about-text">
-                    <p>
-                    Geometric Deep Learning is a sub-discipline focused on enforcing symmetries in a neural network to enforce 
-                    the symmetries in the task. Intuitively, if the models task is to classify whether an image is a cat 
-                    or a dog, then it should not matter whether the input is rotated. This behavior of the output being unchanged is 
-                    known as an <strong>invariance</strong> symmetry of the task. On the other hand, if the task is to segment the
-                    pixels which correspond to the cat, then the output should rotate with the input. This behavior is known
-                    as an <strong>equivariance</strong> symmetry of the task. 
-                    </p>
-                    <p>
-                    These symmetries arise in computer vision, primarily because the task is often grounded in the physics 
-                    of the real world. In physics, the laws of nature are invariant under certain transformations. For example,
-                    the laws of physics are invariant to changes in the reference frame, such as translations, rotations,
-                    reflections, and a constant speed boost (Lorentz boosts). 
-                    These symmetries can be expressed mathematically using the language of group theory and are known as 
-                    the <strong>Poincare group</strong>.
-                    </p>
-                    <p>
-                    Convolutional neural networks are a popular choice in computer vision because they exibit translation equivariance.
-                    However, they do not exibit equivariance to the rest of the Poincare transformations. The goal of geometric deep learning
-                    is to extend the success of convolutional neural networks to this broader family of symmetries.
-                    </p>
-                  </div>
-                <div class="subtab-about-image">
-                  <img src="images/equiv.png" alt="Subtab Image" >
-                </div>
-              </div>
-            </div>
-      <div class="tab-content sub-tab-content" id="interest2">
-          <h2>Fluid Dynamics</h2>
-          <div class="subtab-about-content">
-            <div class="subtab-about-text">
-              <p>
-              My PhD is in Machine Learning for Fluids and PDEs. Solutions to PDEs often form a low-dimensional manifold in the
-              function space. This is because the solutions to PDEs are often smooth and have a low number of degrees of freedom.
-              These low-dimensional manifolds are often approximated using machine learning techniques such as Galerkin Methods, Principle Component
-              Analysis, and Autoencoders. However these techniques often fail to capture the topology of the system and the symmetries that entails.
-              In other words, these techniques often ignore that the fluid is one, two or three dimensional or perhaps living on a sphere like ocean flows.
-              </p>
-              <p>
-              My research aims to incorporate information about the topology of the system through incorporating geometric transformations into the representation process.
-              The low order manifolds are often described by a linear combination of scaling factors and basis functions, such as the eigenvalue-eigenvector representation of PCA.
-              While this representation works well for stationary systems, it often fails to capture interpretable dynamics for traveling waves.
-              However, if we incorporate Euclidean transformations into the representation process, we can capture the dynamics of the system in a more compact and interpretable way. 
-              </p>
-              <p>
-              While this notion has been captured by previous literature, they often assume that the entire system is traveling at the same speed. However, in many systems, such as ocean flows,
-              the system is composed of multiple waves traveling at different speeds. This is where the notion of local versus global equivariant neural networks comes in. 
-              By incorporating local geometric transformations into the representation process, we can capture the dynamics of the system with more meaningful representations.
-              </p>
-            </div>
-            <div class="subtab-about-image">
-              <img src="images/your-subtab-image.jpg" alt="Subtab Image">
-            </div>
-          </div>
-        </div>
-        <div class="tab-content sub-tab-content" id="interest3">
-          <h2>Clifford Algebra</h2>
-          <div class="subtab-about-content">
-            <div class="subtab-about-text">
-              <p><strong>Clifford Algebra</strong> serves as a unifying language for
-                <strong>rigid body transformations</strong>, and offers an easy way to express Poincare group transformations. At its core, Clifford Algebra is a
-                generalization of the dot product and cross product which makes it a powerful tool for expressing the
-                symmetries of physics. The ability to express physical symmetries is what makes it especially useful in <strong>robotics, game design</strong> and <strong>particle physics</strong>.
-                However, I think it will also become <strong>key in creating interpretable and generalizable machine learning models across all physical systems</strong>.
-              </p>
-            </div>
-          </div>
-          <div class="subtab-about-content">
-            <div class="subtab-about-text">
-              <p>
-              Clifford Algebra is a way of multiplying vectors and allows for the generalization of complex numbers and quaternions. 
-              The algebra is simply motivated from two axioms : 
-              <p>$$\vec{e}_i \vec{e}_i = \{1,0,-1\}$$</p>
-              <p>$$\vec{e}_i \vec{e}_j = - \vec{e}_j \vec{e}_i$$</p>
-              <p>
-              Like in Linear Algebra, a vector can be expressed as a linear combination of basis vectors. For example,
-              </p>
-              <p>$$a = a_1 \vec{e}_1 + a_2 \vec{e}_2$$</p>
-              <p>
-              The geometric product between two vectors, is defined to be <i>bilinear</i> ie it is left and right distributive. Using this, we can show (right) that,
-              </p>
-              <p>$$ab = a \cdot b + a \wedge b$$</p>
-              <p>
-              Where the dot product is the inner product and the wedge product is the exterior product.
-              </p>
-            </div>
-            <div class="subtab-about-image">
-              <video id="myVideo" muted controls autoplay>
-                <source src="images/GP.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            </div>
-          </div>
-          <div class="subtab-about-content-right">
-            <div class="subtab-about-image">
-              <img src="images/basisblades.png" alt="Subtab Image">
-            </div>
-            <div class="subtab-about-text">
-              <p>
-              The dot product, like in Linear Algebra, produces a <i>scalar</i>, whereas the wedge product produces a <i>bivector</i> which is a 2D object that represents a plane.
-              The wedge product can be thought of as the oriented area of the parallelogram formed by the two vectors as shown left.
-              When the order of the vectors is switched, the orientation switches from clockwise to counterclockwise creating a negative in the equations.
-              </p>
-              <p>
-              The wedge product is intimately related to the cross product in 3D space.
-              In a 3D Clifford Algebra, a bivector can be uniquely identified with its (signed) normal vector.
-              The cross product is precisely the normal vector of the plane formed by the wedge product of two vectors.
-              </p>
-            </div>
-          </div>
-        <div class="subtab-about-content-right">
-            <div class="subtab-about-text">
-              <p>
-                The summation of these two products means that the geometric product can produce a <i>multivector</i> which is a generalization of a vector that can represent any dimension.
-                If a bivector is multiplied by an additional vector, it produces a trivector which is a 3D object that represents a volume. 
-                This can be thought of as the oriented volume of the parallelepiped formed by the three vectors.
-              </p> 
-              <p>
-                The maximum <i>grade</i> of the multivector is limited by the dimension of the space.
-                For example, in 3D space, the maximum grade is 3.
-                Thus, Clifford algebras are often defined by the dimension of the space they are defined in, or more specifically by the number of basis vectors.
-                A Clifford algebra, \(Cl(p,q,r)\) is defined by the number of positive (\(p\)), negative (\(q\)), and zero (\(r\)) basis vectors.
-                The total dimensionality of the algebra is \(n = p + q + r\). 
-                However, I will use purely positive bases unless otherwise specified.
-              </p>
-              <p>
-                The total number of <i>blades</i> grows exponentially with the dimension of the space as \(2^n\). 
-                For example, 3D space is given by 8 basis blades (See right).
-              </p>
-            </div>
-            <div class="subtab-about-image">
-              <video id="myVideo" muted controls autoplay>
-                <source src="images/GeometricBlades.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            </div>
-        </div>
-        <div class="subtab-about-content-right">
-          <div class="subtab-about-image">
-            <video id="myVideo" muted controls autoplay>
-              <source src="images/Quaternion.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-          </video>
-          </div>
-          <div class="subtab-about-text">
-              <p>
-                The even grades of a Clifford algebra are closed under addition and geometric product, ie starting with only even grade bases can produce only even grade multivectors.
-                This means that the even grades form a sub-algebra of the Clifford algebra. 
-                The even grade sub-algebra of a \(Cl(2)\) is equivalent to the complex numbers.
-                Moreover, the even grade sub-algebra of a \(Cl(3)\) is equivalent to the quaternions in 3D space, as shown Left.
-              </p>
-          </div>
-        </div>
-        <div class="subtab-about-content-right">
-          <div class="subtab-about-text">
-              <p>
-                Quaternions are a powerful tool in 3D graphics because they can represent rotations in 3D space without the <i>Gimbal Lock</i> problem that Euler angles have.
-                In quaternion algebra, one can express rotations in 3D space using the <i>sandwich product</i> or <i>conjugate product</i>.
-              </p>
-              <p>
-                $$\hat{v}' = \hat{q}\hat{\mathbf{v}}\hat{q}^{-1}.$$
-              </p>
-              <p>
-              Likewise, the even sub-algebras of a Clifford algebra can be rotated with the conjugate product.
-              In /(Cl(2)), this results in a rotation in the complex plane, and in \(Cl(3)\) this corresponds to the quaternion rotation.
-              </p>
-              More generally, the conjugate product of two vectors, \(-\mathbf{a}\mathbf{b}\mathbf{a}^{-1}\) <i>reflects</i> \(\mathbf{b}\) across \(\mathbf{a}\).
-              </p>
-            </div>
-            <div class="subtab-about-image">
-              <video id="myVideo" muted controls autoplay>
-                <source src="images/GeometricAlgebra.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            </div>
-          </div>
-          <div class="subtab-about-content-right">
-            <div class="subtab-about-image">
-              <video id="myVideo" muted controls autoplay>
-                <source src="images/GeometricAlgebra.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            </div>
-            <div class="subtab-about-text">
-                <p>
-                Like the complex numbers, Clifford Algebra comes with exponentiation and a Fourier Transform and an Uncertainty 
-                Principle. Making it also a powerful tool direction for extending signal processing more rigorously to higher 
-                dimensions.
-                </p>
-              </div>
-              
-            </div>
-          </div>
-        </div>
+      <div class="tab-content sub-tab-content" id="Geometric Deep Learning"></div>
+      <div class="tab-content sub-tab-content" id="Fluid Dynamics"> </div>
+        <div class="tab-content sub-tab-content" id="CA"></div>
         
       <div class="tab-content sub-tab-content" id="interest4">
     <!-- <h2>Wavelet Theory</h2>
@@ -353,385 +136,16 @@
     <div class="tab-content" id="research">
       <h2>Research</h2>
       <div class="sub-tabs">
-        <div class="sub-tab-label" onclick="showSubTab('CHASE')">Hierarchical Equivariance</div>
-        <div class="sub-tab-label" onclick="showSubTab('ENF')">Equivariant Neural Fields</div>
+        <div class="sub-tab-label" onclick="showSubTab('CHASE', 'content/compositional.html')">Hierarchical Equivariance</div>
+        <div class="sub-tab-label" onclick="showSubTab('ENF', 'content/EquivariantNF.html')">Equivariant Neural Fields</div>
         <div class="sub-tab-label" onclick="showSubTab('GPOD')">Group Generalized POD</div>
         <div class="sub-tab-label" onclick="showSubTab('CAKE')">Cake Wavelets</div>
       </div>
-      <div class="tab-content sub-tab-content" id="CHASE">
-        <!-- center header-->
-        <div class="subtab-about-content"></div>
-        <div class="subtab-about-header" style="text-align: center;">
-          <h1>Clifford Hierarchical Algebras for Structural Equivariance</h1>
-        </div>
-        <div class="subtab-about-content">
-        <div class="subtab-about-text">
-          <h2>Overview</h2>
-          <p>
-            Most research in Geometric Deep Learning (GDL) has focused on enforcing global equivariance in the neural network.
-            However, most tasks such as images are compositional, where scenes are composed of objects, which are composed of parts, which are composed of subparts.
-            These structures are often themselves equivariant, which induces a global equivariance in the system.
-            Thus, the global equivariance, which is often the focus of GDL, does not capture the full <strong>compositional equivariance</strong> of the system.
-          </p>
-          <p>
-            In the previous work of Shewmake et al. (--), they propose <i>hierarchically equivariant sparse coding</i> to capture the symmetries of the part-whole hierarchy.
-            In this work, they motivate hierarchical equivariance using product groups and with elementwise products.
-            Similarly, in Wang et al.(--) the formalize instead motivated by wreath products.
-            <strong> By contrast, in this work, I propose a new algebraic framework for formalizing part-whole hierarchies.</strong>
-          </p>
-          <p>
-            In GDL, emphasis is often put on representing symmetries as groups and equivariances as <i>group homomorphisms</i>.
-            However, part-whole hierarchies can be intuitively represented as <i>algebras</i>, typically <i>rings</i>, which leads to a hierarchical equivariances being naturally expressed as <i>algebraic homomorphisms</i>.
-            In formulating the problem algebraicly, I naturally motivate an architecture for learning part whole hierarchies, through the use of a neural field parameterized as a <i>ring</i>.
-            To parameterize the ring, I use <i>Clifford Algebras</i> which naturally captures the rigid body motion transformations in images.
-            Thus, we call our architecture <strong>Clifford Hierarchical Algebras for Structural Equivariance</strong>
-          </p>
-        </div>
-      </div>
-      <div class="subtab-about-content">
-          <div class="subtab-about-text">
-            <h2>Motivation</h2>
-            <p>
-              The motivation behind geometric deep learning is often simplified to the idea that <i>"a rotation to the input should result in an equal rotation to the output"</i>.
-              Thus, our task (Right) domain (images) has an <i>equivariant</i> symmetry with its codomain under rotations.
-              An equivariant symmetry under a group \(G\) for a function, \(f : X \rightarrow Y\), is defined as,
-            </p>
-              <p>$$f(g \cdot x) = \phi(g) \cdot f(x)$$</p>
-            <p>
-              where \(g \in G\) is the group action (rotation) on the input \(x \in X\) and \(\phi(g)\) is the corresponding group action on the output \(f(x) \in Y\).
-              In the above phrasing, rotation is assumed to act identically on the input and output.
-              While this serves as a good starting point, it is often not enough to capture the full symmetries of the system.
-            </p>
-          </div>
-          <div class="subtab-about-image">
-            <img src="images/symmetry.GIF" alt="Subtab Image">
-          </div>
-          </div>
-          <div class="subtab-about-content">
-            <div class="subtab-about-image">
-              <img src="images/CompEquiv.gif" alt="Subtab Image">
-            </div>
-            <div class="subtab-about-text">
-            <p>
-              In the case of images, the task is often compositional, where the image is composed of objects, which are composed of parts, which are composed of subparts.
-              These sub-structures are often equivariant.
-              For example, our task may be to segment an image composed of a cat and a dog.
-              The cat can be translated and rotated, and the segmentation of the cat will follow that transformation.
-              However, the segmentation of the dog will remain unchanged.
-              Likewise, the segmentation map will follow the transformations to the dog and the segmentation of the cat will remain unchanged.
-              Let's begin formalizing this idea.
-            </p>
-            </div>
-          </div>
-          <div class="subtab-about-content">
-            <div class="subtab-about-text">
-            <p>
-              To translate this intuition into equations, we are given an image, \(I\), at wish to create a segmentation map, \(S\), using a neural network \(f\).
-            </p>
-            <p>$$S = f(I)$$</p>
-            <p>
-              Moreover, we know that our image is composed of objects,
-            </p>
-            <p>$$I = \{O_1, O_2, ..., O_n\}$$</p>
-            <p>
-              and that our segmentation map is composed of segmentations of these objects,
-            </p>
-            <p>$$S = \{S_1, S_2, ..., S_n\}$$</p>
-            <p>
-              This structure is shown on the right.
-            </p>
-          </div>
-          <div class="subtab-about-image">
-            <img src="images/structure.jpeg" alt="Subtab Image">
-          </div>
-        </div>
-        <div class="subtab-about-content">
-          <div class="subtab-about-image">
-            <img src="images/composition.gif" alt="Subtab Image">
-          </div>
-          <div class="subtab-about-text">
-          <p>
-            This part-whole structure lets us intuitively define compositional equivariance.
-            If a part is transformed, the segmentation of the part should also transform.
-            Thus, a neural network is compositional equivariant if,
-          </p>
-          <p>$$f(O_1, ..., {\color{cyan}\mathbf{O_i}}, ..., O_n) = (S_1, ..., {\color{cyan}\mathbf{S_i}}, ... S_n)$$
-            $$ \implies f((O_1, ..., {\color{orange}\mathbf{gO_i}}, ..., O_n)) = (S_1, ..., {\color{orange}\mathbf{\phi(g)S_i}}, ... S_n)$$
-          </p>
-          <p>
-            where \(g\) is the group action (rotation) on the object \(O_i\) and \(\phi(g)\) is the corresponding group action on the segmentation \(S_i\).
-            This is shown in the left image.
-          <p>
-            If we were to rotate the full image, the segmentation of the cat and dog would both rotate with the image.
-            Thus, <i>if the task is compositionally equivariant, the task is also globally equivariant</i>. 
-          </p>
-          <p>
-            (Note in the left image the objects are <i>not</i> rotated around the same center hence it is not equivalent to a global rotation)
-          </p>
-        </div>
-      </div>
-      <p></p>
-      <div class="subtab-about-content">
-        <div class="subtab-about-text">
-          <p>
-            So far, we have shown scenes which are composed of objects. 
-            However, objects are themselves composed of parts, which are composed of subparts.
-            We call this hierarchical structure the <strong>part-whole hierarchy</strong>.
-            <strong>Hierarchical equivariance</strong> is the idea of compositional equivariance extended to this hierarchy.
-            Analogous to global rotations resulting in a rotation of all objects, a rotation at the object-level is equivalent to a rotation of all its parts.
-            A neural network is then hierarchically equivariant if the output preserves the part-whole structure of the input.
-          </p>
-          <p>
-            We must first construct the part-whole hierarchy in order to apply these ideas.
-            Thus, we propose an unsupervised method of constructing the part-whole hierarchy.
-            We will focus on this construction for the rest of the explanation.
-          </p>
-        </div>
-      </div>
-        <div class="subtab-about-content">
-          
-          <div class="subtab-about-text">
-          <h2>Part-Whole Hierarchy</h2>
-          <p>
-            Our intuition for the part-whole hierarchy is that we can rotate objects and parts independently from one another.
-            While we can rotate an image, we can also rotate a face or tree within the image, or even the parts which compose the mouth.
-          </p>
-          <p>
-            We can continue this process recursively down until we reach indivisible parts.
-            In this case, the indivisible parts are the basic shapes -- lines, rectangles, circles and triangles -- which compose the objects.
-            I will call these basic building blocks <strong>primitives</strong>, though one could also call them <i>atoms</i>.
-          </p>
-          <p>
-            To be explicit about terms, continuing on, I will refer to the global level as a <strong>scene</strong>, and all intermediate levels as <strong>objects</strong>.
-            The objects which compose a particular object are its <strong>parts</strong>.
-          </p>
-        </div>
-        <div class="subtab-about-image">
-          <img src="images/PHHier.gif" alt="Subtab Image">
-        </div>
-      </div>
-    <div class="subtab-about-content">
-      <div class="subtab-about-image">
-        <img src="images/tree.gif" alt="Subtab Image">
-      </div>
-      <div class="subtab-about-text">
-      <p>
-        These intuitions allows us to construct a tree structure of the part-whole hierarchy.
-        The full tree acts as a representation of the full scene and each branch represents a part-whole relationship.
-        Each node in the tree has a corresponding attribute -- such as position, orientation, or scale -- which we represent as a <strong>group element</strong> which transforms the object.
-      </p>
-      <p>
-        For a primer on group theory, see the <strong>Geometric Deep Learning</strong> tab in <strong>Interests</strong>.
-      </p>
-      <p>
-        As an example, an object can be represented at a node.
-        The group element at that node determines the position and orientation of that object, and the object can be rotated and translated by changing that group element.
-        The object itself is determined by the relative positions and orientations of the sub-tree below it with the exception of the leaves of the tree which are the primitive objects which have no sub-trees.
-      </p>
-      <p>
-        This tree structure hinges on two operations.
-        One is that an object is the composition of its parts, meaning that we need a <i>binding operator</i> which combines the parts into the object.
-        The other operation is the <i>group action</i> which transforms the object.
-        These two operations with our primitives allows us to construct a <strong>compositional algebra</strong>.
-      </p>
-    </div>
-    
-  </div>
-  <div class="subtab-about-content">
-    <div class="subtab-about-text">
-      <h2>Binding</h2>
-    <p>
-      Our intuition motivates the need for a <strong>binding operator</strong> to compose the parts into the object.
-      The binding operator simply takes two objects and combines them into a new object.
-      While this is done by a simple <i>superposition</i>, ie summation, in this work, the binding operator can be more complex.
-      The summation is a symmetric binding operator, ie the order of the objects does not matter.
-      However, in general, the binding operator can be asymmetric.
-      For example, while in PDEs and physics superposition is often enough, in images there is often occlusion which makes the order important while binding.
-    </p>
-    <p>
-      The term "binding" is borrowed from neuroscience where it refers to the process by which the brain integrates information from different sources to create a unified perception or experience.
-      Binding operations are one of the pillars of Vector Symbolic Architectures (VSAs), or Hyperdimensional Computing. 
-      These architectures are based on the idea that the brain represents information as high-dimensional vectors; manipulating and combining these vectors using binding operations.
-    </p>
-  </div>
-  <div class="subtab-about-image">
-    <img src="images/tree.gif" alt="Subtab Image">
-  </div>
-  </div>
-  <div class="subtab-about-content">
-    <div class="subtab-about-image">
-      <img src="images/tree.gif" alt="Subtab Image">
-    </div>
-    <div class="subtab-about-text">
-      <h2>Group Product</h2>
-      <p>
-        The second operation is the <strong>group action</strong> which transforms the object.
-        If a group action is applied to two objects which are bound together, the group action should be applied to both objects.
-        That is, the group action should <i>distribute</i> over the binding operator.
-        </p>
-        <p>
-        $$
-          g \cdot (O_1 \oplus O_2) = (g \cdot O_1) \oplus (g \cdot O_2)
-        $$
-        </p>
-        <p>
-        This is shown in the right image. 
-        The group product can act in two ways, either group element to group element or group element to object.
-        <p>
-        $$
-          g_1 \cdot (g_2 \cdot O_2) = (g_1 \circ g_2) \cdot O_2
-        $$
-        </p>
-        <p>
-          where \(\circ\) is the group product and \(\cdot\) is the group action on an object.
-          These two properties lets us propogate the group action down the tree until we reach the primitives.
-        </p>
-        <p>
-          In abstract algebra, an algebraic structure with two operations -- i.e. group action and binding -- is known as a <strong>ring</strong>.
-          These 
-        </p>
-  </div>
-  </div>
-  <div class="subtab-about-content">
-    <div class="subtab-about-text">
-      <h2>Group Product</h2>
       
-  </div>
-  <div class="subtab-about-image">
-    <img src="images/tree.gif" alt="Subtab Image">
-  </div>
+      <div class="tab-content sub-tab-content" id="CHASE">
   </div>
       </div>
       <div class="tab-content sub-tab-content" id="ENF">
-        <div class="subtab-about-header" style="text-align: center;">
-          <h1>Equivariant Neural Fields</h1>
-        </div>
-        <div class="subtab-about-content">
-          <div class="subtab-about-text">
-            <h2>Overview</h2>
-            <p>
-              Neural Fields are gaining traction in a number of different fields in machine learning.
-              These methods represent a data point -- such as an image-- as a neural network, thus the data is implicitly represented in the weights of the neural network.
-              This implicit representation can have less parameters than the resolution of the data -- e.g. less pixels then are in an image -- allows for non-integer evaluation of the image, which is useful in continuous domains such as PDEs.
-              However, for these methods to be useful representations, they need to be useful for downstream tasks, such as classification or segmentation.
-            </p>
-            <p>
-              Naively training a network from scratch for each data results in a results in a highly distributed representation in weight space.
-              This makes it difficult to transfer knowledge between datapoints and use the representation downstream.
-              Instead, it has been shown to be preferable to train <i>conditional neural fields</i>.
-              These methods seperate the representation into a base field which is shared across a dataset and a latent variable which conditions the field.
-            </p>
-            <p>
-              In Wang et al. (--), they propose that a zoo of popular neural operator methods, such as DeepONets and Fourier Neural Operators, can be connected by thinking of them as specialized neural fields conditioning methods.
-              Through this, they motivate continuous vision transformers.
-              While many of these methods already rely on an encoder-decoder structure, I will specifically focus on drawing the connections between conditional neural fields and autoencoders.
-              This allows for the natural construction of what I dub <strong>neural autofields</strong>.
-            </p>
-            <p>
-              Creating a base field and relative conditioning improves the usablility of the representation for downstream tasks.
-              However, it is often difficult to represent simple transformations while working in the latent space.
-              For example, in the case of images, it is difficult to represent the translation of an object by changing the latent variable.
-              To this end, Wessels et al (--) propose equivariant neural fields.
-            </p>
-            <p>
-              In their work, they show that an equivariant neural field results from a <i>bi-invariant</i> between the latent variable and the coordinate.
-              More over, they show that the bi-invariant condition is equivalent to the steerability condition.
-              Thus, the latent vectors act as <i>steerable representations</i> with respect the group.
-              We will use this to construct <strong>steerable neural autofields</strong>.
-            </p>
-            <p>
-              In my explanation, I will focus on motivating and interpretting this bi-invariant condition from a more theoretical physics perspective through Noether's theorem.
-              I will show that the bi-invariant condition is equivalent to the conservation of a quantity under some action which naturally creates reference frame equivariances.
-              I believe this interpretation can naturally lead to the construction of <strong>energy conserving neural fields</strong> by enforcing local conservation laws with the bivariant.
-            </p>
-          </div>
-        </div>
-
-        <div class="subtab-about-content">
-          
-          <div class="subtab-about-text">
-            <h3>Neural Fields</h3>
-            <p>
-              The term "Neural Fields" (NeFs) serves as the umbrella term for coordinate neural networks, such as Implicit Neural Representations (INRs), Physics Informed Neural Networks (PINNs), and Neural Radiance Fields (NeRFs).
-            </p>
-            <p>
-              The main intuition of NeFs is that they are neural networks trained to represent a single datapoint.
-              For example, one can train a neural network to represent an image by outputting the pixel value when given a coordinate as shown on the right.
-            </p>
-            
-          </div>
-          <div class="subtab-about-image" muted controls autoplay>
-            <video id="myVideo" muted controls autoplay loop>
-              <source src="images/NeF.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-          </div>
-        </div>
-        <div class="subtab-about-content">
-          <div class="subtab-about-image">
-            <img src="images/Training.gif" alt="Subtab Image" autoplay>
-          </div>
-          <div class="subtab-about-text">
-            <p>
-              To train a NeF for an image, one can use a shallow neural network and train it to minimize the MSE between the output given a coordinate and the true pixel value.
-              </p>
-              <p>
-                $$ 
-                  \mathcal{L} = \sum_{i=1}^{X}\sum_{j=1}^{Y} \left( ~f(x_i, y_j) - I[i,j] ~\right)^2
-                $$
-              </p>
-              <p>
-              where \(f\) is the neural network, \(I\) is the image to encode, and \(i\in X, j\in Y\) are integer-valued coordinates in the image and \(x_i, y_j\) are the corresponding points to evaluate the NeF.
-              While \(i, j\) and \(x_i, y_j\) can be the same, it is common practice to make \(x_i, y_j\) range from -1 to 1.
-              To recreate the image, the neural field can be reevaluated on the grid of the image.
-              The training process of a NeF over 200 iterations can be seen on the left.
-              </p>
-              <p>
-              Training a neural network to represent the datapoint offers two advantages: continuity and compressions.
-            </p>
-          </div>
-        </div>
-        <div class="subtab-about-content">
-          <div class="subtab-about-text">
-              <h2> Continuity</h2>
-              <p>
-                While the NeF is often trained at one resolution, it can be evaluated at any resolution.
-                This is because the NeF is a continuous function which can be evaluated at any point in the domain.
-                This makes NeFs especially useful in <i>continuum systems</i>, i.e. systems where one can zoom in infinitely such as PDEs or images.
-                This zooming property is shown on the right.
-                While NeFs do a decent job of interpolation between points, they cannot extrapolate beyond the boundaries as shown when zooming out.
-              </p>
-              <p>
-                An additional benefit of NeFs being a continuous function is that they are not tied to any grid system.
-                While images are often uniform grids, in numerics it is often more practical to use non-uniform grids.
-                Other compression methods, such as autoencoders or the Fast Fourier Transform, are tied to the uniformity of sampling.
-                This makes PINNs, a variant of NeFs which incorporate PDE constraints into their loss, especially popular for real world data where sensor data is sparsely sampled at irregular locations.
-              </p>
-          </div>
-          <div class="subtab-about-image">
-            <img src="images/zoom.gif" alt="Subtab Image">
-          </div>
-        </div>
-        <div class="subtab-about-content">
-          <div class="subtab-about-image">
-            <img src="images/params.gif" alt="Subtab Image">
-          </div>
-          <div class="subtab-about-text">
-              <h2> Compression </h2>
-              <p>
-                Images are displayed as pixel grids; however, it is rarely stored that way.
-                Because pixel values within an image are highly correlated, the data is often compressed using various algorithms.
-                Naively, one could take the Discrete Fourier Transform and store the frequencies up to a cutoff.
-                The representation of the image as its frequencies is its <i>encoding</i> and it is <i>decoded</i> by evaluating each pixel at each frequency.
-              </p>
-              <p>
-                Rather than using the Fourier basis, one could instead learn a basis through the principle components of a dataset.
-                Alternatively, one could also represent an image through a sparse dictionary of bases with <i>Sparse Coding</i>.
-                
-              </p>
-          </div>
-        </div>
-
         </div>
       <div class="tab-content sub-tab-content" id="GPOD">
         <h2>Group-Aware Galerkin Methods</h2>
@@ -803,11 +217,11 @@
             in regular GCNNs allowing added mathematical interpretability. Since we can limit tunable parameters of the neural network to the convolutional layers, one can interpret the network as just the portion of the model that is an endomorphism over the group.
             </p>
             <p>
-            A natural question arises of what constitutes the optimal method to lift into the group. From the theory of directional wavelets, we propose two major properties that a fixed lifting operation should have: reconstructability~\cite{janssen2018design} 
-            and locality/sparsity~\cite{bengio2013representation}. In this work, we motivate orientations score transforms with Cake Wavelets~\cite{duits2005perceptual, duits2007image} to be 
-            the near-optimal way to lift to a discretized group of roto-translations. In this abstract,
-            we will motivate Cake Wavelets through numerical optimization. However, there is a more rigorous
-            mathematical derivation via the general uncertainty principle that could be presented if time permits for a full paper.
+              A natural question arises of what constitutes the optimal method to lift into the group. From the theory of directional wavelets, we propose two major properties that a fixed lifting operation should have: reconstructability~\cite{janssen2018design} 
+              and locality/sparsity~\cite{bengio2013representation}. In this work, we motivate orientations score transforms with Cake Wavelets~\cite{duits2005perceptual, duits2007image} to be 
+              the near-optimal way to lift to a discretized group of roto-translations. In this abstract,
+              we will motivate Cake Wavelets through numerical optimization. However, there is a more rigorous
+              mathematical derivation via the general uncertainty principle that could be presented if time permits for a full paper.
             </p>
           </div>
           </div>
@@ -1096,9 +510,10 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
             </div>
           </div>
   </div>
+   
   <script>
     // Function to show a specific tab
-    function showTab(tabId) {
+    function showTab(tabId, defaultTab, defaultHTML) {
       const tabs = document.querySelectorAll('.tab-content');
       tabs.forEach(tab => {
         tab.style.display = 'none';
@@ -1106,18 +521,40 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
       
       const tabToShow = document.getElementById(tabId);
       tabToShow.style.display = 'block';
+      if (defaultTab && defaultHTML) {
+        showSubTab(defaultTab, defaultHTML);
+      }
     }
     
     // Function to show a sub-tab within the Education section
-    function showSubTab(subTabId) {
-      const subTabs = document.querySelectorAll('.sub-tab-content');
-      subTabs.forEach(subTab => {
+    function showSubTab(subTabId, filePath) {
+    const subTabs = document.querySelectorAll('.sub-tab-content');
+    subTabs.forEach(subTab => {
         subTab.style.display = 'none';
-      });
-      
-      const subTabToShow = document.getElementById(subTabId);
-      subTabToShow.style.display = 'block';
-    }
+    });
+
+    const subTabToShow = document.getElementById(subTabId);
+
+    // Fetch content from the external file
+    fetch(filePath)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Failed to load ${filePath}`);
+            }
+            return response.text();
+        })
+        .then(data => {
+            subTabToShow.innerHTML = data; // Load external content into the div
+            subTabToShow.style.display = 'block'; // Show the tab after loading content
+
+            // Re-render MathJax
+            if (window.MathJax) {
+                MathJax.typesetPromise();
+            }
+        })
+        .catch(error => console.error("Error loading content:", error));
+}
+
     
     // Show the "About Me" tab by default
     showTab('about');
@@ -1276,4 +713,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+window.onload = function() {
+    fetch('header.html')  // Fetch the header file
+        .then(response => response.text())
+        .then(data => {
+            document.getElementById('header').innerHTML = data;  // Insert into the header div
+        })
+        .catch(error => console.error('Error loading header:', error));
+};
   </script>
+  <footer>
+    <p>&copy; 2025 My Website. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
