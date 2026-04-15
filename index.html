@@ -29,7 +29,7 @@
   <body>
     
     <div class="header-icons">
-        <a href="mailto:C.M.Van-De-Geijn@sms.ed.ac.uk"><i class="far fa-envelope"></i></a>
+        <a href="#" id="email-link" onclick="this.href='mai'+'lto:'+'chase.geijn'+'@'+'uni-goettingen.de';return true;" aria-label="Email"><i class="far fa-envelope"></i></a>
         <a href="https://github.com/ChasevdG" target="_blank"><i class="fab fa-github"></i></a>
         <a href="https://www.linkedin.com/in/chase-van-de-geijn-517946196/" target="_blank"><i class="fab fa-linkedin"></i></a>
       </div>
@@ -47,6 +47,7 @@
   <div class="tabs">
     <div class="tab-label" onclick="showTab('about')">About Me</div>
     <div class="tab-label" onclick="showTab('interests', 'CA', 'content/CA.html' )">Interests</div>
+    <div class="tab-label" onclick="showTab('blogs', 'PE', 'content/blogs/PE.html' )">Blogs</div>
     <div class="tab-label" onclick="showTab('education')">Education</div>
     <div class="tab-label" onclick="showTab('research', 'CHASE', 'content/compositional.html')">Research</div>
     <div class="tab-label" onclick="showTab('skills')">Skills</div>
@@ -122,17 +123,14 @@
       <div class="tab-content sub-tab-content" id="Geometric Deep Learning"></div>
       <div class="tab-content sub-tab-content" id="Fluid Dynamics"> </div>
         <div class="tab-content sub-tab-content" id="CA"></div>
-        
-      <div class="tab-content sub-tab-content" id="interest4">
-    <!-- <h2>Wavelet Theory</h2>
-    <div>
-        <label for="num_slices">Slice Width: <span id="num_slices_Value">8</span></label>
-        <input type="range" id="num_slices" name="num_slices" min="0" max="5" value="3">
-    </div>
-    <canvas id="waveletCanvas" width="400" height="400"></canvas>
-    <canvas id="ifftCanvas" width="400" height="400"></canvas> -->
-</div>
-    </div>
+  </div>
+  <div class="tab-content" id="blogs">
+      <h2>Blogs</h2>
+      <div class="sub-tabs">
+          <div class="sub-tab-label" onclick="showSubTab('PE', 'content/blogs/PE.html')">Positional Encodings</div>
+      </div>
+      <div class="tab-content sub-tab-content" id="PE"></div>
+  </div>
     <div class="tab-content" id="research">
       <h2>Research</h2>
       <div class="sub-tabs">
@@ -685,7 +683,14 @@ function updateRotation() {
     drawRotatingSlice(rotationAngle, num_slices, cutoffRadius);
 
 }
-
+const collapsibles = document.querySelectorAll(".collapsible");
+collapsibles.forEach(button => {
+  button.addEventListener("click", () => {
+    button.classList.toggle("active");
+    const content = button.nextElementSibling;
+    content.style.display = content.style.display === "block" ? "none" : "block";
+  });
+});
 
 // Update proportionally to the slice width
 setInterval(updateRotation, interval);
