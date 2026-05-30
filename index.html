@@ -21,8 +21,9 @@
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <script src="js/mathjax-config.js"></script>
+  <script src="js/bibliography.js"></script>
 
-    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/style.css?v=2">
   </head>
   
 
@@ -46,11 +47,13 @@
 
   <div class="tabs">
     <div class="tab-label" onclick="showTab('about')">About Me</div>
+    <!-- <div class="tab-label" onclick="showTab('*section*', '*content*')">Interests</div> -->
     <div class="tab-label" onclick="showTab('interests', 'CA', 'content/CA.html' )">Interests</div>
     <div class="tab-label" onclick="showTab('blogs', 'PE', 'content/blogs/PE.html' )">Blogs</div>
     <div class="tab-label" onclick="showTab('education')">Education</div>
     <div class="tab-label" onclick="showTab('research', 'CHASE', 'content/compositional.html')">Research</div>
-    <div class="tab-label" onclick="showTab('skills')">Skills</div>
+    <div class="tab-label" onclick="showTab('teaching')">Teaching</div>
+    <div class="tab-label" onclick="showTab('supervision', 'supervisees', 'content/Supervision/supervision.html')">Supervision</div>
   </div>
   <div class="tab-content" id="about">
     <h2>About Me</h2>
@@ -97,20 +100,15 @@
     <div class="tab-content sub-tab-content" id="masters">
       </div>
       <div class="tab-content sub-tab-content" id="phd">
-        <h2>PhD</h2>
-        <div class="subtab-about-content">
-          <div class="subtab-about-text">
-            <p>
-            In January 2024, I started my PhD at The Maxwell Institute for Mathematical Sciences at the University of Edinburgh under the supervision of Jacob Page. 
-            My research is focused on Interpretable Machine Learning for Fluids, PDEs, and Turbulent Dynamics.
-            My position is funded by a grant given by the European Research Council.
-            </p>
-          </div>
-          <div class="subtab-about-image-logo">
-            <img src="images/University_of_Edinburgh-Logo.wine.png" alt="Subtab Image">
-          </div>
-        </div>
       </div>
+</div>
+ <div class="tab-content" id="supervision">
+    <h2>Supervision</h2>
+    <div class="sub-tabs">
+      <div class="sub-tab-label" onclick="showSubTab('supervisees', 'content/Supervision/supervision.html')">Supervision</div>
+    </div>
+    <div class="tab-content sub-tab-content" id="supervisees">
+          </div>
 </div>
   <div class="tab-content" id="interests">
     <h2>Interests</h2>
@@ -511,19 +509,24 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
    
   <script>
     // Function to show a specific tab
+    let currentTab = 'about';
+
     function showTab(tabId, defaultTab, defaultHTML) {
       const tabs = document.querySelectorAll('.tab-content');
       tabs.forEach(tab => {
         tab.style.display = 'none';
       });
-      
+
+      currentTab = tabId;
       const tabToShow = document.getElementById(tabId);
       tabToShow.style.display = 'block';
       if (defaultTab && defaultHTML) {
         showSubTab(defaultTab, defaultHTML);
+      } else {
+        history.replaceState(null, '', '#' + tabId);
       }
     }
-    
+
     // Function to show a sub-tab within the Education section
     function showSubTab(subTabId, filePath) {
     const subTabs = document.querySelectorAll('.sub-tab-content');
@@ -532,6 +535,7 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
     });
 
     const subTabToShow = document.getElementById(subTabId);
+    history.replaceState(null, '', '#' + currentTab + '/' + subTabId);
 
     // Fetch content from the external file
     fetch(filePath)
@@ -549,13 +553,43 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
             if (window.MathJax) {
                 MathJax.typesetPromise();
             }
+
+            // Re-run bibliography
+            if (window.bibliography) {
+                window.bibliography.init();
+            }
         })
         .catch(error => console.error("Error loading content:", error));
 }
 
-    
-    // Show the "About Me" tab by default
-    showTab('about');
+    function routeFromHash() {
+      const hash = window.location.hash.slice(1);
+      if (!hash) {
+        showTab('about');
+        return;
+      }
+      const [tabId, subTabId] = hash.split('/');
+      currentTab = tabId;
+      if (subTabId) {
+        // Find the file path from the existing onclick attributes
+        const btn = document.querySelector(`[onclick*="showSubTab('${subTabId}'"]`);
+        let filePath = null;
+        if (btn) {
+          const match = btn.getAttribute('onclick').match(/showSubTab\('([^']+)',\s*'([^']+)'\)/);
+          if (match) filePath = match[2];
+        }
+        if (filePath) {
+          showTab(tabId);
+          showSubTab(subTabId, filePath);
+        } else {
+          showTab(tabId);
+        }
+      } else {
+        showTab(tabId);
+      }
+    }
+
+    routeFromHash();
 
     function getRandomTextIndex(textIndex) {
       let newIndex = Math.floor(Math.random() * texts.length);
