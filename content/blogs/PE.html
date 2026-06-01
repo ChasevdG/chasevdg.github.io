@@ -219,6 +219,31 @@
       </p>
     </div>
     </div>
+    <div class="subtab-about-content">
+      <div class="subtab-about-image">
+        <video muted controls autoplay>
+          <source src="content/blogs/images/RoPEScene_decohere.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <figcaption><strong>Fig 7:</strong> Two tokens which start with similar amplitudes across frequencies become decoherent over time. This makes it difficult for the model to assign negative attention scores and mitigate the attention given to irrelevant tokens. </figcaption>
+      </div>
+      <div class="subtab-about-text">
+      <p>
+        We can show that the contribution of our relevant signal decays with irrelevant context by rewriting the softmax in terms of the relevant signal :
+        $$\sigma(\mathbf{x})_0 = \frac{e^{x_0}}{e^{x_0} + \sum_{x_j\in\mathbf{x}} e^{x_j}},$$
+        where $j \in \{1,...,N\}$. Because $x_j$ is noise drawn from a normal distribution, we can replace $e^{x_j}$ with the sum of log-normal, or Galton distributions.
+        $$\sigma(\mathbf{x})_0 = \frac{e^{x_0}}{e^{x_0} + \sum_{x_j\in\mathbf{x}} \text{Lognormal}(0, \lambda)}.$$
+        Unfortunately, $\sum_{x_j\in\mathbf{x}} \text{Lognormal}(0, \lambda)$ has no closed-form solution. 
+        However, we mostly just care about the mean and standard deviation. 
+        Assuming $N$ sufficiently high (we are in the large context regime), then we can model this with CLT and approximate the sum as $N$ times the expectation $\mathbb{E}[\text{Lognormal}(\mu, \sigma)] = e^{\mu + \frac{\sigma^2}{2}}=e^{\frac{\lambda^2}{2}}$. 
+      </p>
+      <p>
+        Note that $\lambda$ can be obtained by applying the CLT to the distribution of the inner-product of random unit vectors on a circle. Importantly, this standard deviation will be proportional to the number of samples, which is the per-head key/query dimension.
+        The important thing is that the denominator grows linearly with the number of samples which means that the relevant signal progressively shrinks.
+      </p>
+    </div>
+    </div>
+
   <h2>RoPE is Not Periodic, Provably</h2>
   <div class="subtab-about-content">
     <div class="subtab-about-text">
