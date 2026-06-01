@@ -1,0 +1,45 @@
+<div class="subtab-about-header" style="text-align: center;">
+<h2>Group-Aware Galerkin Methods</h2>
+</div>
+<div class="subtab-about-content">
+    <div class="subtab-about-text">
+    <p>
+        Galerkin Methods have long been one of the most effective methods in Machine Learning(ML) and continue to be a driving paradigm in data driven PDEs.
+        Reduced-order modeling methods, such as Proper Orthogonal Decompositions, or Principle Component Analysis as it is known in statistics and ML, are specific Galerkin Methods which have been used to approximate the solution to PDEs.
+        These methods have been shown to be effective in capturing the low-dimensional manifolds that the solutions to PDEs often form.
+        These low-dimensional manifolds are favorable as it is often cheaper to learn dynamics on these low-dimensional manifolds than on the full-dimensional space.
+        However, these methods fail to learn useful bases for advection dominated systems as they are agnostic to the geometry of the system.
+    </p>
+    <p>
+        With the advent of deep learning, autoencoders have also been used to learn low-order representations of the data.
+        Autoencoders with no non-linearities can be shown to be equivalent to PCA.
+        Thus, the autoencoder can be thought of as a generalization of PCA and is often refered to as non-linear PCA.
+        While more expressive than PCA, the autoencoder the dynamics on the latent space are often not as interpretable.
+    </p>
+    <p>
+        In their general form, autoencoders are also agnostic to the geometry of the system.
+        However, autoencoders are often implemented as convolutional neural networks which are partially equivariant to translations.
+        This contributes to their better performance and has been exploited in the previous work of Page et al.
+        However, in many PDEs have known symmetries that can be exploited to reduce the dimensionality of the system.
+        These symmetries can be induced by the geometry of the system, or vise versa.
+        For example, a system which lives on a cylinder will have a discrete translation symmetry in the azimuthal direction.
+        Alternatively, a system with a discrete translation symmetry can be thought of as living on a cylinder.
+    </p>
+    <p>
+        While there has been some work in the literature on incorporating symmetries into the autoencoder, such as the work of -- et al. (--), these methods often assume that the symmetries are global invariants. 
+        That is to say, if the entire system is translated, the latent space remains fixed.
+        This is useful for enforcing that global translations are irrelevant and reducing the need for data augmentation.
+        However, many systems are composed of bases which can be transformed independently.
+        For example, a system composed of two basis waves which advect at different speeds.
+    </p>
+    <p>
+        <strong>In this work, I propose a new method for geometry-aware Galerkin Methods.</strong>
+        First, I formalize steerable Galerkin Methods using the steerability condition of Wessels et al. (--).
+        This allows us to construct a more appropriate basis for advecting systems.
+        <strong>To this end, I construct a neural field using the Neural Implicit Flow framework of -- et al. (--), while exchanging the linear POD basis for a group-steerable basis.</strong>
+    </p>
+    </div>
+    <div class="subtab-about-image">
+    <img src="images/group_generalized_pod.png" alt="Subtab Image">
+    </div>
+</div>

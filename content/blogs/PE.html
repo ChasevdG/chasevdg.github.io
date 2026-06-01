@@ -60,6 +60,9 @@
       <p>
         As for not being able to separate content and position, the paper committed the cardinal sin of AI. Schmidthuber has already said this <cite data-ref="gopalakrishnan2025decoupling"></cite> and was not cited 😔✌️.
       </p>
+      <!-- <p>
+        As a note about that paper, I do not necessarily buy the reasoning that "what" and "where", but their may be merit in making all tokens "cohere" when at the same position. As we will see, this forces locality.
+      </p> -->
   </div>
   <div class="subtab-about-image" style="padding: 20px 40px; align-self: flex-start;">
     <img src="content/blogs/images/schmidhuber.png" alt="Subtab Image" style="width: 200px;">
@@ -209,8 +212,10 @@
         Unfortunately, $\sum_{x_j\in\mathbf{x}} \text{Lognormal}(0, \lambda)$ has no closed-form solution. 
         However, we mostly just care about the mean and standard deviation. 
         Assuming $N$ sufficiently high (we are in the large context regime), then we can model this with CLT and approximate the sum as $N$ times the expectation $\mathbb{E}[\text{Lognormal}(\mu, \sigma)] = e^{\mu + \frac{\sigma^2}{2}}=e^{\frac{\lambda^2}{2}}$. 
+      </p>
+      <p>
         Note that $\lambda$ can be obtained by applying the CLT to the distribution of the inner-product of random unit vectors on a circle. Importantly, this standard deviation will be proportional to the number of samples, which is the per-head key/query dimension.
-        The important thing is that this grows linearly with the number of samples which means that the relevant signal progressively shrinks.
+        The important thing is that the denominator grows linearly with the number of samples which means that the relevant signal progressively shrinks.
       </p>
     </div>
     </div>
@@ -218,26 +223,49 @@
   <div class="subtab-about-content">
     <div class="subtab-about-text">
  <p>
-    To be fair, this is not exactly a flaw in their paper, since it is vaguely addressed in the appendix 
-    and by their discussion with numerical precision. However, it is a misconception I hear often and to which I feel 
-    their talk of aliasing exacerbated. While each vector pair is periodic, RoPE itself is quasi-periodic 
-    and is only periodic if its frequencies are commensurate.  
+    <strong>RoPE is not guarenteed to be periodic</strong>. This claim is not explicit in <cite data-ref="du2026rope"></cite>, though it is a misconception I hear often and to which I feel 
+    their discussion of aliasing exacerbates. If one considers one RoPE pair, then it is periodic with wavelength $\frac{1}{\omega}. While each vector pair is periodic, RoPE on the entire vector is only <i>quasi-periodic</i>.
+    It is only perfectly periodic if its frequencies are <i>commensurate</i>.  
  </p>
+ </div>
+        <div class="subtab-about-image">
+      <img src="content/blogs/images/Periodic.gif" alt="Subtab Image" autoplay>
+      <figcaption><strong>Fig 6:</strong> Two tokens which start anti-coherent become decoherent over time. This makes it difficult for the model to assign negative attention scores and mitigate the attention given to irrelevant tokens. </figcaption>
+      </div>
+      </div>
+  <div class="subtab-about-content">
+ <div class="subtab-about-image">
+        <video muted controls autoplay>
+          <source src="content/blogs/images/DiscreteClocks.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <figcaption><strong>Fig 6:</strong> Two tokens which start anti-coherent become decoherent over time. This makes it difficult for the model to assign negative attention scores and mitigate the attention given to irrelevant tokens. </figcaption>
+      </div>
+    <div class="subtab-about-text">
  <p>
-    For intuition on what this means, consider we have two frequencies, one periodic over 2 time steps and the other over 3. The total period will be periodic over 6 time steps. However, if we have a period of 2 and a period of 4, then the total period is only 4. More generally, for any two integer periods, the total period will be the least common multiple of the two periods. 
+    For intuition on what commmenserate means, consider two frequencies; one periodic over 2 time steps, and the other over 3 time steps. The total period will be over 6 time steps. 
+    However, if we have a period of 2 and a period of 4, then the total period is only 4. 
+    More generally, for any two integer periods, the total period will be the least common multiple of the two periods. 
   </p>
   <p>
-    While this holds for integers, two real numbers are not guaranteed to have a least common multiple. They only have one if their ratio is a rational number (which is what commensurate means). Thus, if they are not commensurate, they are quasi-periodic, which means it can return close to its original state, but will never exactly return to its starting position (or any other position). This means that every position is still unique and identifiable in RoPE unless the (content of the query and key has been deemed otherwise). This means that aliasing is not guaranteed in RoPE.
+    While this holds for integers, two real numbers are not guaranteed to have a least common multiple. They only have one if their ratio is a rational number (which is what commensurate means). 
+    Thus, if they are not commensurate, they are quasi-periodic, which means it can return close to its original state, but will never exactly return to its starting position (or any other position). 
+    This means that every position is still unique and identifiable in RoPE unless the (content of the query and key has been deemed otherwise). 
+    This means that aliasing is not guaranteed in RoPE.
+  </p>
+    </div>
+    </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+  <p>
+    <i>What does the distinction between periodic and quasi-periodic mean?</i> 
+    Well, effectively it is just pedantic. 
+    If RoPE is quasi-periodic, then positions do not alias each other since every position corresponds to a unique state. 
+    However, the core problem with periodicity persists. 
   </p>
   <p>
-    Their figures show that position aliasing and attention invariants happen as context increases. This should happen. As the word grows further away, the exact location matters less and attention should become invariant. In the “worst” case, everything is aliased which can happen if only the 0 frequency is used. 
-    In <cite data-ref="barbero2024round"></cite> they show that allowing the model to have more dimensions for this invariant (p-RoPE) makes the model better, so attention invariants should grow for long contexts.
-  </p>
-  <p>
-    The rest of the failure modes seemed like features rather than failures. Position inversion seems fine since some words may pay more attention to two words in the future. Token aliasing, just seems like two phrases mean semantically the same thing, but the important word would appear in different positions.
-  </p>
-  <p>
-    While it is possible the failure modes are real issues, I do not feel that they are precisely confirmed by their experiments. Most of their theory assumes that the amplitudes of the pairs are the same for all frequencies, which is very importantly not true since it allows the token to change the waveform and thus content controls the aliasing.
+    The reason periodicity is an issue is that at very long contexts far away positions will return to attention values similar in magnitude to that of nearby words.
+    Even if RoPE is quasi-periodic and can identify these positions, the core problem of high attention remains.
   </p>
           </div>
 </div>
