@@ -28,10 +28,11 @@
   <div class="subtab-about-image">
     <figure>
       <video muted controls autoplay loop>
-        <source src="content/blogs/images/RoPEScene.mp4" type="video/mp4">
+        <source src="content/blogs/images/RoPEScene_inphase.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> RoPE can attend to tokens arbitrarily far away. One can argue that it is still local at that distance, however this is not what is meant in <strong>[1]</strong>. Moreover, that definition of locality is also not true for all queries.</figcaption>
+      <figcaption><p><strong>Fig 1:</strong> The left plot shows the <i>relative</i> orientation of the key with respect to the query. The query is assumed to always be pointed up and is assumed to have uniform magnitude. The color of the arrow indicates the query/key dimension, or, equivalently, the frequency at which the vector oscillates with position. The red arrows are the highest frequency (fastest) dimensions and violet are the lowest frequency (slowest).</p> 
+        <p>The mean vector is shown as a white arrow. Because the query is assumed to be the unit vertical vector, the projection of the white arrow onto the vertical axis gives the attention score. The right plot shows the</p> </figcaption>
     </figure>
 
   </div>
@@ -75,7 +76,7 @@
      The reason many papers say that RoPE decays is because of the way the attention score -- by which I mean the inner-product of the query and key vectors pre-softmax -- behaves. Since RoPE is a rotation, it preserves the magnitude of the vectors, but it <i>can</i> change the direction of the vectors. As the position increases, the query and key pairs can become more and more misaligned, which can lead to a decrease in the attention score. 
     </p>
     <p>
-     However, I would not say this is RoPE <i>decaying</i>, but rather <i>decohering</i>. That is all the magnitudes remain the same, but the vectors can interfere destructively (yes, just like waves). There is a chance that the vectors align creating high attention. However, some of the vectors will anti-align to roughly balance it out. The random vectors result in an overall attention score that exhibits the gaussian noise effect.
+     However, I would not say this is RoPE <i>decaying</i>, but rather <i>decohering</i>$^*$. That is all the magnitudes remain the same, but the vectors can interfere destructively (yes, just like waves). There is a chance that the vectors align creating high attention. However, some of the vectors will anti-align to roughly balance it out. The random vectors result in an overall attention score that exhibits the gaussian noise effect.
     </p>
     </div>
     <div class="subtab-about-image">
@@ -83,7 +84,7 @@
         <source src="content/blogs/images/RoPEScene_inphase.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 4:</strong> If RoPE starts coherent, then it the attention score will decay to random noise as the position increases and the signals become decoherent.</figcaption>
+      <figcaption><strong>Fig 4:</strong> If RoPE starts coherent, then it the attention score will decay to random noise as the position increases and the signals become decoherent. $^*$Note, that "coherence" is the term I will use, but is non-standard.</figcaption>
     </div>
     </div>
     <div class="subtab-about-content">
@@ -214,10 +215,26 @@
         Assuming $N$ sufficiently high (we are in the large context regime), then we can model this with CLT and approximate the sum as $N$ times the expectation $\mathbb{E}[\text{Lognormal}(\mu, \sigma)] = e^{\mu + \frac{\sigma^2}{2}}=e^{\frac{\lambda^2}{2}}$. 
       </p>
       <p>
-        Note that $\lambda$ can be obtained by applying the CLT to the distribution of the inner-product of random unit vectors on a circle. Importantly, this standard deviation will be proportional to the number of samples, which is the per-head key/query dimension.
+        Note that $\lambda$ can be obtained by applying the CLT to the distribution of the inner-product of random unit vectors on a circle.
+        Importantly, this standard deviation will be proportional to the number of samples, which is the per-head key/query dimension.
         The important thing is that the denominator grows linearly with the number of samples which means that the relevant signal progressively shrinks.
       </p>
+      <h3>What can be done to stop softmax from degrading?</h3>
+      <p>
+        One can note that softmax will not have the same level of degradation with truly local positional encoding such as ALiBi.
+        $$S_{\text{ALiBi}}(q_i, k_j) = S(q_i, k_j) - |i - j|$$
+        This is works the attention score for irrelevant tokens will be progressively become more negative with distance, so the model can assign them less and less attention.
+      </p>
+      <p>
+        Alternatively, one could adapt the softmax to become sharper as the number of tokens increases, such as with a temperature parameter.
+        This is what is done in the commonly used YARN method to generalize to long context. However, there method is performed only at inference time and is not adaptive to the context length during training -- i.e. the number of unmasked tokens.
+      </p>
     </div>
+    </div>
+      <div class="subtab-about-text">
+        <h3>Does this theory work in practice?</h3>
+      <p>
+      </p>
     </div>
     <div class="subtab-about-content">
       <div class="subtab-about-image">
@@ -227,21 +244,6 @@
         </video>
         <figcaption><strong>Fig 7:</strong> Two tokens which start with similar amplitudes across frequencies become decoherent over time. This makes it difficult for the model to assign negative attention scores and mitigate the attention given to irrelevant tokens. </figcaption>
       </div>
-      <div class="subtab-about-text">
-      <p>
-        We can show that the contribution of our relevant signal decays with irrelevant context by rewriting the softmax in terms of the relevant signal :
-        $$\sigma(\mathbf{x})_0 = \frac{e^{x_0}}{e^{x_0} + \sum_{x_j\in\mathbf{x}} e^{x_j}},$$
-        where $j \in \{1,...,N\}$. Because $x_j$ is noise drawn from a normal distribution, we can replace $e^{x_j}$ with the sum of log-normal, or Galton distributions.
-        $$\sigma(\mathbf{x})_0 = \frac{e^{x_0}}{e^{x_0} + \sum_{x_j\in\mathbf{x}} \text{Lognormal}(0, \lambda)}.$$
-        Unfortunately, $\sum_{x_j\in\mathbf{x}} \text{Lognormal}(0, \lambda)$ has no closed-form solution. 
-        However, we mostly just care about the mean and standard deviation. 
-        Assuming $N$ sufficiently high (we are in the large context regime), then we can model this with CLT and approximate the sum as $N$ times the expectation $\mathbb{E}[\text{Lognormal}(\mu, \sigma)] = e^{\mu + \frac{\sigma^2}{2}}=e^{\frac{\lambda^2}{2}}$. 
-      </p>
-      <p>
-        Note that $\lambda$ can be obtained by applying the CLT to the distribution of the inner-product of random unit vectors on a circle. Importantly, this standard deviation will be proportional to the number of samples, which is the per-head key/query dimension.
-        The important thing is that the denominator grows linearly with the number of samples which means that the relevant signal progressively shrinks.
-      </p>
-    </div>
     </div>
 
   <h2>RoPE is Not Periodic, Provably</h2>
