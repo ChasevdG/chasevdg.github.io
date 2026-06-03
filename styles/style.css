@@ -563,6 +563,35 @@ a.bib-cite:hover {
 
 #cm-banner.active { background: #ff8c00; }
 
+#cm-error {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #c0392b;
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 0.84em;
+    font-weight: bold;
+    z-index: 10001;
+    pointer-events: none;
+    transition: opacity 0.5s;
+    opacity: 0;
+}
+
+#cm-panel-refresh {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.3em;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+}
+
+#cm-panel-refresh:hover { opacity: 0.7; }
+
 /* Highlights */
 .cm-hl { border-radius: 2px; }
 

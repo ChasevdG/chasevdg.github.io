@@ -1,14 +1,23 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'site_comments_v1';
-  const AUTHOR_KEY  = 'cm_author';
-  let active = false;
-  let currentAuthor = '';
-  let tooltip = null;
-  let pendingSpans = [];
-  let panelTab = 'open';
+  const SUPABASE_URL = 'https://pqopwrzcximbzbgnvkan.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_i4knI1wJaS002kgZinA2pg_-gurimWG';
+  const API          = `${SUPABASE_URL}/rest/v1/comments`;
+  const SB           = {
+    'apikey':        SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type':  'application/json',
+  };
+  const AUTHOR_KEY   = 'cm_author';
+
+  let active         = false;
+  let currentAuthor  = '';
+  let tooltip        = null;
+  let pendingSpans   = [];
+  let panelTab       = 'open';
   let panelMinimized = false;
+  let commentsCache  = [];
 
   function applyTabClass() {
     document.body.classList.toggle('cm-tab-resolved', active && panelTab === 'resolved');
@@ -65,7 +74,7 @@
   }
 
   // ── Activate / deactivate ─────────────────────────────────────────────
-  function activate(name) {
+  async function activate(name) {
     currentAuthor = name;
     localStorage.setItem(AUTHOR_KEY, name);
     active = true;
@@ -75,6 +84,8 @@
     applyTabClass();
     renderPanel();
     updateBodyMargin();
+    await fetchComments();
+    renderPanel();
     reapplyAll(document.body);
   }
 
@@ -82,6 +93,7 @@
     active = false;
     panelMinimized = false;
     currentAuthor = '';
+    commentsCache = [];
     document.body.classList.remove('commentor-mode', 'cm-tab-resolved');
     showBanner();
     removeTooltip();
@@ -108,6 +120,20 @@
     if (!active) b._t = setTimeout(() => { b.style.opacity = '0'; }, 1200);
   }
 
+  // ── Error toast ───────────────────────────────────────────────────────
+  function showError(msg) {
+    let el = document.getElementById('cm-error');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'cm-error';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.opacity = '0'; }, 4000);
+  }
+
   // ── Minimize / restore panel ──────────────────────────────────────────
   function minimizePanel() {
     panelMinimized = true;
@@ -115,9 +141,9 @@
     const panel = document.getElementById('cm-panel');
     if (!panel) return;
     panel.classList.add('cm-panel-minimized');
-    const all   = loadAll();
-    const open  = all.filter(c => !c.resolved).length;
-    const res   = all.filter(c =>  c.resolved).length;
+    const all  = loadAll();
+    const open = all.filter(c => !c.resolved).length;
+    const res  = all.filter(c =>  c.resolved).length;
     panel.innerHTML = `
       <button id="cm-panel-restore" title="Restore comments panel">
         <span class="cm-panel-restore-label">Comments</span>
@@ -132,10 +158,8 @@
   }
 
   // ── Tab context helpers ───────────────────────────────────────────────
-  // Called at comment-creation time to record which tab the text lives in.
   function findTabContext(el) {
     if (!el) return {};
-    // Sub-tabs have both 'tab-content' and 'sub-tab-content' classes.
     const subTabEl = el.closest('.sub-tab-content');
     let mainTabEl = null;
     let node = el.parentElement;
@@ -152,7 +176,6 @@
     return { tabId, subTabId, filePath };
   }
 
-  // Look up the fetch URL for a subtab from its onclick attribute.
   function filePathFor(subTabId) {
     const btn = document.querySelector(`[onclick*="showSubTab('${subTabId}'"]`);
     if (!btn) return null;
@@ -160,7 +183,6 @@
     return m ? m[2] : null;
   }
 
-  // Returns false if any ancestor has display:none (i.e. inside a hidden tab).
   function isInVisibleTab(el) {
     let node = el.parentElement;
     while (node && node !== document.body) {
@@ -170,19 +192,14 @@
     return true;
   }
 
-  // Navigate to the tab (and subtab) that contains a comment's highlight,
-  // fetch the subtab content if needed, reapply highlights, then scroll.
   async function jumpToComment(c) {
     let span = document.querySelector(`.cm-hl[data-id="${c.id}"]`);
 
-    // Navigate if: span missing OR span is inside a hidden tab.
-    // (reapplyAll restores spans even in hidden tabs, so we must check visibility.)
     if (!span || !isInVisibleTab(span)) {
       let tabId    = c.tabId;
       let subTabId = c.subTabId;
       let filePath = c.filePath;
 
-      // Old comments without stored context: infer from the DOM element if present.
       if (!tabId && span) {
         const tabEl    = span.closest('.tab-content:not(.sub-tab-content)');
         const subTabEl = span.closest('.sub-tab-content');
@@ -239,7 +256,10 @@
     panel.innerHTML = `
       <div id="cm-panel-header">
         <span>Comments</span>
-        <button id="cm-panel-minimize" title="Minimize panel">−</button>
+        <div style="display:flex;gap:2px">
+          <button id="cm-panel-refresh" title="Refresh comments">↺</button>
+          <button id="cm-panel-minimize" title="Minimize panel">−</button>
+        </div>
       </div>
       <div id="cm-panel-tabs">
         <button class="cm-panel-tab ${panelTab === 'open'     ? 'active' : ''}" data-tab="open">
@@ -296,11 +316,16 @@
 
     panel.querySelector('#cm-panel-minimize').onclick = minimizePanel;
 
+    panel.querySelector('#cm-panel-refresh').onclick = async () => {
+      await fetchComments();
+      renderPanel();
+      reapplyAll(document.body);
+    };
+
     panel.querySelectorAll('.cm-panel-tab').forEach(btn => {
       btn.onclick = () => { panelTab = btn.dataset.tab; applyTabClass(); renderPanel(); };
     });
 
-    // Card click → navigate to the right tab then scroll to highlight
     panel.querySelectorAll('.cm-card').forEach(card => {
       card.onclick = e => {
         if (e.target.closest('.cm-card-resolve, .cm-card-unresolve, .cm-card-delete, .cm-card-reply, .cm-reply-form')) return;
@@ -310,32 +335,48 @@
     });
 
     panel.querySelectorAll('.cm-card-resolve').forEach(btn => {
-      btn.onclick = () => {
-        setResolved(btn.dataset.id, true);
-        document.querySelectorAll(`.cm-hl[data-id="${btn.dataset.id}"]`).forEach(
-          s => s.classList.add('cm-hl-resolved')
-        );
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        document.querySelectorAll(`.cm-hl[data-id="${id}"]`).forEach(s => s.classList.add('cm-hl-resolved'));
+        commentsCache = commentsCache.map(c => c.id === id ? { ...c, resolved: true } : c);
         renderPanel();
+        try { await setResolved(id, true); }
+        catch (err) {
+          showError('Failed to save — please try again.');
+          document.querySelectorAll(`.cm-hl[data-id="${id}"]`).forEach(s => s.classList.remove('cm-hl-resolved'));
+          await fetchComments(); renderPanel();
+        }
       };
     });
 
     panel.querySelectorAll('.cm-card-unresolve').forEach(btn => {
-      btn.onclick = () => {
-        setResolved(btn.dataset.id, false);
-        document.querySelectorAll(`.cm-hl[data-id="${btn.dataset.id}"]`).forEach(
-          s => s.classList.remove('cm-hl-resolved')
-        );
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        document.querySelectorAll(`.cm-hl[data-id="${id}"]`).forEach(s => s.classList.remove('cm-hl-resolved'));
+        commentsCache = commentsCache.map(c => c.id === id ? { ...c, resolved: false } : c);
         renderPanel();
+        try { await setResolved(id, false); }
+        catch (err) {
+          showError('Failed to save — please try again.');
+          document.querySelectorAll(`.cm-hl[data-id="${id}"]`).forEach(s => s.classList.add('cm-hl-resolved'));
+          await fetchComments(); renderPanel();
+        }
       };
     });
 
     panel.querySelectorAll('.cm-card-delete').forEach(btn => {
-      btn.onclick = () => {
-        deleteComment(btn.dataset.id);
-        document.querySelectorAll(`.cm-hl[data-id="${btn.dataset.id}"]`).forEach(
-          s => s.replaceWith(...s.childNodes)
-        );
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const removed = commentsCache.find(c => c.id === id);
+        document.querySelectorAll(`.cm-hl[data-id="${id}"]`).forEach(s => s.replaceWith(...s.childNodes));
+        commentsCache = commentsCache.filter(c => c.id !== id);
         renderPanel();
+        try { await deleteComment(id); }
+        catch (err) {
+          showError('Failed to delete — please try again.');
+          if (removed) commentsCache.push(removed);
+          await fetchComments(); reapplyAll(document.body); renderPanel();
+        }
       };
     });
 
@@ -357,13 +398,13 @@
     });
 
     panel.querySelectorAll('.cm-reply-submit').forEach(btn => {
-      btn.onclick = e => {
+      btn.onclick = async e => {
         e.stopPropagation();
         const form = btn.closest('.cm-reply-form');
         const text = form.querySelector('.cm-reply-input').value.trim();
         if (!text) return;
-        addReply(btn.dataset.id, text);
-        renderPanel();
+        try { await addReply(btn.dataset.id, text); renderPanel(); }
+        catch (err) { showError('Failed to save reply — please try again.'); }
       };
     });
 
@@ -423,7 +464,6 @@
         <button class="cm-popup-cancel">Cancel</button>
       </div>`;
 
-    // Insert off-screen first to measure actual rendered dimensions.
     popup.style.left = '-9999px';
     popup.style.top  = '-9999px';
     document.body.appendChild(popup);
@@ -448,16 +488,14 @@
     });
   }
 
-  function submitComment(selectedText) {
+  async function submitComment(selectedText) {
     const popup   = document.getElementById('cm-popup');
     const comment = popup ? popup.querySelector('.cm-popup-input').value.trim() : '';
     closePopupEl();
     if (!comment) { cancelPending(); return; }
 
-    const id  = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    const ctx = findTabContext(pendingSpans[0] || null);
-    // Capture the exact text of each highlight span before converting them.
-    // These are the ground-truth searchable strings (equation content already excluded).
+    const id       = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const ctx      = findTabContext(pendingSpans[0] || null);
     const segments = pendingSpans.map(s => s.textContent);
 
     pendingSpans.forEach(s => {
@@ -467,7 +505,6 @@
     });
     pendingSpans = [];
 
-    saveComment(selectedText, comment, id, ctx, segments);
     panelTab = 'open';
     applyTabClass();
     if (panelMinimized) {
@@ -475,7 +512,15 @@
       if (panel) panel.classList.remove('cm-panel-minimized');
       panelMinimized = false;
     }
-    renderPanel();
+
+    try {
+      await saveComment(selectedText, comment, id, ctx, segments);
+      renderPanel();
+    } catch (err) {
+      showError('Failed to save comment — please try again.');
+      document.querySelectorAll(`.cm-hl[data-id="${id}"]`).forEach(s => s.replaceWith(...s.childNodes));
+    }
+
     window.getSelection().removeAllRanges();
   }
 
@@ -535,63 +580,83 @@
     if (tooltip) { tooltip.remove(); tooltip = null; }
   }
 
-  // ── Persistence ───────────────────────────────────────────────────────
-  function saveComment(text, comment, id, ctx = {}, segments = null) {
-    const all = loadAll();
-    all.push({
+  // ── Supabase persistence ──────────────────────────────────────────────
+  async function fetchComments() {
+    try {
+      const resp = await fetch(`${API}?select=*&order=created_at.asc`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store',
+      });
+      if (!resp.ok) throw new Error(resp.status);
+      commentsCache = await resp.json();
+    } catch {
+      commentsCache = [];
+    }
+  }
+
+  async function saveComment(text, comment, id, ctx = {}, segments = null) {
+    const row = {
       id, text, comment,
-      author:    currentAuthor,
-      resolved:  false,
-      timestamp: new Date().toISOString(),
-      tabId:     ctx.tabId    || null,
-      subTabId:  ctx.subTabId || null,
-      filePath:  ctx.filePath || null,
-      segments:  segments     || null,
-      replies:   [],
+      author:     currentAuthor,
+      resolved:   false,
+      timestamp:  new Date().toISOString(),
+      tab_id:     ctx.tabId    || null,
+      sub_tab_id: ctx.subTabId || null,
+      file_path:  ctx.filePath || null,
+      segments:   segments     || null,
+      replies:    [],
+    };
+    const resp = await fetch(API, { method: 'POST', headers: SB, body: JSON.stringify(row) });
+    if (!resp.ok) throw new Error(await resp.text());
+    commentsCache.push(row);
+  }
+
+  async function setResolved(id, resolved) {
+    const resp = await fetch(`${API}?id=eq.${id}`, {
+      method: 'PATCH', headers: SB, body: JSON.stringify({ resolved }),
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    if (!resp.ok) throw new Error(await resp.text());
+    commentsCache = commentsCache.map(c => c.id === id ? { ...c, resolved } : c);
   }
 
-  function setResolved(id, resolved) {
-    const all = loadAll();
-    const c   = all.find(c => c.id === id);
-    if (c) c.resolved = resolved;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  async function deleteComment(id) {
+    const resp = await fetch(`${API}?id=eq.${id}`, {
+      method: 'DELETE', headers: SB,
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    commentsCache = commentsCache.filter(c => c.id !== id);
   }
 
-  function deleteComment(id) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(loadAll().filter(c => c.id !== id)));
-  }
-
-  function addReply(commentId, replyText) {
-    const all = loadAll();
-    const c   = all.find(c => c.id === commentId);
+  async function addReply(commentId, replyText) {
+    const c = commentsCache.find(c => c.id === commentId);
     if (!c) return;
-    c.replies.push({
+    const newReplies = [...(Array.isArray(c.replies) ? c.replies : []), {
       id:        Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
       author:    currentAuthor,
       text:      replyText,
       timestamp: new Date().toISOString(),
+    }];
+    const resp = await fetch(`${API}?id=eq.${commentId}`, {
+      method: 'PATCH', headers: SB, body: JSON.stringify({ replies: newReplies }),
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    if (!resp.ok) throw new Error(await resp.text());
+    commentsCache = commentsCache.map(c => c.id === commentId ? { ...c, replies: newReplies } : c);
   }
 
   function loadAll() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map((c, i) => ({
-        id:        c.id        || (Date.now() + i).toString(36),
-        author:    c.author    || 'Unknown',
-        text:      c.text      || '',
-        comment:   c.comment   || '',
-        resolved:  c.resolved  || false,
-        timestamp: c.timestamp || '',
-        tabId:     c.tabId     || null,
-        subTabId:  c.subTabId  || null,
-        filePath:  c.filePath  || null,
-        segments:  Array.isArray(c.segments) ? c.segments : null,
-        replies:   Array.isArray(c.replies)  ? c.replies  : [],
-      }));
-    } catch { return []; }
+    return commentsCache.map((c, i) => ({
+      id:        c.id        || (Date.now() + i).toString(36),
+      author:    c.author    || 'Unknown',
+      text:      c.text      || '',
+      comment:   c.comment   || '',
+      resolved:  c.resolved  || false,
+      timestamp: c.timestamp || '',
+      tabId:     c.tab_id    || null,
+      subTabId:  c.sub_tab_id || null,
+      filePath:  c.file_path || null,
+      segments:  Array.isArray(c.segments) ? c.segments : null,
+      replies:   Array.isArray(c.replies)  ? c.replies  : [],
+    }));
   }
 
   // ── Re-apply stored highlights ────────────────────────────────────────
@@ -620,11 +685,6 @@
 
     const hlClass = 'cm-hl' + (resolved ? ' cm-hl-resolved' : '');
 
-    // Strategy 0: segment-based restore.
-    // Each entry in `segments` is the verbatim text of one highlight span from when the
-    // comment was first created. Segments are equation-free and in document order, so they
-    // survive across MathJax re-renders and block boundaries where strategy 3 would fail
-    // (e.g. when sel.toString() included rendered equation glyphs not in any text node).
     if (segments && segments.length) {
       let nodeIdx = 0;
       const hits  = [];
@@ -635,7 +695,7 @@
           const idx = nodes[nodeIdx].textContent.indexOf(seg);
           if (idx !== -1) {
             hits.push({ node: nodes[nodeIdx], idx, len: seg.length });
-            nodeIdx++;   // next segment must come no earlier than this node
+            nodeIdx++;
             found = true;
             break;
           }
@@ -652,11 +712,8 @@
         });
         return;
       }
-      // Fall through to text-based strategies if segments couldn't all be located
-      // (e.g. the page structure changed since the comment was created).
     }
 
-    // Strategy 1: exact match within a single text node (fast path).
     for (const n of nodes) {
       const idx = n.textContent.indexOf(searchText);
       if (idx === -1) continue;
@@ -667,17 +724,12 @@
       return;
     }
 
-    // Strategy 2: exact match spanning multiple adjacent text nodes
-    // (handles inline elements like <strong>, <em>, <a>).
     const idx2 = combined.indexOf(searchText);
     if (idx2 !== -1) {
       const r = rangFromCombined(nodes, texts, idx2, idx2 + searchText.length);
       if (r) { highlightRange(r, hlClass, comment, id); return; }
     }
 
-    // Strategy 3: whitespace-normalised match
-    // (handles selections that cross block boundaries like <p>…</p><p>…</p>,
-    //  where sel.toString() inserts \n between blocks but text nodes don't).
     const normSearch   = searchText.replace(/\s+/g, ' ').trim();
     const normCombined = combined.replace(/\s+/g, ' ');
     const idx3 = normCombined.indexOf(normSearch);
@@ -689,14 +741,12 @@
     }
   }
 
-  // Map a position in the whitespace-collapsed version of `original` back to
-  // the corresponding position in `original`.
   function normToOrigPos(original, normPos) {
     let o = 0, n = 0;
     while (o < original.length && n < normPos) {
       if (/\s/.test(original[o])) {
         while (o < original.length && /\s/.test(original[o])) o++;
-        n++; // the single collapsed space in the normalised string
+        n++;
       } else { o++; n++; }
     }
     return o;
@@ -717,13 +767,9 @@
     return range;
   }
 
-  // Collect text-node segments that fall within a range, skipping MathJax and CM UI nodes.
-  // Segments are returned in document order with their slice offsets.
   function getTextNodesInRange(range) {
     const SKIP = 'mjx-container, .MathJax, .cm-hl, .cm-pending, ' +
                  '#cm-popup, #cm-banner, #cm-panel, #cm-name-overlay, script, style';
-    // If commonAncestorContainer is a text node, walk from its parent so the
-    // TreeWalker has a real element as root (text nodes have no children to walk).
     const root = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
       ? range.commonAncestorContainer.parentNode
       : range.commonAncestorContainer;
@@ -745,9 +791,6 @@
     return segments;
   }
 
-  // Wrap a range in highlight span(s). Cross-block or equation-boundary ranges
-  // are split into one span per text-node segment so the DOM stays valid.
-  // Returns the array of created span elements.
   function highlightRange(range, className, comment, id) {
     const span = document.createElement('span');
     span.className       = className;
@@ -759,7 +802,6 @@
     const segments = getTextNodesInRange(range);
     if (!segments.length) return [];
     const created = [];
-    // Process in reverse to avoid invalidating earlier offsets within the same node.
     for (let i = segments.length - 1; i >= 0; i--) {
       const { node, start, end } = segments[i];
       const r = document.createRange();
@@ -775,19 +817,15 @@
     return created;
   }
 
-  // Re-apply when dynamically fetched subtab content is injected.
-  // Also hook into MathJax completion so equation text is searchable.
   const observer = new MutationObserver(mutations => {
     if (!active) return;
     for (const m of mutations) {
       for (const n of m.addedNodes) {
         if (n.nodeType !== Node.ELEMENT_NODE) continue;
-        // Skip CM UI elements and MathJax's own rendered nodes to avoid loops.
         const tag = n.tagName.toLowerCase();
         if (tag.startsWith('mjx-') || n.classList.contains('MathJax')) continue;
         if (n.closest('#cm-panel, #cm-popup, #cm-banner, #cm-name-overlay')) continue;
         reapplyAll(n);
-        // Reapply again once MathJax finishes rendering equations in this node.
         if (window.MathJax) {
           MathJax.typesetPromise([n]).catch(() => {}).then(() => {
             if (active) reapplyAll(n);
