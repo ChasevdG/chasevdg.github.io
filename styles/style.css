@@ -542,6 +542,452 @@ a.bib-cite:hover {
 
 .bib-error { color: #c0392b; }
 
+/* ── Commentor Mode ─────────────────────────────────────────────────── */
+
+/* Banner */
+#cm-banner {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #555;
+    color: #fff;
+    padding: 5px 20px;
+    border-radius: 0 0 10px 10px;
+    font-size: 0.82em;
+    font-weight: bold;
+    z-index: 10000;
+    pointer-events: none;
+    transition: opacity 0.5s;
+}
+
+#cm-banner.active { background: #ff8c00; }
+
+/* Highlights */
+.cm-hl { border-radius: 2px; }
+
+.commentor-mode .cm-hl {
+    background: rgba(255, 140, 0, 0.2);
+    border-bottom: 1.5px solid #ff8c00;
+    cursor: help;
+}
+
+.commentor-mode .cm-hl:hover { background: rgba(255, 140, 0, 0.42); }
+
+/* Open tab: resolved highlights are invisible (no reflow — span stays in DOM) */
+.commentor-mode:not(.cm-tab-resolved) .cm-hl.cm-hl-resolved {
+    background: transparent;
+    border-bottom: none;
+    cursor: text;
+}
+
+/* Resolved tab: open highlights are invisible, resolved highlights show grey */
+.cm-tab-resolved .cm-hl:not(.cm-hl-resolved) {
+    background: transparent;
+    border-bottom: none;
+    cursor: text;
+}
+
+.cm-tab-resolved .cm-hl.cm-hl-resolved {
+    background: rgba(150, 150, 150, 0.15);
+    border-bottom: 1.5px solid #bbb;
+    cursor: help;
+}
+
+/* Temporary highlight while the comment popup is open */
+.cm-pending {
+    background: rgba(255, 200, 0, 0.45);
+    border-bottom: 1.5px dashed #cc8800;
+    border-radius: 2px;
+}
+
+/* Pulse animation when jumping to a highlight from the panel */
+@keyframes cm-pulse {
+    0%, 100% { background: rgba(255, 140, 0, 0.2); }
+    40%       { background: rgba(255, 140, 0, 0.65); }
+}
+
+.commentor-mode .cm-hl-pulse {
+    animation: cm-pulse 0.4s ease 3;
+}
+
+/* Hover tooltip */
+#cm-tooltip {
+    position: fixed;
+    background: #222;
+    color: #fff;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.84em;
+    max-width: 260px;
+    white-space: pre-wrap;
+    line-height: 1.45;
+    z-index: 10001;
+    pointer-events: none;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Name prompt overlay */
+#cm-name-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10010;
+}
+
+#cm-name-dialog {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    width: 300px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
+
+.cm-name-title {
+    font-weight: bold;
+    font-size: 1.05em;
+    color: #ff8c00;
+    margin-bottom: 14px;
+}
+
+.cm-name-label {
+    display: block;
+    font-size: 0.85em;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.cm-name-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.95em;
+    font-family: inherit;
+    margin-bottom: 14px;
+}
+
+.cm-name-input:focus {
+    outline: none;
+    border-color: #ff8c00;
+}
+
+.cm-name-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Comment popup */
+#cm-popup {
+    position: fixed;
+    background: #fff;
+    border: 1.5px solid #ff8c00;
+    border-radius: 12px;
+    padding: 14px;
+    width: 290px;
+    z-index: 10002;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.cm-popup-title {
+    font-weight: bold;
+    color: #ff8c00;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.cm-popup-author {
+    font-weight: normal;
+    color: #aaa;
+    font-size: 0.85em;
+}
+
+.cm-popup-preview {
+    font-size: 0.78em;
+    color: #888;
+    font-style: italic;
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cm-popup-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 0.86em;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.cm-popup-input:focus { outline: none; border-color: #ff8c00; }
+
+.cm-popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* Comments panel (sidebar) */
+body {
+    transition: margin-right 0.22s ease;
+}
+
+#cm-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 100vh;
+    background: #fff;
+    border-left: 2px solid #ff8c00;
+    display: flex;
+    flex-direction: column;
+    z-index: 10003;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.12);
+    transition: width 0.22s ease;
+}
+
+/* Minimized state — collapses to a narrow tab */
+#cm-panel.cm-panel-minimized {
+    width: 36px;
+    overflow: hidden;
+}
+
+#cm-panel-restore {
+    width: 100%;
+    height: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 0;
+    color: #ff8c00;
+}
+
+#cm-panel-restore:hover { background: rgba(255, 140, 0, 0.07); }
+
+.cm-panel-restore-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-weight: bold;
+    font-size: 0.8em;
+    letter-spacing: 0.06em;
+}
+
+.cm-panel-restore-count {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 0.68em;
+    color: #aaa;
+    letter-spacing: 0.04em;
+}
+
+#cm-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #ff8c00;
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.92em;
+    flex-shrink: 0;
+}
+
+#cm-panel-minimize {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.3em;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+}
+
+#cm-panel-minimize:hover { opacity: 0.7; }
+
+#cm-panel-tabs {
+    display: flex;
+    border-bottom: 1px solid #f0e0cc;
+    flex-shrink: 0;
+}
+
+.cm-panel-tab {
+    flex: 1;
+    padding: 8px 4px;
+    background: none;
+    border: none;
+    border-bottom: 2.5px solid transparent;
+    cursor: pointer;
+    font-size: 0.82em;
+    font-weight: bold;
+    color: #bbb;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.cm-panel-tab.active {
+    color: #ff8c00;
+    border-bottom-color: #ff8c00;
+}
+
+.cm-panel-tab:hover:not(.active) { color: #888; }
+
+#cm-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.cm-panel-empty {
+    color: #aaa;
+    font-size: 0.88em;
+    text-align: center;
+    margin-top: 30px;
+    line-height: 1.6;
+}
+
+.cm-card {
+    border: 1px solid #f0e0cc;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 0.84em;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cm-card:hover {
+    border-color: #ff8c00;
+    box-shadow: 0 2px 8px rgba(255, 140, 0, 0.15);
+}
+
+.cm-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 5px;
+}
+
+.cm-card-author {
+    font-weight: bold;
+    color: #ff8c00;
+}
+
+.cm-card-time {
+    font-size: 0.78em;
+    color: #bbb;
+}
+
+.cm-card-quote {
+    font-style: italic;
+    color: #888;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    line-height: 1.35;
+}
+
+.cm-card-comment {
+    color: #333;
+    line-height: 1.45;
+    margin-bottom: 8px;
+}
+
+.cm-card-resolved {
+    opacity: 0.6;
+}
+
+.cm-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.cm-card-resolve,
+.cm-card-unresolve,
+.cm-card-delete {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.75em;
+    cursor: pointer;
+    padding: 2px 8px;
+}
+
+.cm-card-resolve {
+    color: #4a9;
+    border-color: #4a9;
+}
+
+.cm-card-resolve:hover {
+    background: #4a9;
+    color: #fff;
+}
+
+.cm-card-unresolve {
+    color: #888;
+    border-color: #ccc;
+}
+
+.cm-card-unresolve:hover {
+    background: #eee;
+    color: #555;
+}
+
+.cm-card-delete {
+    color: #bbb;
+    margin-left: auto;
+}
+
+.cm-card-delete:hover {
+    border-color: #e55;
+    color: #e55;
+}
+
+/* Shared button styles */
+.cm-name-submit,
+.cm-popup-submit {
+    background: #ff8c00;
+    color: #fff;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.88em;
+    font-weight: bold;
+}
+
+.cm-name-submit:hover,
+.cm-popup-submit:hover { background: #e07a00; }
+
+.cm-name-cancel,
+.cm-popup-cancel {
+    background: #eee;
+    color: #555;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.88em;
+    font-weight: bold;
+}
+
+.cm-name-cancel:hover,
+.cm-popup-cancel:hover { background: #ddd; }
+
 /* Shrunken Screen Settings */
 @media screen and (max-width: 768px) {
     .header h1 {
