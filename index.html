@@ -23,7 +23,7 @@
   <script src="js/mathjax-config.js"></script>
   <script src="js/bibliography.js"></script>
 
-    <link rel="stylesheet" href="styles/style.css?v=4">
+    <link rel="stylesheet" href="styles/style.css?v=6">
   </head>
   
 
@@ -463,6 +463,13 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
   </div>
    
   <script>
+    function switchImgTab(btn, groupClass, tabId) {
+      document.querySelectorAll('.' + groupClass + '-panel').forEach(p => p.style.display = 'none');
+      document.getElementById(tabId).style.display = 'block';
+      document.querySelectorAll('.' + groupClass + '-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
     // Function to show a specific tab
     let currentTab = 'about';
 

@@ -104,6 +104,7 @@ summary {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
     background-color: #ffcb8b;
     padding: 10px 0;
     }
@@ -411,6 +412,41 @@ summary {
     /* left: 50%; */
     /* transform: translate(-50%, -50%); */
     border-radius: 20px; /* Adjust the radius for rounded corners */
+}
+
+/* ── Inline image tabs ─────────────────────────────────────────────────── */
+.img-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.img-tab-btn {
+    padding: 4px 14px;
+    border: 1.5px solid #ff8c00;
+    background: #fff;
+    color: #ff8c00;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 0.82em;
+    font-weight: bold;
+    transition: background 0.2s, color 0.2s;
+}
+
+.img-tab-btn.active,
+.img-tab-btn:hover {
+    background: #ff8c00;
+    color: #fff;
+}
+
+.img-tab-panel img,
+.img-tab-panel video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    display: block;
 }
 
 /* ── Bibliography ──────────────────────────────────────────────────────── */
