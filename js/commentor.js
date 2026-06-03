@@ -6,7 +6,7 @@
   let active = false;
   let currentAuthor = '';
   let tooltip = null;
-  let pendingSpan = null;
+  let pendingSpans = [];
   let panelTab = 'open';
   let panelMinimized = false;
 
@@ -193,8 +193,6 @@
       if (tabId && typeof window.showTab === 'function') window.showTab(tabId);
 
       if (subTabId && filePath) {
-        // Own the fetch directly so we can await it and call reapplyAll
-        // synchronously — no polling or MutationObserver race to worry about.
         document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
         history.replaceState(null, '', '#' + (tabId || '') + '/' + subTabId);
         const subTabEl = document.getElementById(subTabId);
@@ -202,16 +200,13 @@
           try {
             const resp = await fetch(filePath);
             if (resp.ok) {
-              const html = await resp.text();
-              subTabEl.innerHTML = html;
+              subTabEl.innerHTML = await resp.text();
               subTabEl.style.display = 'block';
-              if (window.MathJax) MathJax.typesetPromise();
+              if (window.MathJax) await MathJax.typesetPromise([subTabEl]).catch(() => {});
               if (window.bibliography) window.bibliography.init();
               reapplyAll(subTabEl);
             }
-          } catch (e) {
-            console.error('commentor: failed to load', filePath, e);
-          }
+          } catch (e) { /* fetch failed, MutationObserver may still recover */ }
         }
       }
 
@@ -259,21 +254,44 @@
           ? `<div class="cm-panel-empty">${panelTab === 'open'
               ? 'No open comments.<br>Select text to add one.'
               : 'No resolved comments yet.'}</div>`
-          : shown.map(c => `
-            <div class="cm-card${c.resolved ? ' cm-card-resolved' : ''}" data-id="${c.id}" title="Click to jump to highlight">
-              <div class="cm-card-header">
-                <span class="cm-card-author">${c.author}</span>
-                <span class="cm-card-time">${formatDate(c.timestamp)}</span>
-              </div>
-              <div class="cm-card-quote">"${c.text.length > 70 ? c.text.slice(0, 70) + '…' : c.text}"</div>
-              <div class="cm-card-comment">${c.comment}</div>
-              <div class="cm-card-actions">
-                ${c.resolved
-                  ? `<button class="cm-card-unresolve" data-id="${c.id}">↩ Unresolve</button>`
-                  : `<button class="cm-card-resolve"   data-id="${c.id}">✓ Resolve</button>`}
-                <button class="cm-card-delete" data-id="${c.id}">Delete</button>
-              </div>
-            </div>`).join('')}
+          : shown.map(c => {
+              const quote = ((t) => t.length > 70 ? t.slice(0, 70) + '…' : t)(c.text.replace(/\s+/g, ' ').trim());
+              const repliesHtml = c.replies.length ? `
+                <div class="cm-replies">
+                  ${c.replies.map(r => `
+                    <div class="cm-reply">
+                      <div class="cm-reply-header">
+                        <span class="cm-reply-author">${r.author}</span>
+                        <span class="cm-reply-time">${formatDate(r.timestamp)}</span>
+                      </div>
+                      <div class="cm-reply-text">${r.text}</div>
+                    </div>`).join('')}
+                </div>` : '';
+              return `
+                <div class="cm-card${c.resolved ? ' cm-card-resolved' : ''}" data-id="${c.id}" title="Click to jump to highlight">
+                  <div class="cm-card-header">
+                    <span class="cm-card-author">${c.author}</span>
+                    <span class="cm-card-time">${formatDate(c.timestamp)}</span>
+                  </div>
+                  <div class="cm-card-quote">"${quote}"</div>
+                  <div class="cm-card-comment">${c.comment}</div>
+                  ${repliesHtml}
+                  <div class="cm-card-actions">
+                    ${c.resolved
+                      ? `<button class="cm-card-unresolve" data-id="${c.id}">↩ Unresolve</button>`
+                      : `<button class="cm-card-resolve"   data-id="${c.id}">✓ Resolve</button>`}
+                    <button class="cm-card-reply" data-id="${c.id}">↩ Reply</button>
+                    <button class="cm-card-delete" data-id="${c.id}">Delete</button>
+                  </div>
+                  <div class="cm-reply-form" data-id="${c.id}" style="display:none">
+                    <textarea class="cm-reply-input" placeholder="Write a reply… (Cmd+Enter to save)" rows="2"></textarea>
+                    <div class="cm-reply-actions">
+                      <button class="cm-reply-submit" data-id="${c.id}">Reply</button>
+                      <button class="cm-reply-cancel">Cancel</button>
+                    </div>
+                  </div>
+                </div>`;
+            }).join('')}
       </div>`;
 
     panel.querySelector('#cm-panel-minimize').onclick = minimizePanel;
@@ -285,7 +303,7 @@
     // Card click → navigate to the right tab then scroll to highlight
     panel.querySelectorAll('.cm-card').forEach(card => {
       card.onclick = e => {
-        if (e.target.closest('.cm-card-resolve, .cm-card-unresolve, .cm-card-delete')) return;
+        if (e.target.closest('.cm-card-resolve, .cm-card-unresolve, .cm-card-delete, .cm-card-reply, .cm-reply-form')) return;
         const c = loadAll().find(x => x.id === card.dataset.id);
         if (c) jumpToComment(c);
       };
@@ -294,8 +312,9 @@
     panel.querySelectorAll('.cm-card-resolve').forEach(btn => {
       btn.onclick = () => {
         setResolved(btn.dataset.id, true);
-        const span = document.querySelector(`.cm-hl[data-id="${btn.dataset.id}"]`);
-        if (span) span.classList.add('cm-hl-resolved');
+        document.querySelectorAll(`.cm-hl[data-id="${btn.dataset.id}"]`).forEach(
+          s => s.classList.add('cm-hl-resolved')
+        );
         renderPanel();
       };
     });
@@ -303,8 +322,9 @@
     panel.querySelectorAll('.cm-card-unresolve').forEach(btn => {
       btn.onclick = () => {
         setResolved(btn.dataset.id, false);
-        const span = document.querySelector(`.cm-hl[data-id="${btn.dataset.id}"]`);
-        if (span) span.classList.remove('cm-hl-resolved');
+        document.querySelectorAll(`.cm-hl[data-id="${btn.dataset.id}"]`).forEach(
+          s => s.classList.remove('cm-hl-resolved')
+        );
         renderPanel();
       };
     });
@@ -312,10 +332,50 @@
     panel.querySelectorAll('.cm-card-delete').forEach(btn => {
       btn.onclick = () => {
         deleteComment(btn.dataset.id);
-        const span = document.querySelector(`.cm-hl[data-id="${btn.dataset.id}"]`);
-        if (span) span.replaceWith(...span.childNodes);
+        document.querySelectorAll(`.cm-hl[data-id="${btn.dataset.id}"]`).forEach(
+          s => s.replaceWith(...s.childNodes)
+        );
         renderPanel();
       };
+    });
+
+    panel.querySelectorAll('.cm-card-reply').forEach(btn => {
+      btn.onclick = e => {
+        e.stopPropagation();
+        const form = panel.querySelector(`.cm-reply-form[data-id="${btn.dataset.id}"]`);
+        if (!form) return;
+        form.style.display = 'block';
+        form.querySelector('.cm-reply-input').focus();
+      };
+    });
+
+    panel.querySelectorAll('.cm-reply-cancel').forEach(btn => {
+      btn.onclick = e => {
+        e.stopPropagation();
+        btn.closest('.cm-reply-form').style.display = 'none';
+      };
+    });
+
+    panel.querySelectorAll('.cm-reply-submit').forEach(btn => {
+      btn.onclick = e => {
+        e.stopPropagation();
+        const form = btn.closest('.cm-reply-form');
+        const text = form.querySelector('.cm-reply-input').value.trim();
+        if (!text) return;
+        addReply(btn.dataset.id, text);
+        renderPanel();
+      };
+    });
+
+    panel.querySelectorAll('.cm-reply-input').forEach(ta => {
+      ta.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+          ta.closest('.cm-reply-form').querySelector('.cm-reply-submit').click();
+        }
+        if (e.key === 'Escape') {
+          ta.closest('.cm-reply-form').style.display = 'none';
+        }
+      });
     });
 
     updateBodyMargin();
@@ -339,12 +399,10 @@
     if (!text) return;
 
     const range = sel.getRangeAt(0).cloneRange();
-    const span  = document.createElement('span');
-    span.className = 'cm-pending';
-    try { range.surroundContents(span); }
-    catch { span.appendChild(range.extractContents()); range.insertNode(span); }
-    pendingSpan = span;
     window.getSelection().removeAllRanges();
+    const spans = highlightRange(range, 'cm-pending', '', '');
+    if (!spans.length) return;
+    pendingSpans = spans;
 
     openPopup(e.clientX, e.clientY, text);
   });
@@ -397,14 +455,19 @@
     if (!comment) { cancelPending(); return; }
 
     const id  = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    const ctx = findTabContext(pendingSpan);
+    const ctx = findTabContext(pendingSpans[0] || null);
+    // Capture the exact text of each highlight span before converting them.
+    // These are the ground-truth searchable strings (equation content already excluded).
+    const segments = pendingSpans.map(s => s.textContent);
 
-    pendingSpan.className    = 'cm-hl';
-    pendingSpan.dataset.comment = comment;
-    pendingSpan.dataset.id   = id;
-    pendingSpan = null;
+    pendingSpans.forEach(s => {
+      s.className       = 'cm-hl';
+      s.dataset.comment = comment;
+      s.dataset.id      = id;
+    });
+    pendingSpans = [];
 
-    saveComment(selectedText, comment, id, ctx);
+    saveComment(selectedText, comment, id, ctx, segments);
     panelTab = 'open';
     applyTabClass();
     if (panelMinimized) {
@@ -417,8 +480,8 @@
   }
 
   function cancelPending() {
-    if (pendingSpan && pendingSpan.parentNode) pendingSpan.replaceWith(...pendingSpan.childNodes);
-    pendingSpan = null;
+    pendingSpans.forEach(s => { if (s.parentNode) s.replaceWith(...s.childNodes); });
+    pendingSpans = [];
   }
 
   function closePopupEl() {
@@ -436,9 +499,11 @@
     if (!active) return;
     const h = e.target.closest('.cm-hl');
     if (!h) { removeTooltip(); return; }
-    const entry  = loadAll().find(c => c.id === h.dataset.id);
-    const prefix = (entry && entry.resolved) ? '✓ ' : '';
-    const label  = entry ? `${prefix}${entry.author}: ${entry.comment}` : h.dataset.comment;
+    const entry      = loadAll().find(c => c.id === h.dataset.id);
+    const prefix     = (entry && entry.resolved) ? '✓ ' : '';
+    const replyCount = (entry && entry.replies.length)
+      ? ` (${entry.replies.length} repl${entry.replies.length === 1 ? 'y' : 'ies'})` : '';
+    const label      = entry ? `${prefix}${entry.author}: ${entry.comment}${replyCount}` : h.dataset.comment;
     showTooltip(label, e.clientX, e.clientY);
   });
 
@@ -471,7 +536,7 @@
   }
 
   // ── Persistence ───────────────────────────────────────────────────────
-  function saveComment(text, comment, id, ctx = {}) {
+  function saveComment(text, comment, id, ctx = {}, segments = null) {
     const all = loadAll();
     all.push({
       id, text, comment,
@@ -481,6 +546,8 @@
       tabId:     ctx.tabId    || null,
       subTabId:  ctx.subTabId || null,
       filePath:  ctx.filePath || null,
+      segments:  segments     || null,
+      replies:   [],
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   }
@@ -496,6 +563,19 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(loadAll().filter(c => c.id !== id)));
   }
 
+  function addReply(commentId, replyText) {
+    const all = loadAll();
+    const c   = all.find(c => c.id === commentId);
+    if (!c) return;
+    c.replies.push({
+      id:        Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      author:    currentAuthor,
+      text:      replyText,
+      timestamp: new Date().toISOString(),
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  }
+
   function loadAll() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').map((c, i) => ({
@@ -508,48 +588,210 @@
         tabId:     c.tabId     || null,
         subTabId:  c.subTabId  || null,
         filePath:  c.filePath  || null,
+        segments:  Array.isArray(c.segments) ? c.segments : null,
+        replies:   Array.isArray(c.replies)  ? c.replies  : [],
       }));
     } catch { return []; }
   }
 
   // ── Re-apply stored highlights ────────────────────────────────────────
   function reapplyAll(root) {
-    loadAll().forEach(({ text, comment, id, resolved }) =>
-      restoreInNode(root, text, comment, id, resolved));
+    loadAll().forEach(({ text, comment, id, resolved, segments }) =>
+      restoreInNode(root, text, comment, id, resolved, segments));
   }
 
-  function restoreInNode(root, searchText, comment, id, resolved) {
-    if (document.querySelector(`.cm-hl[data-id="${id}"]`)) return;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: n =>
-        n.parentElement.closest('.cm-hl, .cm-pending, #cm-popup, #cm-banner, #cm-panel, #cm-name-overlay, script, style')
-          ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
-    });
+  function restoreInNode(root, searchText, comment, id, resolved, segments) {
+    if (!searchText || document.querySelector(`.cm-hl[data-id="${id}"]`)) return;
+
+    const filterFn = n =>
+      n.parentElement.closest(
+        '.cm-hl, .cm-pending, #cm-popup, #cm-banner, #cm-panel, #cm-name-overlay, ' +
+        'script, style, mjx-container, .MathJax'
+      ) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: filterFn });
+    const nodes = [];
     let node;
-    while ((node = walker.nextNode())) {
-      const idx = node.textContent.indexOf(searchText);
+    while ((node = walker.nextNode())) nodes.push(node);
+    if (!nodes.length) return;
+
+    const texts    = nodes.map(n => n.textContent);
+    const combined = texts.join('');
+
+    const hlClass = 'cm-hl' + (resolved ? ' cm-hl-resolved' : '');
+
+    // Strategy 0: segment-based restore.
+    // Each entry in `segments` is the verbatim text of one highlight span from when the
+    // comment was first created. Segments are equation-free and in document order, so they
+    // survive across MathJax re-renders and block boundaries where strategy 3 would fail
+    // (e.g. when sel.toString() included rendered equation glyphs not in any text node).
+    if (segments && segments.length) {
+      let nodeIdx = 0;
+      const hits  = [];
+      let allFound = true;
+      for (const seg of segments) {
+        let found = false;
+        while (nodeIdx < nodes.length) {
+          const idx = nodes[nodeIdx].textContent.indexOf(seg);
+          if (idx !== -1) {
+            hits.push({ node: nodes[nodeIdx], idx, len: seg.length });
+            nodeIdx++;   // next segment must come no earlier than this node
+            found = true;
+            break;
+          }
+          nodeIdx++;
+        }
+        if (!found) { allFound = false; break; }
+      }
+      if (allFound) {
+        hits.forEach(({ node, idx, len }) => {
+          const r = document.createRange();
+          r.setStart(node, idx);
+          r.setEnd(node, idx + len);
+          highlightRange(r, hlClass, comment, id);
+        });
+        return;
+      }
+      // Fall through to text-based strategies if segments couldn't all be located
+      // (e.g. the page structure changed since the comment was created).
+    }
+
+    // Strategy 1: exact match within a single text node (fast path).
+    for (const n of nodes) {
+      const idx = n.textContent.indexOf(searchText);
       if (idx === -1) continue;
-      const range = document.createRange();
-      range.setStart(node, idx);
-      range.setEnd(node, idx + searchText.length);
-      const span = document.createElement('span');
-      span.className       = 'cm-hl' + (resolved ? ' cm-hl-resolved' : '');
-      span.dataset.comment = comment;
-      span.dataset.id      = id;
-      try { range.surroundContents(span); }
-      catch { span.appendChild(range.extractContents()); range.insertNode(span); }
+      const r = document.createRange();
+      r.setStart(n, idx);
+      r.setEnd(n, idx + searchText.length);
+      highlightRange(r, hlClass, comment, id);
       return;
+    }
+
+    // Strategy 2: exact match spanning multiple adjacent text nodes
+    // (handles inline elements like <strong>, <em>, <a>).
+    const idx2 = combined.indexOf(searchText);
+    if (idx2 !== -1) {
+      const r = rangFromCombined(nodes, texts, idx2, idx2 + searchText.length);
+      if (r) { highlightRange(r, hlClass, comment, id); return; }
+    }
+
+    // Strategy 3: whitespace-normalised match
+    // (handles selections that cross block boundaries like <p>…</p><p>…</p>,
+    //  where sel.toString() inserts \n between blocks but text nodes don't).
+    const normSearch   = searchText.replace(/\s+/g, ' ').trim();
+    const normCombined = combined.replace(/\s+/g, ' ');
+    const idx3 = normCombined.indexOf(normSearch);
+    if (idx3 !== -1) {
+      const origStart = normToOrigPos(combined, idx3);
+      const origEnd   = normToOrigPos(combined, idx3 + normSearch.length);
+      const r = rangFromCombined(nodes, texts, origStart, origEnd);
+      if (r) highlightRange(r, hlClass, comment, id);
     }
   }
 
+  // Map a position in the whitespace-collapsed version of `original` back to
+  // the corresponding position in `original`.
+  function normToOrigPos(original, normPos) {
+    let o = 0, n = 0;
+    while (o < original.length && n < normPos) {
+      if (/\s/.test(original[o])) {
+        while (o < original.length && /\s/.test(original[o])) o++;
+        n++; // the single collapsed space in the normalised string
+      } else { o++; n++; }
+    }
+    return o;
+  }
+
+  function rangFromCombined(nodes, texts, startIdx, endIdx) {
+    let pos = 0, sNode, sOff, eNode, eOff;
+    for (let i = 0; i < nodes.length; i++) {
+      const len = texts[i].length;
+      if (!sNode && pos + len > startIdx) { sNode = nodes[i]; sOff = startIdx - pos; }
+      if  (sNode && pos + len >= endIdx)  { eNode = nodes[i]; eOff = endIdx   - pos; break; }
+      pos += len;
+    }
+    if (!sNode || !eNode) return null;
+    const range = document.createRange();
+    range.setStart(sNode, sOff);
+    range.setEnd(eNode, eOff);
+    return range;
+  }
+
+  // Collect text-node segments that fall within a range, skipping MathJax and CM UI nodes.
+  // Segments are returned in document order with their slice offsets.
+  function getTextNodesInRange(range) {
+    const SKIP = 'mjx-container, .MathJax, .cm-hl, .cm-pending, ' +
+                 '#cm-popup, #cm-banner, #cm-panel, #cm-name-overlay, script, style';
+    // If commonAncestorContainer is a text node, walk from its parent so the
+    // TreeWalker has a real element as root (text nodes have no children to walk).
+    const root = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+      ? range.commonAncestorContainer.parentNode
+      : range.commonAncestorContainer;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => {
+        const p = n.parentElement;
+        if (!p || p.closest(SKIP)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const segments = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (!range.intersectsNode(node)) continue;
+      const start = range.startContainer === node ? range.startOffset : 0;
+      const end   = range.endContainer   === node ? range.endOffset   : node.textContent.length;
+      if (start < end) segments.push({ node, start, end });
+    }
+    return segments;
+  }
+
+  // Wrap a range in highlight span(s). Cross-block or equation-boundary ranges
+  // are split into one span per text-node segment so the DOM stays valid.
+  // Returns the array of created span elements.
+  function highlightRange(range, className, comment, id) {
+    const span = document.createElement('span');
+    span.className       = className;
+    span.dataset.comment = comment;
+    span.dataset.id      = id;
+    try { range.surroundContents(span); return [span]; }
+    catch { /* cross-block or equation boundary – fall through to multi-span path */ }
+
+    const segments = getTextNodesInRange(range);
+    if (!segments.length) return [];
+    const created = [];
+    // Process in reverse to avoid invalidating earlier offsets within the same node.
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const { node, start, end } = segments[i];
+      const r = document.createRange();
+      r.setStart(node, start);
+      r.setEnd(node, end);
+      const s = document.createElement('span');
+      s.className       = className;
+      s.dataset.comment = comment;
+      s.dataset.id      = id;
+      try { r.surroundContents(s); created.unshift(s); }
+      catch { /* skip un-wrappable segment */ }
+    }
+    return created;
+  }
+
   // Re-apply when dynamically fetched subtab content is injected.
+  // Also hook into MathJax completion so equation text is searchable.
   const observer = new MutationObserver(mutations => {
     if (!active) return;
     for (const m of mutations) {
       for (const n of m.addedNodes) {
-        if (n.nodeType === Node.ELEMENT_NODE &&
-            !n.closest('#cm-panel, #cm-popup, #cm-banner, #cm-name-overlay')) {
-          reapplyAll(n);
+        if (n.nodeType !== Node.ELEMENT_NODE) continue;
+        // Skip CM UI elements and MathJax's own rendered nodes to avoid loops.
+        const tag = n.tagName.toLowerCase();
+        if (tag.startsWith('mjx-') || n.classList.contains('MathJax')) continue;
+        if (n.closest('#cm-panel, #cm-popup, #cm-banner, #cm-name-overlay')) continue;
+        reapplyAll(n);
+        // Reapply again once MathJax finishes rendering equations in this node.
+        if (window.MathJax) {
+          MathJax.typesetPromise([n]).catch(() => {}).then(() => {
+            if (active) reapplyAll(n);
+          });
         }
       }
     }
