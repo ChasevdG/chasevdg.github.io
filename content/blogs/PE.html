@@ -7,6 +7,25 @@
   </p>
 </div>
 </div>
+<h2>Why do we care?</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  <p>
+    Let's begin with why the research community is interested in this paper. 
+    The general field of interest is long context generalization. 
+    The idea is that we tend to train models on short context for efficiency reasons, but we want them to generalize to long context after training.
+    However, at the moment, essentially all models struggle to generalize to context past a certain horizon and one of the main suspects for why is from how positions are encoded.
+    The claim of the paper <cite data-ref="du2026rope"></cite> is that RoPE, a popular positional encoding method, is probably not suitable for long context generalization because it cannot distinguish positions or tokens at long distances.
+  </p>
+  <p>
+    This <i>would</i> be a problem because RoPE is currently the most popular positional encoding method, and if it is not suitable for long context generalization, then we would need to find a new method.
+    I emphasize the "would" because most the paper makes a lot of provably wrong assumptions.
+    I will elaborate on what gives rise to what the authors are actually observing and from that highlight that the true problem is with softmax.
+    If one can follow to the end, I will propose what I believe is a flaw in the commonly used p-RoPE method of Barbero et al. <cite data-ref="barbero2024round"></cite> and propose what I think needs to change to generalize to long context lengths.
+  </p>
+  </div>
+</div>
+
 <h2>RoPE is Not Local, Provably</h2>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
@@ -243,37 +262,77 @@
     <div class="subtab-about-content">
       <div class="subtab-about-text">
       <p>
-        First, I will try to convince you that softmax is a problem and we will look at how the model tries to get around this problem by using positional encoding as a form of tempering.
+        Before going into the recent models that employ RoPE, I will try to convince you that softmax is a problem by looking at how the GPT2 models try to get around the softmax problem by using positional encoding as a form of tempering.
         To do this, we can look at a GPT2 model and how it tends to attend to tokens in a context.
         Note that GPT2 <i>does not use RoPE</i>, but we can demonstrate that softmax will cause trouble for most positional encodings.
       </p>
       <p>
-        We can look observe how position affects attention in these models by looking at how much each token attends to each other on average.
+        We can look observe how position affects attention in these models by looking at how much each token position attends to each position on average.
         This gives us the positional encoding image shown on the right. 
         From this image, we can look at the sub-diagonal elements, which tells us "how much does a token at this position attend to the previous token?".
+      </p>
+      <p>
         If a positional encoding is relative, then it should have the same attention score -- again, pre-softmax -- to the previous token approximately equally across positions.
         So we would expect constant line when we plot along the sub-diagonal. But that is not what we see.
-      </p>
+        Instead, we see that the attention score to the previous token grows roughly linearly with context length (number of unmasked tokens).
+        However, if we look at the attention <i>after softmax</i>, then we see that the attention to the previous token is relatively constant across positions.
+        This means that while the <i>attention score</i> is not relative, the <i>attention mechanism</i> as a whole has learned to be relative.
+        This is a sign that the model is learning to use the positional encoding to temper the attention score to the previous token to compensate for softmax's decay.
+        </p>
+        <p>
+        Another token of interest is the BoS token -- token 0 -- which is the first token in the context.
+        The beginning of sentences token is known to act as an important <i>attention sink</i><cite data-ref=xiao2024efficient></cite> to deal with the excess attention to irrelevant tokens.
+        One can see a distinctly different pattern for the BoS token compared to all other positions.
+        </p>
     </div>
     <div class="subtab-about-image" style="align-self: flex-start;">
       <div class="img-tabs">
-        <button class="img-tab-btn pe-fig7-btn active" onclick="switchImgTab(this, 'pe-fig7', 'pe-fig7-tab1')">Attention Trace</button>
-        <button class="img-tab-btn pe-fig7-btn" onclick="switchImgTab(this, 'pe-fig7', 'pe-fig7-tab2')">Decoherence</button>
-        <button class="img-tab-btn pe-fig7-btn" onclick="switchImgTab(this, 'pe-fig7', 'pe-fig7-tab3')">Softmax Decay</button>
+        <button class="img-tab-btn pe-fig9-btn active" onclick="switchImgTab(this, 'pe-fig9', 'pe-fig9-tab1')">Positional Attention</button>
+        <button class="img-tab-btn pe-fig9-btn" onclick="switchImgTab(this, 'pe-fig9', 'pe-fig9-tab2')">Previous Token Pre-Softmax</button>
+        <button class="img-tab-btn pe-fig9-btn" onclick="switchImgTab(this, 'pe-fig9', 'pe-fig9-tab3')">Previous Token Post-Softmax</button>
+        <button class="img-tab-btn pe-fig9-btn" onclick="switchImgTab(this, 'pe-fig9', 'pe-fig9-tab4')">BoS Token Pre-Softmax</button>
+        <button class="img-tab-btn pe-fig9-btn" onclick="switchImgTab(this, 'pe-fig9', 'pe-fig9-tab5')">BoS Token Post-Softmax</button>
       </div>
-      <div id="pe-fig7-tab1" class="img-tab-panel pe-fig7-panel">
+      <div id="pe-fig9-tab1" class="img-tab-panel pe-fig9-panel">
+       <img src="content/blogs/images/attention_per_layer.gif" alt="Subtab Image" autoplay>
+        <figcaption><strong>Fig 9A:</strong> The decay of a softmax wrt context length. The higher the initial signal $x_0$ the longer it takes to decay. Note the similarities in decay structure to <strong>Fig. 2</strong>.</figcaption>
+      </div>
+      <div id="pe-fig9-tab2" class="img-tab-panel pe-fig9-panel" style="display:none;">
         <img src="content/blogs/images/attention_trace.png" alt="Attention Trace">
+        <figcaption><strong>Fig 9B:</strong> The decay of a softmax wrt context length. The higher the initial signal $x_0$ the longer it takes to decay. Note the similarities in decay structure to <strong>Fig. 2</strong>.</figcaption>
       </div>
-      <div id="pe-fig7-tab2" class="img-tab-panel pe-fig7-panel" style="display:none;">
-        <video muted controls autoplay loop>
-          <source src="content/blogs/images/RoPEScene_decohere.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
+      <div id="pe-fig9-tab3" class="img-tab-panel pe-fig9-panel" style="display:none;">
+        <img src="content/blogs/images/attention_trace_postsoftmax.png" alt="Attention Trace Post">
+        <figcaption><strong>Fig 9C:</strong> If one looks at the attention after softmax, then the attention to the previous token is constant across positions. This signals that the model must learn to adapt to the fact to the growing denominator by increasing the weight of the positional encoding. </figcaption>
       </div>
-      <div id="pe-fig7-tab3" class="img-tab-panel pe-fig7-panel" style="display:none;">
-        <img src="content/blogs/images/softmax_decay.png" alt="Softmax Decay">
+      <div id="pe-fig9-tab4" class="img-tab-panel pe-fig9-panel" style="display:none;">
+        <img src="content/blogs/images/attention_to_token_0_pre.png" alt="BoS Attention">
+        <figcaption><strong>Fig 9D:</strong> The attention score to the first token, i.e. "beginning of sentence", <i>BoS</i>, token. As the context length grows, the attention to this token grows. This acts as a form of decay for other tokens.</figcaption>
       </div>
-      <figcaption><strong>Fig 7:</strong> The decay of a softmax wrt context length. The higher the initial signal $x_0$ the longer it takes to decay. Note the similarities in decay structure to <strong>Fig. 2</strong>.</figcaption>
+      <div id="pe-fig9-tab5" class="img-tab-panel pe-fig9-panel" style="display:none;">
+        <img src="content/blogs/images/attention_to_token_0_post.png" alt="BoS Attention">
+        <figcaption><strong>Fig 9E:</strong> The attention to the BoS token post-softmax. As the context length grows, the attention to the BoS token stays relatively stable across. Suggesting, the model has learned to adapt for softmax's context decay via positionally encoding.</figcaption>
+      </div>
+    </div>
+    </div>
+    <div class="subtab-about-content">
+      <div class="subtab-about-text">
+      <h3>But does the theory work for RoPE models?</h3>
+      <p>
+        Spoiler, <strong>no</strong>.
+        To see this we can look at Fig. 2 of <cite data-ref="du2026rope"></cite>.
+        If my theory for RoPE decohering was correct, then we would see the attention score decay to zero for long distances. 
+        However, we see that the attention score does not decay to zero, but instead decays past zero to very negative values.
+        Somehow the model learns attention score similar to ALiBi.
+        <i>How can this happen and where did I go wrong?</i>
+      </p>
+      <p>
+        For the theory to break down, an assumption must have been violated. 
+        The assumption I (and the authors of <cite data-ref="du2026rope"></cite>) made was that the amplitudes across frequencies were similar all the same.
+        That is no frequencies got more attention than others.
+        However, this is well known to be false as RoPE models pay <i>significantly</i> more attention to lower frequencies than most higher frequencies.
+        Once again, the transformer has learned a way to cope with softmax's decay.
+      </p>
     </div>
     </div>
 
@@ -315,8 +374,8 @@
     </div>
   <div class="subtab-about-content">
     <div class="subtab-about-text">
-  <p>
     <h3>What does the distinction between periodic and quasi-periodic mean?</h3> 
+  <p>
     Well, effectively it is just pedantic. 
     If RoPE is quasi-periodic, then positions do not alias each other since every position corresponds to a unique state. 
     However, the core problem with periodicity persists. 
