@@ -15,7 +15,7 @@
     The general field of interest is long context generalization. 
     The idea is that we tend to train models on short context for efficiency reasons, but we want them to generalize to long context after training.
     However, at the moment, essentially all models struggle to generalize to context past a certain horizon and one of the main suspects for why is from how positions are encoded.
-    The claim of the paper <cite data-ref="du2026rope"></cite> is that RoPE, a popular positional encoding method, is probably not suitable for long context generalization because it cannot distinguish positions or tokens at long distances.
+    The claim of the paper <cite data-ref="du2026rope"></cite> is that RoPE, a popular positional encoding method, is provably not suitable for long context generalization because it cannot distinguish positions or tokens at long distances.
   </p>
   <p>
     This <i>would</i> be a problem because RoPE is currently the most popular positional encoding method, and if it is not suitable for long context generalization, then we would need to find a new method.
@@ -29,11 +29,10 @@
 <h2>RoPE is Not Local, Provably</h2>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
-  <p>To begin, the central premise is wrong. RoPE is <strong>not local</strong>. This is well known and proven by <strong>Proposition 3.1</strong> in Barbero et al. <cite data-ref="barbero2024round"></cite>
-    who the authors hallucinate as "David Miranda et al.". They show that RoPE is local <i>only</i> when the amplitudes of the query and key are the same and they are perfectly coherent at p=0 and <i>not generally true</i>.
+  <p>To begin, the central premise is wrong. RoPE is <strong>not local</strong>. This is well known and proven by <strong>Proposition 3.1</strong> in Barbero et al. <cite data-ref="barbero2024round"></cite> (whom the paper accidentally rebrands as 'David Miranda et al.'). They show that RoPE is local <i>only</i> when the amplitudes of the query and key are the same and they are perfectly coherent at p=0 and <i>not generally true</i>.
   </p>
   <p>
-    For the intuition of those mathematically inclined, RoPE can be seen as parameterizing any path in SO$\left(\frac{N}{2}\right)$ ($\frac{N}{2}$-dimension
+    For the intuition of those mathematically inclined, RoPE can be seen as parameterizing any path in SO$\left(\frac{N}{2}\right)$ ($\frac{N}{2}\times\frac{N}{2}$
     rotation matrix) and not just 2x2 rotation blocks (shameless plug of <strong>Proposition 1 <cite data-ref="van2026circular"></cite></strong>, though it
     can be found in several papers). Since RoPE is parametrizing an orthonormal matrix, the norm of the query and key will be preserved, therefore the potential magnitude of the attention never decays with position,
     only <i>which tokens</i> it attends to. Because it will never decay, it is not guaranteed for RoPE to be local. 
@@ -49,7 +48,7 @@
         Your browser does not support the video tag.
       </video>
       <figcaption><p><strong>Fig 1:</strong> The left plot shows the <i>relative</i> orientation of the key with respect to the query. The query is assumed to always be pointed up and is assumed to have uniform magnitude. The color of the arrow indicates the query/key dimension, or, equivalently, the frequency at which the vector oscillates with position. The red arrows are the highest frequency (fastest) dimensions and violet are the lowest frequency (slowest).</p> 
-        <p>The mean vector is shown as a white arrow. Because the query is assumed to be the unit vertical vector, the projection of the white arrow onto the vertical axis gives the attention score. The right plot shows the</p> </figcaption>
+        <p>The mean vector is shown as a white arrow. Because the query is assumed to be the unit vertical vector, the projection of the white arrow onto the vertical axis gives the attention score. The right plot shows the resulting attention score as a function of position.</p> </figcaption>
     </figure>
 
   </div>
@@ -57,7 +56,7 @@
 <div class="subtab-about-content">
   <div class="subtab-about-image">
     <img src="content/blogs/images/decay_fig.png" alt="Decay Figure">
-    <figcaption><strong>Fig 2:</strong> This is the Fig 9. from <strong>[1]</strong> meant to show that RoPE fails for long context. However, this simply shows that models struggle to fetch information as the number of tokens grow. I will show that this can be explained away this away as a problem with softmax later in the blog.</figcaption>
+    <figcaption><strong>Fig 2:</strong> This is the Fig 9. from <strong>[1]</strong> meant to show that RoPE fails for long context. However, this simply shows that models struggle to fetch information as the number of tokens grow. I will show that this can be explained away as a problem with softmax later in the blog.</figcaption>
   </div>
   <div class="subtab-about-text">
     <p>
@@ -93,7 +92,7 @@
      The reason many papers say that RoPE decays is because of the way the attention score -- by which I mean the inner-product of the query and key vectors pre-softmax -- behaves. Since RoPE is a rotation, it preserves the magnitude of the vectors, but it <i>can</i> change the direction of the vectors. As the position increases, the query and key pairs can become more and more misaligned, which can lead to a decrease in the attention score. 
     </p>
     <p>
-     However, I would not say this is RoPE <i>decaying</i>, but rather <i>decohering</i>$^*$. That is all the magnitudes remain the same, but the vectors can interfere destructively (yes, just like waves). There is a chance that the vectors align creating high attention. However, some of the vectors will anti-align to roughly balance it out. The random vectors result in an overall attention score that exhibits the gaussian noise effect.
+     However, I would not say this is RoPE <i>decaying</i>, but rather <i>decohering</i>$^*$. That is, all the magnitudes remain the same, but the vectors can interfere destructively (yes, just like waves). There is a chance that the vectors align creating high attention. However, some of the vectors will anti-align to roughly balance it out. The random vectors result in an overall attention score that exhibits the gaussian noise effect.
     </p>
     </div>
     <div class="subtab-about-image">
@@ -101,7 +100,7 @@
         <source src="content/blogs/images/RoPEScene_inphase.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 4:</strong> If RoPE starts coherent, then it the attention score will decay to random noise as the position increases and the signals become decoherent. $^*$Note, that "coherence" is the term I will use, but is non-standard.</figcaption>
+      <figcaption><strong>Fig 3:</strong> If RoPE starts coherent, then the attention score will decay to random noise as the position increases and the signals become decoherent. $^*$Note, that "coherence" is the term I will use, but is non-standard.</figcaption>
     </div>
     </div>
     <div class="subtab-about-content">
@@ -110,7 +109,7 @@
         <source src="content/blogs/images/RoPEScene_random.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 6:</strong> If RoPE starts decoherent, then it will not necessarily decay.</figcaption>
+      <figcaption><strong>Fig 4:</strong> If RoPE starts decoherent, then it will not necessarily decay.</figcaption>
     </div>
     <div class="subtab-about-text">
       <p> As a note, this decoherence only happens if the query and key were coherent in the first place -- though even this claim is limited when the amplitudes of each frequency are allowed to differ. 
@@ -134,7 +133,7 @@
         They show that "mathematically", this will happen more often at long distance. Once again, this is not true for RoPE as a method as it is not local. 
         However, due to the structure of language, words at long distance tend to be less relevant. 
         Thus, the model should provide less attention to them. As tokens decohere, the attention score becomes more and more like gaussian noise which leads the position inversion to converge to 50/50. 
-        However, these tokens (ideally) already getting very little attention, so it does not matter if they are inverted or not.
+        However, these tokens are (ideally) already getting very little attention, so it does not matter if they are inverted or not.
       </p>
     </div>
     <div class="subtab-about-image">
@@ -155,7 +154,7 @@
       </div>
       <div class="subtab-about-text">
       <p>
-        The convergence to a zero centered gaussian is where RoPE runs into an issue. Because of the softmax attention mechanism, to give as little attention as possible to a token, the model should assign as <i>negative</i> attention score to the token pair as possible.
+        The convergence to a zero centered gaussian is where RoPE runs into an issue. Because of the softmax attention mechanism, to give as little attention as possible to a token, the model should assign as <i>negative</i> an attention score to the token pair as possible.
         This means that RoPE needs to learn to make the query and key anti-phase with each other -- which I will refer to as <i>anti-cohere</i> -- the query and key pairs for tokens that are far away. 
         However, just as tokens decohere if they begin coherent, they can also decohere if they begin anti-coherent. 
         In other words, it is very difficult for the model to maintain anti-coherence for many irrelevant tokens.
@@ -230,7 +229,7 @@
       </p>
       <p>
         Note that $\lambda$ can be obtained by applying the CLT to the distribution of the inner-product of random unit vectors on a circle.
-        Importantly, this standard deviation will be proportional to the number of "vector" samples, which is the per-head key/query dimension.
+        Importantly, this standard deviation will be proportional to the square root of the number of "vector" samples, which is the per-head key/query dimension.
         The important thing is that the denominator grows linearly with the number of token samples which means that the relevant signal progressively shrinks.
       </p>
       </div>
@@ -280,7 +279,7 @@
         </p>
         <p>
         Another token of interest is the BoS token -- token 0 -- which is the first token in the context.
-        The beginning of sentences token is known to act as an important <i>attention sink</i><cite data-ref=xiao2024efficient></cite> to deal with the excess attention to irrelevant tokens.
+        The beginning-of-sentence token is known to act as an important <i>attention sink</i><cite data-ref=xiao2024efficient></cite> to deal with the excess attention to irrelevant tokens.
         One can see a distinctly different pattern for the BoS token compared to all other positions.
         </p>
     </div>
@@ -294,11 +293,11 @@
       </div>
       <div id="pe-fig9-tab1" class="img-tab-panel pe-fig9-panel">
        <img src="content/blogs/images/attention_per_layer.gif" alt="Subtab Image" autoplay>
-        <figcaption><strong>Fig 9A:</strong> The decay of a softmax wrt context length. The higher the initial signal $x_0$ the longer it takes to decay. Note the similarities in decay structure to <strong>Fig 2</strong>.</figcaption>
+        <figcaption><strong>Fig 9A:</strong> The average attention from each query position to each key position in GPT2, animated across layers. This is the positional attention map; the sub-diagonal shows how much each token attends to the previous token.</figcaption>
       </div>
       <div id="pe-fig9-tab2" class="img-tab-panel pe-fig9-panel" style="display:none;">
         <img src="content/blogs/images/attention_trace.png" alt="Attention Trace">
-        <figcaption><strong>Fig 9B:</strong> The decay of a softmax wrt context length. The higher the initial signal $x_0$ the longer it takes to decay. Note the similarities in decay structure to <strong>Fig 2</strong>.</figcaption>
+        <figcaption><strong>Fig 9B:</strong> The pre-softmax attention score to the previous token (the sub-diagonal) as a function of position. A relative encoding would give a constant line, but instead the score grows roughly linearly with context length.</figcaption>
       </div>
       <div id="pe-fig9-tab3" class="img-tab-panel pe-fig9-panel" style="display:none;">
         <img src="content/blogs/images/attention_trace_postsoftmax.png" alt="Attention Trace Post">
@@ -310,7 +309,7 @@
       </div>
       <div id="pe-fig9-tab5" class="img-tab-panel pe-fig9-panel" style="display:none;">
         <img src="content/blogs/images/attention_to_token_0_post.png" alt="BoS Attention">
-        <figcaption><strong>Fig 9E:</strong> The attention to the BoS token post-softmax. As the context length grows, the attention to the BoS token stays relatively stable across. Suggesting, the model has learned to adapt for softmax's context decay via positionally encoding.</figcaption>
+        <figcaption><strong>Fig 9E:</strong> The attention to the BoS token post-softmax. As the context length grows, the attention to the BoS token stays relatively stable across positions. This suggests the model has learned to adapt for softmax's context decay via positional encoding.</figcaption>
       </div>
     </div>
     </div>
@@ -329,9 +328,9 @@
       </p>
       <p>
         For the theory to break down, an assumption must have been violated. 
-        The assumption I (and the authors of <cite data-ref="du2026rope"></cite>) made was that the amplitudes across frequencies were similar all the same.
+        The assumption I (and the authors of <cite data-ref="du2026rope"></cite>) made was that the amplitudes across frequencies were all the same.
         That is no frequencies got more attention than others.
-        However, this is well known to be false as RoPE models pay <i>significantly</i> more attention to lower frequencies than most higher frequencies.
+        However, this is well known to be false as RoPE models pay <i>significantly</i> more attention to lower frequencies than higher frequencies.
         Once again, the transformer has learned a way to cope with softmax's decay.
       </p>
     </div>
@@ -340,7 +339,7 @@
       <figcaption>
         <p>
           <strong>Fig 10:</strong> 
-        The attention wave form of a actual word embeddings for "cat" and "pet" adapted from Fig 4a of <strong>[1]</strong>. 
+        The attention wave form of actual word embeddings for "cat" and "pet" adapted from Fig 4a of <strong>[1]</strong>. 
         We observe that the attention score does not decay to zero, but instead decays past zero to very negative values.
         </p>
         <p>
@@ -368,7 +367,7 @@
         They found that this helped long context generalization.
       </p>
       <p>
-        However, I think this destroys an imporant role of the low frequency dimensions.
+        However, I think this destroys an important role of the low frequency dimensions.
         I believe that the reason the model attends so heavily to the low frequency dimensions is because they are the only way for the model to temper the attention score to deal with softmax's decay.
         By attending to the low frequency dimensions, the model can create a proxy for linear decay.
         It creates this effect by the small angle approximation: the $\cos(\theta) \approx 1$ and the $\sin(\theta) \approx \theta$.
@@ -398,7 +397,7 @@
  </div>
         <div class="subtab-about-image">
       <img src="content/blogs/images/Periodic.gif" alt="Subtab Image" autoplay>
-      <figcaption><strong>Fig 9:</strong> Two tokens which start anti-coherent become decoherent over time. This makes it difficult for the model to assign negative attention scores and mitigate the attention given to irrelevant tokens. </figcaption>
+      <figcaption><strong>Fig 11:</strong> RoPE applied to a full vector is only <i>quasi-periodic</i>. Each individual frequency pair is periodic, but the combined trajectory only returns exactly to its starting state if the frequencies are <i>commensurate</i>. </figcaption>
       </div>
       </div>
   <div class="subtab-about-content">
@@ -407,7 +406,7 @@
           <source src="content/blogs/images/DiscreteClocks.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-        <figcaption><strong>Fig 10:</strong> Two tokens which start anti-coherent become decoherent over time. This makes it difficult for the model to assign negative attention scores and mitigate the attention given to irrelevant tokens. </figcaption>
+        <figcaption><strong>Fig 12:</strong> Each RoPE frequency acts like a clock hand with its own period. The full state only recurs at the least common multiple of the periods, which exists only when the frequencies are commensurate (i.e. their ratio is rational). </figcaption>
       </div>
     <div class="subtab-about-text">
  <p>
