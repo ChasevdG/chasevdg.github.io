@@ -1216,11 +1216,18 @@ body {
     }
 
     .subtab-about-image img,
-    .subtab-about-image video,
     .subtab-about-image-logo img {
         max-width: 100%;
         height: auto;
         object-fit: cover;
+    }
+
+    .subtab-about-image video {
+        max-width: min(100%, 400px);
+        height: auto;
+        object-fit: cover;
+        display: block;
+        margin: 0 auto;
     }
 
     .subtab-about-text p,

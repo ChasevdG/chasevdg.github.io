@@ -2,7 +2,7 @@
   <div class="subtab-about-content">
   <div class="subtab-about-text">
     <p>Since <strong>“RoPE Distinguishes Neither Positions Nor Tokens in Long Contexts, Provably”</strong> <cite data-ref="du2026rope"></cite>
-    has some buzz and was sent to me several times, I decided to weigh in on it and clear up the RoPE <i>slander</i> and misconceptions that the paper creates. While I may be harsh, this is not meant to shame the authors, but 
+    has been making the rounds and was sent to me several times, I decided to weigh in on it and clear up the RoPE <i>slander</i> and misconceptions that the paper creates. While I may be harsh, this is not meant to shame the authors, but 
     rather to use their mistakes as a teaching opportunity to clarify some of the math around RoPE.
   </p>
 </div>
@@ -14,13 +14,13 @@
     Let's begin with why the research community is interested in this paper. 
     The general field of interest is long context generalization. 
     The idea is that we tend to train models on short context for efficiency reasons, but we want them to generalize to long context after training.
-    However, at the moment, essentially all models struggle to generalize to context past a certain horizon and one of the main suspects for why is from how positions are encoded.
+    However, at the moment, essentially all models struggle to generalize to context past a certain horizon and one of the main suspects is how positions are encoded.
     The claim of the paper <cite data-ref="du2026rope"></cite> is that RoPE, a popular positional encoding method, is provably not suitable for long context generalization because it cannot distinguish positions or tokens at long distances.
   </p>
   <p>
     This <i>would</i> be a problem because RoPE is currently the most popular positional encoding method, and if it is not suitable for long context generalization, then we would need to find a new method.
-    I emphasize the "would" because most of the paper makes a lot of provably wrong assumptions.
-    I will elaborate on what gives rise to what the authors are actually observing and from that highlight that the true problem is with softmax.
+    I emphasize the "would" because most of the paper makes several provably wrong assumptions.
+    I will elaborate on what actually drives the authors' observations and from that highlight that the true problem is with softmax.
     If one can follow to the end, I will propose what I believe is a flaw in the commonly used p-RoPE method of Barbero et al. <cite data-ref="barbero2024round"></cite> and propose what I think needs to change to generalize to long context lengths.
   </p>
   </div>
@@ -29,13 +29,13 @@
 <h2>RoPE is Not Local, Provably</h2>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
-  <p>To begin, the central premise is wrong. RoPE is <strong>not local</strong>. This is well known and proven by <strong>Proposition 3.1</strong> in Barbero et al. <cite data-ref="barbero2024round"></cite> (whom the paper accidentally rebrands as 'David Miranda et al.'). They show that RoPE is local <i>only</i> when the amplitudes of the query and key are the same and they are perfectly coherent at p=0 and <i>not generally true</i>.
+  <p>To begin, the central premise is wrong. RoPE is <strong>not local</strong>. This is well known and proven by <strong>Proposition 3.1</strong> in Barbero et al. <cite data-ref="barbero2024round"></cite> (whom the paper accidentally rebrands as 'David Miranda et al.'). They show that RoPE is local <i>only</i> when the amplitudes of the query and key are the same and they are perfectly coherent at p=0 — conditions that <i>do not generally hold</i>.
   </p>
   <p>
     For the intuition of those mathematically inclined, RoPE can be seen as parameterizing any path in SO$\left(\frac{N}{2}\right)$ ($\frac{N}{2}\times\frac{N}{2}$
     rotation matrix) and not just 2x2 rotation blocks (shameless plug of <strong>Proposition 1 <cite data-ref="van2026circular"></cite></strong>, though it
-    can be found in several papers). Since RoPE is parametrizing an orthonormal matrix, the norm of the query and key will be preserved, therefore the potential magnitude of the attention never decays with position,
-    only <i>which tokens</i> it attends to. Because it will never decay, it is not guaranteed for RoPE to be local. 
+    can be found in several papers). Since RoPE is parametrizing an orthonormal matrix, the norm of the query and key will be preserved, therefore the potential magnitude of the attention never decays with position;
+    only <i>which tokens</i> it attends to changes. Because the magnitude never decays, RoPE is not guaranteed to be local.
   </p>
     <p>
       As shown <strong>to the right</strong>, RoPE can attend to tokens arbitrarily far away. The key is assumed to be all vertical arrows since one can always canonicalize the query with respect to the key.
@@ -43,7 +43,7 @@
   </div>
   <div class="subtab-about-image">
     <figure>
-      <video muted controls autoplay loop>
+      <video muted controls autoplay loop playsinline>
         <source src="content/blogs/images/RoPEScene_inphase.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
@@ -63,11 +63,11 @@
     If one takes their claim as "RoPE is problematic since attention essentially becomes a random normal distribution" then their claim is <strong>true</strong>. However, their claim that any two tokens are incapable of distinguishing their position and content at a long distance is <strong>false</strong>.
     </p>
     <p>
-    The specific part of this statement that makes it incorrect is that it holds for any <i>two</i> tokens. What <i>is</i> true is that RoPE cannot distinguish between content or position in long contexts of <i>many tokens</i>. This is what is supported by their experiments, but it is not their major claim. 
+    The specific part of this statement that makes it incorrect is that it holds for any <i>two</i> tokens. What <i>is</i> true is that RoPE cannot distinguish between content and position in long contexts of <i>many tokens</i>. This is what is supported by their experiments, but it is not their major claim. 
     </p>
     <p>
     RoPE's decay for long context -- by which I mean a <i>large number of tokens</i> not <i>long distance</i>-- happens precisely because there is no locality.
-    Since RoPE has no decay, it cannot forget information resulting in a problematic interaction with the softmax part of attention. The more tokens you have, the more the contributions to the attention get smoothed out resulting in representation collapse shown in <cite data-ref="barbero2024transformers"></cite>. 
+    Since RoPE has no decay, it cannot forget information, which interacts problematically with the softmax part of attention. The more tokens you have, the more the contributions to the attention get smoothed out resulting in representation collapse shown in <cite data-ref="barbero2024transformers"></cite>. 
     Their long context experiments involve <i>increasing the total number of tokens</i>, and <i>not</i> the position of two tokens.
     </p>
     </div>
@@ -96,16 +96,16 @@
     </p>
     </div>
     <div class="subtab-about-image">
-      <video muted controls autoplay>
+      <video muted controls autoplay playsinline>
         <source src="content/blogs/images/RoPEScene_inphase.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 3:</strong> If RoPE starts coherent, then the attention score will decay to random noise as the position increases and the signals become decoherent. $^*$Note, that "coherence" is the term I will use, but is non-standard.</figcaption>
+      <figcaption><strong>Fig 3:</strong> If RoPE starts coherent, then the attention score will decay to random noise as the position increases and the signals become decoherent. $^*$Note that "coherence" is the term I will use, but is non-standard.</figcaption>
     </div>
     </div>
     <div class="subtab-about-content">
       <div class="subtab-about-image">
-      <video muted controls autoplay>
+      <video muted controls autoplay playsinline>
         <source src="content/blogs/images/RoPEScene_random.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
@@ -137,7 +137,7 @@
       </p>
     </div>
     <div class="subtab-about-image">
-      <video muted controls autoplay>
+      <video muted controls autoplay playsinline>
         <source src="content/blogs/images/RoPEScene.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
@@ -146,7 +146,7 @@
     </div>
     <div class="subtab-about-content">
       <div class="subtab-about-image">
-        <video muted controls autoplay>
+        <video muted controls autoplay playsinline>
           <source src="content/blogs/images/RoPEScene_anti.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
@@ -191,7 +191,7 @@
       </p>
     </div>
     <!-- <div class="subtab-about-image">
-        <video muted controls autoplay>
+        <video muted controls autoplay playsinline>
           <source src="content/blogs/images/RoPEScene_decohere.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
@@ -249,7 +249,7 @@
       </p>
       </div>
       <div class="subtab-about-image">
-        <video muted controls autoplay>
+        <video muted controls autoplay playsinline>
           <source src="content/blogs/images/RoPEScene_decohere.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
@@ -402,7 +402,7 @@
       </div>
   <div class="subtab-about-content">
  <div class="subtab-about-image">
-        <video muted controls autoplay>
+        <video muted controls autoplay playsinline>
           <source src="content/blogs/images/DiscreteClocks.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
