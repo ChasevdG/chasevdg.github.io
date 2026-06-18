@@ -1,0 +1,247 @@
+<div class="subtab-about-header" style="text-align: center;">
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        <strong>Rotary Positional Embeddings (RoPE)</strong> <cite data-ref="su2024roformer"></cite> have become the de facto positional encoding in modern large language models -- Llama, Mistral, DeepSeek, Gemma all use it.
+        This post gives a self-contained review of how RoPE works, why it has the relative-position property, and how it extends to two-dimensional inputs.
+        We cover <strong>Axial RoPE</strong> -- the standard 2D extension -- and <strong>Mixed RoPE</strong>, which replaces axis-aligned frequencies with learnable mixed frequencies to express oblique attention patterns.
+        We also discuss <strong>p-RoPE</strong>, which zeros out the lowest-frequency dimensions to improve long-context generalization.
+      </p>
+    </div>
+  </div>
+</div>
+
+<h2>Background: Additive Positional Encodings</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The standard transformer attention score between a query $\mathbf{q}$ and key $\mathbf{k}$ is
+      $$a(\mathbf{q}, \mathbf{k}) = \mathbf{q}^\top \mathbf{k}.$$
+      Because this is symmetric in the <em>ordering</em> of the token sequence, attention alone is permutation-equivariant -- feeding the model a shuffled sentence gives the same attention scores as the original.
+      Positional encodings break this symmetry by injecting positional information before the attention computation.
+    </p>
+    <p>
+      The classical approach, introduced with the original Transformer <cite data-ref="vaswani2017attention"></cite>, is to <em>add</em> a position-dependent vector to each token embedding before computing queries and keys:
+      $$\mathbf{x}'_p = \mathbf{x}_p + \mathbf{PE}(p),$$ 
+      $$\qquad \mathbf{PE}(p)_{2n} = \sin\!\left(\frac{p}{10000^{2n/d}}\right),$$
+      $$\quad \mathbf{PE}(p)_{2n+1} = \cos\!\left(\frac{p}{10000^{2n/d}}\right).$$
+      The frequency spectrum runs from fast (small $n$, high frequency) to slow (large $n$, low frequency), giving every position a unique fingerprint.
+      Note that $\sin$ and $\cos$ can be expressed as the real and imaginary part of a complex exponential.
+      Thus, sinusoidal positional encodings can be viewed as complex vector pairs which have a unit complex vector added to them.
+    </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/QuatRoImages/PE.png" alt="Additive positional encoding diagram">
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Rotary Positional Embeddings</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      RoPE <cite data-ref="su2024roformer"></cite> replaces the additive encoding with a <em>multiplicative rotation</em>. 
+      Rather than adding a fixed vector to the embedding, we rotate the query and key vectors by an angle proportional to their position. 
+      Viewing pairs of embedding dimensions as two-dimensional planes, the rotation in the $n$-th plane at position $p$ is
+      $$R_{\theta_n}(p) = \begin{pmatrix} \cos(p\theta_n) & -\sin(p\theta_n) \\ \sin(p\theta_n) & \cos(p\theta_n) \end{pmatrix}, \qquad \theta_n = 10000^{-2n/d}.$$
+      Stacking these blocks gives a block-diagonal rotation matrix acting on the full $d$-dimensional space,
+      $$R(p) := \mathrm{blkdiag}\!\left(R_{\theta_0}(p),\, R_{\theta_1}(p),\, \ldots,\, R_{\theta_{d/2-1}}(p)\right).$$
+      RoPE is then applied directly to the <em>query and key</em> inside each attention head -- not to the token embedding itself:
+      $$\tilde{\mathbf{q}}_p = R(p)\,\mathbf{q}_p, \qquad \tilde{\mathbf{k}}_p = R(p)\,\mathbf{k}_p.$$
+    </p>
+    <p>
+      In the complex-number view, pairing dimensions $(2n, 2n+1)$ into a single complex number $q_n \in \mathbb{C}$, the rotation becomes simply
+      $$\tilde{q}_n = q_n\, e^{i p \theta_n},$$
+      which is a compact and elegant view of the rotation pairs as a multiplication by a unit complex number.
+    </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <video autoplay loop muted playsinline>
+        <source src="content/blogs/QuatRoImages/RoPEMoveWord.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 2:</strong> Each pair of query/key dimensions is treated as a 2D vector and rotated by an angle $p\theta_n$ proportional to the token position. Higher-indexed planes rotate more slowly (lower frequency $\theta_n$), giving RoPE a multi-scale positional fingerprint.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>The Relative Position Property</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <div class="img-tabs">
+      <button class="img-tab-btn rope-demo-btn active" onclick="switchImgTab(this, 'rope-demo', 'rope-demo-tab1')">Shift Query</button>
+      <button class="img-tab-btn rope-demo-btn" onclick="switchImgTab(this, 'rope-demo', 'rope-demo-tab2')">Shift Key</button>
+      <button class="img-tab-btn rope-demo-btn" onclick="switchImgTab(this, 'rope-demo', 'rope-demo-tab3')">Shift Both</button>
+    </div>
+    <div id="rope-demo-tab1" class="img-tab-panel rope-demo-panel">
+      <img src="content/blogs/QuatRoImages/download11-ezgif.com-video-to-gif-converter.gif" alt="Shifting query position">
+      <figcaption><strong>Fig 3A:</strong> Changing only the query position rotates the query vectors; the attention score changes because the relative offset between query and key changes.</figcaption>
+    </div>
+    <div id="rope-demo-tab2" class="img-tab-panel rope-demo-panel" style="display:none;">
+      <img src="content/blogs/QuatRoImages/download10-ezgif.com-video-to-gif-converter.gif" alt="Shifting key position">
+      <figcaption><strong>Fig 3B:</strong> Changing only the key position similarly alters the attention score -- it is the <em>difference</em> in position that matters.</figcaption>
+    </div>
+    <div id="rope-demo-tab3" class="img-tab-panel rope-demo-panel" style="display:none;">
+      <img src="content/blogs/QuatRoImages/download12-ezgif.com-video-to-gif-converter.gif" alt="Shifting both">
+      <figcaption><strong>Fig 3C:</strong> When both query and key are shifted by the same amount, the attention score is <em>unchanged</em> -- confirming the relative-position property.</figcaption>
+    </div>
+  </div>
+  <div class="subtab-about-text">
+    <p>
+      The key motivation for RoPE is that the attention score between a query at position $m$ and a key at position $n$ depends only on the <em>relative</em> offset $m - n$. This follows directly from the rotation structure. Since $R(p)$ is orthogonal, $R(p)^\top = R(-p)$, and we have
+      $$\tilde{\mathbf{q}}_m^\top \tilde{\mathbf{k}}_n = \bigl(R(m)\mathbf{q}\bigr)^\top\bigl(R(n)\mathbf{k}\bigr) = \mathbf{q}^\top R(m)^\top R(n)\,\mathbf{k} = \mathbf{q}^\top R(n-m)\,\mathbf{k}.$$
+      The product of two rotation matrices $R(m)^\top R(n) = R(n-m)$ is a rotation by the <em>difference</em> in positions. Crucially, computing $R(m)$ and $R(n)$ independently and combining at attention time is equivalent to computing the relative rotation $R(n-m)$ directly, but the former requires only $O(N)$ computation rather than $O(N^2)$.
+    </p>
+    <p>
+      This also means that if both the query and key are shifted by the same constant $\delta$, the attention score is unchanged:
+      $$\mathbf{q}^\top R((n+\delta)-(m+\delta))\,\mathbf{k} = \mathbf{q}^\top R(n-m)\,\mathbf{k}.$$
+      The animations on the left confirm this geometrically: translating both positions together leaves the inter-vector angle -- and therefore the attention score -- invariant.
+    </p>
+  </div>
+</div>
+
+<h2>Is RoPE Local?</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      A persistent piece of folklore is that RoPE imparts a built-in <em>locality bias</em>: attention is supposed to decay smoothly with relative distance, so that far-apart tokens naturally attend to each other less. The original RoFormer paper <cite data-ref="su2024roformer"></cite> motivated RoPE in exactly these terms, deriving a <em>long-term decay</em> property -- an upper bound on the attention score that shrinks as $|m-n|$ grows. This is often repeated as a reason RoPE "just works": it is said to encode a soft prior that nearby tokens matter more.
+    </p>
+    <p>
+      To see this, observe the video to the right.
+      To simplify, we assume that all query/key pairs have unit length.
+      Because only the angle between them matters for attention, we can canonicalize the query to always point up.
+      This lets us visualize RoPE through just the key pairs plotted on the same circle, and track how they transform with relative position and how that affects attention (projection onto the y-axis).
+    </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <video autoplay loop muted playsinline>
+        <source src="content/blogs/QuatRoImages/RoPEScene.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 4:</strong> When the query and key vectors start coherent -- all aligned in phase -- the attention score decays to noise as the position offset grows and the signal decoheres. This is the configuration underlying the "long-term decay" claim in the original RoFormer paper.</figcaption>
+    </figure>
+  </div>
+</div>
+<h2>p-RoPE</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <video autoplay loop muted playsinline>
+        <source src="content/blogs/images/RoPEScene_random.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 5:</strong> When the query and key vectors start in a generic (decoherent) configuration, there is no systematic decay. Attention to far-away tokens can remain large, confirming that RoPE is not inherently local.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <p>
+      If the query and key begin aligned, then the attention will decay as suggested in <cite data-ref="su2024roformer"></cite>. However, this is not generally the case. In fact, Barbero et al. <cite data-ref="barbero2024round"></cite> show that for any distance there is a token that has its attention maximized at that distance.
+    </p>
+    <p>
+      Moreover, Barbero et al. <cite data-ref="barbero2024round"></cite> show empirically that trained models do <em>not</em> use RoPE to enforce decay; instead the network exploits the spectrum in the opposite way. The <em>high-frequency</em> dimensions are used for genuinely position-sensitive, local matching, while the <em>low-frequency</em> dimensions -- the ones that rotate slowly enough to be nearly constant across the context -- are repurposed as approximately position-<em>invariant</em> channels for carrying semantic content and constructing robust long-range attention (for instance, the attention sinks that let a query reliably reach back to the first token). Far from being local, RoPE's slow components are precisely what enable strong attention at arbitrary distance.
+    </p>
+    
+  </div>
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      These same slow components are, however, the source of RoPE's out-of-distribution failure. Barbero et al. <cite data-ref="barbero2024round"></cite> find that the low-frequency dimensions are precisely those that develop large, coherent attention scores beyond the training context length -- the very property that makes them useful within the training window makes them harmful outside it. This tension motivates a direct intervention on the frequency spectrum.
+    </p>
+    <p>
+      By setting <i>proportion</i> of the RoPE frequencies to invariant ($\theta=0$), they found that the model generalized better in to longer contexts. For a deeper discussion, see the following blog post.
+    </p>
+  </div>
+
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/images/Barbero.png" alt="Frequency spectrum of RoPE dimensions">
+      <figcaption><strong>Fig 8:</strong> Barbero et al. found that a large amount of the attention in a model is give to the low-frequency data.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Axial RoPE (2D)</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      In vision transformers <cite data-ref="dosovitskiy2020image"></cite> tokens are image patches with a two-dimensional grid position $(p_x, p_y)$. To extend RoPE to 2D, the natural first attempt is to apply a rotation for $p_x$ followed by a rotation for $p_y$:
+      $$R(p_x, p_y) := R(p_x)\,R(p_y).$$
+      Since both matrices are block-diagonal with the same block structure, their product is also block-diagonal. Moreover, a 2D rotation block satisfies $R_\theta(p_x)R_\theta(p_y) = R_\theta(p_x + p_y)$, so the combined rotation reduces to
+      $$R(p_x, p_y) = \mathrm{blkdiag}\!\left(R_{\theta_n}(p_x + p_y)\right).$$
+      This is simply a 1D RoPE applied to the scalar $p_x + p_y$, which collapses the 2D coordinate to a one-dimensional sum and cannot distinguish positions that share the same sum -- e.g. $(1,3)$ and $(2,2)$ become identical.
+    </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/QuatRoImages/RollPE.001.png" alt="2D patch indexing">
+      <figcaption><strong>Fig 6:</strong> Image patches can be indexed row-first or column-first, but a 2D positional encoding should respect the Cartesian structure of the grid -- not collapse to a 1D index.</figcaption>
+    </figure>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/QuatRoImages/RollPE.002.png" alt="Cartesian coordinate encoding">
+      <figcaption><strong>Fig 7:</strong> The correct approach is to split the embedding dimensions, dedicating half to the $x$-axis and half to the $y$-axis. Each group encodes only one coordinate, so the attention score separately tracks horizontal and vertical offsets.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <p>
+      The standard fix <cite data-ref="su2024roformer"></cite><cite data-ref="heo2024rotary"></cite> is to <em>split</em> the embedding dimensions and assign the first half to $p_x$ and the second half to $p_y$:
+      $$R_\text{2D}(p_x, p_y) := \mathrm{blkdiag}\!\Bigl(\underbrace{R_{\theta_n}(p_x)}_{n < d/4},\; \underbrace{R_{\theta_n}(p_y)}_{n \geq d/4}\Bigr).$$
+      The attention score then factors into independent contributions from the horizontal and vertical offsets:
+      $$\tilde{\mathbf{q}}^\top \tilde{\mathbf{k}} = \mathbf{q}_x^\top R_{\theta}(\Delta x)\,\mathbf{k}_x \;+\; \mathbf{q}_y^\top R_{\theta}(\Delta y)\,\mathbf{k}_y,$$
+      where $\Delta x = p_x^{(q)} - p_x^{(k)}$ and $\Delta y = p_y^{(q)} - p_y^{(k)}$.
+      This correctly preserves 2D relative position: shifting both patches by the same $(dx, dy)$ leaves the score unchanged.
+    </p>
+    <p>
+      A fundamental limitation of Axial RoPE is that its attention score factors as $\alpha_{ij} = \alpha^{(x)}_{ij} + \alpha^{(y)}_{ij}$, meaning it can only represent separable, axis-aligned patterns <cite data-ref="heo2024rotary"></cite>.
+      To represent attention that is sensitive to oblique directions -- e.g. patches that are offset both horizontally and vertically -- the frequencies must contain components along both axes simultaneously.
+    </p>
+  </div>
+</div>
+
+<h2>Mixed RoPE</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Mixed RoPE <cite data-ref="heo2024rotary"></cite> addresses this by replacing the axis-aligned fixed frequencies of Axial RoPE with a <em>learnable</em> frequency vector per dimension. Each embedding plane $d$ gets its own pair of frequency weights $(\omega_{dx}, \omega_{dy})$, and the 2D rotation is
+      $$\phi_\mathbf{\omega}(z_d,\, \mathbf{p}) = R_{\mathbf{\omega}^\top \mathbf{p}} = R_{\omega_{dx}\, p_x\, +\, \omega_{dy}\, p_y}\; z_d.$$
+      In full block-diagonal form,
+      $$R_\text{Mixed}(\mathbf{p}) = \mathrm{blkdiag}\!\left(R_{\omega_{0x} p_x + \omega_{0y} p_y},\; R_{\omega_{1x} p_x + \omega_{1y} p_y},\; \ldots\right).$$
+      Axial RoPE is the special case in which each dimension has either $\omega_{dy}=0$ (pure $x$-frequency) or $\omega_{dx}=0$ (pure $y$-frequency). Mixed RoPE lifts this restriction, allowing the learned frequencies to point in any direction in the $(p_x, p_y)$ plane.
+    </p>
+    <!-- <p>
+      This has a clean theoretical justification. The most general rotary positional encoding can be written as a Lie group exponential
+      $$\mathrm{LieRE}(\mathbf{z},\, \mathbf{p}) = \exp\!\bigl(A_x p_x + A_y p_y\bigr)\,\mathbf{z},$$
+      where $A_x, A_y$ are skew-symmetric generators. Equivariance -- the property that shifting both query and key by the same $(\delta_x, \delta_y)$ leaves the attention score unchanged -- requires $A_x$ and $A_y$ to <em>commute</em>: $[A_x, A_y] = 0$.
+      Commuting skew-symmetric matrices are simultaneously diagonalizable, and their joint eigenvectors give exactly the Mixed RoPE basis. Van de Geijn et al. <cite data-ref="van2026circular"></cite> prove that <strong>Mixed RoPE is the most general 2D rotary encoding which retains equivariance</strong> (Proposition 2), i.e. any more complex equivariant scheme offers no additional expressivity and must reduce to Mixed RoPE up to a change of basis.
+    </p> -->
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/QuatRoImages/image copy.png" alt="Mixed RoPE attention patterns">
+      <figcaption><strong>Fig 8:</strong> Attention score patterns for different 2D RoPE variants. Axial RoPE (top) produces grid-like separable patterns because its frequencies are restricted to the coordinate axes. Mixed RoPE (bottom) can represent oblique directions, producing richer, non-separable attention maps.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Summary</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      RoPE encodes position as a block-diagonal rotation applied to queries and keys, so that attention scores depend only on the relative offset $m-n$ at $O(N)$ cost. Despite early claims of a built-in locality bias, RoPE is not inherently local: trained models repurpose the low-frequency dimensions for long-range attention rather than decay. Those same dimensions, however, develop coherent oscillations beyond the training context length, motivating p-RoPE <cite data-ref="barbero2024round"></cite>, which zeros them out to improve out-of-distribution generalization.
+    </p>
+    <p>
+      In two dimensions, Axial RoPE splits the embedding dimensions between the $x$- and $y$-axes, correctly encoding 2D relative position but limited to separable, grid-aligned attention patterns. Mixed RoPE lifts this restriction with learnable per-dimension frequency vectors $(\omega_{dx}, \omega_{dy})$, allowing each plane to point in any direction and enabling richer, oblique attention patterns.
+    </p>
+  </div>
+</div>
+
+<div data-bib="content/blogs/biblio.bib"></div>

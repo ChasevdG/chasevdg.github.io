@@ -51,7 +51,7 @@
     <div class="tab-label" onclick="showTab('about')">About Me</div>
     <!-- <div class="tab-label" onclick="showTab('*section*', '*content*')">Interests</div> -->
     <div class="tab-label" onclick="showTab('interests', 'CA', 'content/CA.html' )">Interests</div>
-    <div class="tab-label" onclick="showTab('blogs', 'PE', 'content/blogs/PE.html' )">Blogs</div>
+    <div class="tab-label" onclick="showTab('blogs', 'PE', 'content/blogs/RoPE.html' )">Blogs</div>
     <div class="tab-label" onclick="showTab('education')">Education</div>
     <div class="tab-label" onclick="showTab('research', 'CHASE', 'content/compositional.html')">Research</div>
     <div class="tab-label" onclick="showTab('teaching')">Teaching</div>
@@ -127,8 +127,10 @@
   <div class="tab-content" id="blogs">
       <h2>Blogs</h2>
       <div class="sub-tabs">
-          <div class="sub-tab-label" onclick="showSubTab('PE', 'content/blogs/PE.html')">Positional Encodings</div>
+          <div class="sub-tab-label" onclick="showSubTab('RoPE', 'content/blogs/RoPE.html')">RoPE</div>
+          <div class="sub-tab-label" onclick="showSubTab('PE', 'content/blogs/PE.html')">Long Context, Provably</div>
       </div>
+      <div class="tab-content sub-tab-content" id="RoPE"></div>
       <div class="tab-content sub-tab-content" id="PE"></div>
   </div>
     <div class="tab-content" id="research">

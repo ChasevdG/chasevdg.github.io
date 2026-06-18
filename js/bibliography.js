@@ -222,27 +222,19 @@
   }
 
   function render(container, entries, citationOrder) {
-    if (!entries.length) {
-      container.innerHTML = '<p class="bib-empty">No entries found.</p>';
-      return;
-    }
-
     const byKey = Object.fromEntries(entries.map(e => [e.key, e]));
 
-    // cited entries in citation order, then uncited entries by year
     const cited = [];
     citationOrder.forEach((num, key) => {
       if (byKey[key]) cited.push({ entry: byKey[key], num });
     });
 
-    const citedKeys = new Set(citationOrder.keys());
-    const uncited = entries
-      .filter(e => !citedKeys.has(e.key))
-      .sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0))
-      .map(e => ({ entry: e, num: undefined }));
+    if (!cited.length) {
+      container.innerHTML = '<p class="bib-empty">No entries found.</p>';
+      return;
+    }
 
-    const all = [...cited, ...uncited];
-    container.innerHTML = `<ul class="bibliography">${all.map(({ entry, num }) => renderEntry(entry, num)).join('')}</ul>`;
+    container.innerHTML = `<ul class="bibliography">${cited.map(({ entry, num }) => renderEntry(entry, num)).join('')}</ul>`;
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
