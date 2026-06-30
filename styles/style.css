@@ -275,6 +275,19 @@ summary {
     min-width: 100px;
 }
 
+.tab-label.is-draft,
+.sub-tab-label.is-draft {
+    background-color: #b03a2e !important;
+    outline: 2px dashed #ffd2cb;
+    outline-offset: 2px;
+}
+
+.tab-label.is-draft::after,
+.sub-tab-label.is-draft::after {
+    content: " (draft)";
+    opacity: 0.8;
+}
+
 .sub-tab-label:hover {
     color: #fff;
     /* underline */

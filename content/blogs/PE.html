@@ -1,3 +1,4 @@
+<!-- status: published -->
 <div class="subtab-about-header" style="text-align: center;">
   <div class="subtab-about-content">
   <div class="subtab-about-text">
@@ -259,31 +260,7 @@
     </div>
         <h2>Does this theory work in practice?</h2>
     <div class="subtab-about-content">
-      <div class="subtab-about-text">
-      <p>
-        As a concrete example, I will look at how GPT2 circumvents the softmax problem by using its positional encoding as a form of temperature scaling.
-        We can examine this by looking at how a GPT2 model attends to tokens in context.
-        Note that GPT2 <i>does not use RoPE</i>, but we can demonstrate that softmax will cause trouble for most positional encodings.
-      </p>
-      <p>
-        We can observe how position affects attention in these models by looking at how much each token position attends to each position on average.
-        This gives us the positional encoding image shown on the right. 
-        From this image, we can look at the sub-diagonal elements, which shows how much each token attends to the previous token.
-      </p>
-      <p>
-        If a positional encoding is relative, then the pre-softmax attention score to the previous token should be approximately constant across positions — so we would expect a flat line when plotting along the sub-diagonal. But that is not what we see.
-        Instead, we see that the attention score to the previous token grows roughly linearly with context length (number of unmasked tokens).
-        However, if we look at the attention <i>after softmax</i>, then we see that the attention to the previous token is relatively constant across positions.
-        This means that while the <i>attention score</i> is not relative, the <i>attention mechanism</i> as a whole has learned to be relative.
-        This is a sign that the model is learning to use the positional encoding to temper the attention score to the previous token to compensate for softmax's decay.
-        </p>
-        <p>
-        Another token of interest is the BoS token -- token 0 -- which is the first token in the context.
-        The beginning-of-sentence token is known to act as an important <i>attention sink</i> <cite data-ref="xiao2024efficient"></cite> to deal with the excess attention to irrelevant tokens.
-        One can see a distinctly different pattern for the BoS token compared to all other positions.
-        </p>
-    </div>
-    <div class="subtab-about-image" style="align-self: flex-start;">
+      <div class="subtab-about-image" style="align-self: flex-start;">
       <div class="img-tabs">
         <button class="img-tab-btn pe-fig9-btn active" onclick="switchImgTab(this, 'pe-fig9', 'pe-fig9-tab1')">Positional Attention</button>
         <button class="img-tab-btn pe-fig9-btn" onclick="switchImgTab(this, 'pe-fig9', 'pe-fig9-tab2')">Previous Token Pre-Softmax</button>
@@ -311,6 +288,30 @@
         <img src="content/blogs/images/attention_to_token_0_post.png" alt="BoS Attention">
         <figcaption><strong>Fig 9E:</strong> The attention to the BoS token post-softmax. As the context length grows, the attention to the BoS token stays relatively stable across positions. This suggests the model has learned to adapt for softmax's context decay via positional encoding.</figcaption>
       </div>
+    </div>
+      <div class="subtab-about-text">
+      <p>
+        As a concrete example, I will look at how GPT2 circumvents the softmax problem by using its positional encoding as a form of temperature scaling.
+        We can examine this by looking at how a GPT2 model attends to tokens in context.
+        Note that GPT2 <i>does not use RoPE</i>, but we can demonstrate that softmax will cause trouble for most positional encodings.
+      </p>
+      <p>
+        We can observe how position affects attention in these models by looking at how much each token position attends to each position on average.
+        This gives us the positional encoding image shown on the right. 
+        From this image, we can look at the sub-diagonal elements, which shows how much each token attends to the previous token.
+      </p>
+      <p>
+        If a positional encoding is relative, then the pre-softmax attention score to the previous token should be approximately constant across positions — so we would expect a flat line when plotting along the sub-diagonal. But that is not what we see.
+        Instead, we see that the attention score to the previous token grows roughly linearly with context length (number of unmasked tokens).
+        However, if we look at the attention <i>after softmax</i>, then we see that the attention to the previous token is relatively constant across positions.
+        This means that while the <i>attention score</i> is not relative, the <i>attention mechanism</i> as a whole has learned to be relative.
+        This is a sign that the model is learning to use the positional encoding to temper the attention score to the previous token to compensate for softmax's decay.
+        </p>
+        <p>
+        Another token of interest is the BoS token -- token 0 -- which is the first token in the context.
+        The beginning-of-sentence token is known to act as an important <i>attention sink</i> <cite data-ref="xiao2024efficient"></cite> to deal with the excess attention to irrelevant tokens.
+        One can see a distinctly different pattern for the BoS token compared to all other positions.
+        </p>
     </div>
     </div>
     <div class="subtab-about-content">

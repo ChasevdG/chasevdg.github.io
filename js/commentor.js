@@ -84,6 +84,7 @@
     applyTabClass();
     renderPanel();
     updateBodyMargin();
+    document.dispatchEvent(new CustomEvent('commentor-mode-change', { detail: { active: true } }));
     await fetchComments();
     renderPanel();
     reapplyAll(document.body);
@@ -101,6 +102,7 @@
     updateBodyMargin();
     const panel = document.getElementById('cm-panel');
     if (panel) panel.remove();
+    document.dispatchEvent(new CustomEvent('commentor-mode-change', { detail: { active: false } }));
   }
 
   // ── Banner ────────────────────────────────────────────────────────────

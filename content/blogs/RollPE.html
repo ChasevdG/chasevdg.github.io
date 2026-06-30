@@ -1,0 +1,59 @@
+<!-- status: draft -->
+<div class="subtab-about-header" style="text-align: center;">
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        In this blog post, I will go over my workshop paper on positional encoding using <strong>traveling waves</strong> or more concretely, as a <strong>Roll</strong> operations.
+        One insight is that RollPE explicitly ties dimensions of the query space together and imposes a topology. 
+        This performs significantly better than the naive learned positional encoding and about as well as RoPE.
+        The Roll operation can, in fact, be rewritten as a form of RoPE.
+        While the method itself is limited, but offers an interesting perspective as a stepping stone into understanding RoPE as a Hamiltonian flow.
+      </p>
+    </div>
+  </div>
+  <h2>Biological Motivation</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <h3>Medial Septum</h3>
+    <p>
+      Traveling waves have been reported since early neurophysiology, but their precise functional role remains highly debated. 
+      This ongoing debate is largely a biproduct of the demanding precision needed to measure them. Characterizing traveling waves requires both high spatial and high temporal resolution simultaneously. 
+      Most methods trade one off against the other: electrophysiology resolves millisecond timing but samples sparsely in space, while imaging methods cover space densely but slowly. 
+      Because of these limitations, the whether waves play an active role in the brain's computations or are simply a biproduct of the individual spikes remains debated. 
+      While I will take the stance that brain waves -- whether induced by synaptic spikes or a field of its own -- are the brains way of sequence ordering, i.e. <strong>positional encoding</strong> in the language of transformers.
+    </p>
+    <p>
+      To support my hypothesis, it is useful to look at the hippocampus, the region responsible for spatial learning, navigation and memory formation.
+      The medial septum widely believed to coordinate signals across the hippocampus and is composed of so called "pacemaker" neurons which, like the heart, pulse at a frequency without any external stimuli -- in this cas 4-12Hz.
+      This frequency aligns with the famous theta oscillation waves in the hippocampus.
+      It was hypothesized that these neurons were driving the oscillations, but when the region was removed or surpress, the theta waves lingered.
+      The waves did however become less consistent or coherent suggesting that the medial septum acts as an important mechanism for coordinating the "clocks" across the hippocampus.
+      Now the interesting question is what actually happens now that the theta wave is less coherent.
+      Cruetially it was found that <strong>spatial learning</strong> and <strong>memory</strong> were disrupted and the periodicity of <strong>grid cells</strong> degrade.
+    </p>
+    <h3>Place Cells</h3>
+    <p>
+      Edvard and May-Britt Moser -- in conjunction with John O'Keefe -- won the nobel prize for the discovery of two types of "GPS" cells: <i>place cells</i> and <i>grid cells</i>.
+      O'Keefe discovered that place cells when an animal was at specific locations in an environment.
+      Importantly, place cells can be found in the hippocampus and are highly plastic and remap to the animal's environment.
+      While place cells have concrete connections to locations in an environment, there is also theories and evidence 
+    </p>
+    <h3>Grid Cells</h3>
+    <p>
+      By contrast, rather than firing at particular locations, grid cells fire periodically across locations often forming a hexagonal grid.
+      Though the grid cells coherence was affected by the removal of the medial septum, they are <i>not</i> located in the hippocampus.
+      Rather grid cells can be found in the entirhonal cortex -- which feeds into to the hippocampus, but is functionally distinct.
+      It is fairly accepted that grid cells contribute to place cells, but the reciprical interaction of place cells on grid cells is less certain.
+      Though in this blog post we take the perspective that stimuli combine with grid cells to give rise to place cells, the reader should take biological validity of that perspective with a grain of salt.
+    </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/QuatRoImages/PE.png" alt="Additive positional encoding diagram">
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+</div>
+</div>
+
+<div data-bib="content/blogs/biblio.bib"></div>

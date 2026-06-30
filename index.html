@@ -54,7 +54,7 @@
     <div class="tab-label" onclick="showTab('blogs', 'PE', 'content/blogs/RoPE.html' )">Blogs</div>
     <div class="tab-label" onclick="showTab('education')">Education</div>
     <div class="tab-label" onclick="showTab('research', 'CHASE', 'content/compositional.html')">Research</div>
-    <div class="tab-label" onclick="showTab('teaching')">Teaching</div>
+    <div class="tab-label" onclick="showTab('teaching', 'courses', 'content/teaching/courses.html')">Teaching</div>
     <div class="tab-label" onclick="showTab('supervision', 'supervisees', 'content/Supervision/supervision.html')">Supervision</div>
   </div>
   <div class="tab-content" id="about">
@@ -104,6 +104,17 @@
       <div class="tab-content sub-tab-content" id="phd">
       </div>
 </div>
+ <div class="tab-content" id="teaching">
+    <h2>Teaching</h2>
+    <div class="sub-tabs">
+      <div class="sub-tab-label" onclick="showSubTab('courses', 'content/teaching/courses.html')">Courses</div>
+      <div class="sub-tab-label" onclick="showSubTab('lectures', 'content/teaching/lectures.html')">Guest Lectures</div>
+    </div>
+    <div class="tab-content sub-tab-content" id="courses">
+          </div>
+    <div class="tab-content sub-tab-content" id="lectures">
+          </div>
+</div>
  <div class="tab-content" id="supervision">
     <h2>Supervision</h2>
     <div class="sub-tabs">
@@ -129,6 +140,7 @@
       <div class="sub-tabs">
           <div class="sub-tab-label" onclick="showSubTab('RoPE', 'content/blogs/RoPE.html')">RoPE</div>
           <div class="sub-tab-label" onclick="showSubTab('PE', 'content/blogs/PE.html')">Long Context, Provably</div>
+          <div class="sub-tab-label" onclick="showSubTab('PE', 'content/blogs/RollPE.html')">RollPE</div>
       </div>
       <div class="tab-content sub-tab-content" id="RoPE"></div>
       <div class="tab-content sub-tab-content" id="PE"></div>
@@ -477,6 +489,49 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
     // Function to show a specific tab
     let currentTab = 'about';
 
+    // --- Draft posts are gated behind Commentor Mode (⌥⌘E) so they can be
+    // edited/previewed before being publicly visible ---
+    function isEditorMode() {
+      return document.body.classList.contains('commentor-mode');
+    }
+
+    function getDraftStatus(html) {
+      const commentClose = '--' + '>';
+      const statusPattern = new RegExp('<!--\\s*status\\s*:\\s*(draft|published)\\s*' + commentClose, 'i');
+      const match = html.slice(0, 300).match(statusPattern);
+      return match ? match[1].toLowerCase() : 'published';
+    }
+
+    function applyDraftFlagToLabel(label, filePath) {
+      fetch(filePath)
+        .then(res => res.text())
+        .then(html => {
+          const isDraft = getDraftStatus(html) === 'draft';
+          label.style.display = isDraft && !isEditorMode() ? 'none' : '';
+          label.classList.toggle('is-draft', isDraft && isEditorMode());
+        })
+        .catch(() => {});
+    }
+
+    function applyDraftVisibility() {
+      // Top-level nav tabs, e.g. showTab('teaching', 'courses', 'content/teaching/courses.html')
+      document.querySelectorAll('.tabs > .tab-label').forEach(label => {
+        const match = (label.getAttribute('onclick') || '').match(/showTab\('([^']+)'(?:,\s*'([^']+)',\s*'([^']+)')?\s*\)/);
+        if (!match || !match[3]) return;
+        applyDraftFlagToLabel(label, match[3]);
+      });
+
+      // Sub-tabs within any section, e.g. showSubTab('courses', 'content/teaching/courses.html')
+      document.querySelectorAll('.sub-tabs .sub-tab-label').forEach(label => {
+        const match = (label.getAttribute('onclick') || '').match(/showSubTab\('([^']+)',\s*'([^']+)'\)/);
+        if (!match) return;
+        applyDraftFlagToLabel(label, match[2]);
+      });
+    }
+
+    document.addEventListener('commentor-mode-change', applyDraftVisibility);
+    applyDraftVisibility();
+
     function showTab(tabId, defaultTab, defaultHTML) {
       const tabs = document.querySelectorAll('.tab-content');
       tabs.forEach(tab => {
@@ -512,6 +567,11 @@ Moreover, there is an extension of the Uncertainty Principle to Clifford algebra
             return response.text();
         })
         .then(data => {
+            if (getDraftStatus(data) === 'draft' && !isEditorMode()) {
+                subTabToShow.innerHTML = '<p>This content is still being drafted and isn\'t published yet.</p>';
+                subTabToShow.style.display = 'block';
+                return;
+            }
             subTabToShow.innerHTML = data; // Load external content into the div
             subTabToShow.style.display = 'block'; // Show the tab after loading content
 
