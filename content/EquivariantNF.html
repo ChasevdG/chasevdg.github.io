@@ -18,7 +18,7 @@
         These methods seperate the representation into a base field which is shared across a dataset and a latent variable which conditions the field.
       </p>
       <p>
-        In Wang et al. (--), they propose that a zoo of popular neural operator methods, such as DeepONets and Fourier Neural Operators, can be connected by thinking of them as specialized neural fields conditioning methods.
+        In Wang et al. <cite data-ref="wang2024cvit"></cite>, they propose that a zoo of popular neural operator methods, such as DeepONets and Fourier Neural Operators, can be connected by thinking of them as specialized neural fields conditioning methods.
         Through this, they motivate continuous vision transformers.
         While many of these methods already rely on an encoder-decoder structure, I will specifically focus on drawing the connections between conditional neural fields and autoencoders.
         This allows for the natural construction of what I dub <strong>neural autofields</strong>.
@@ -27,7 +27,7 @@
         Creating a base field and relative conditioning improves the usablility of the representation for downstream tasks.
         However, it is often difficult to represent simple transformations while working in the latent space.
         For example, in the case of images, it is difficult to represent the translation of an object by changing the latent variable.
-        To this end, Wessels et al (--) propose equivariant neural fields.
+        To this end, Wessels et al. <cite data-ref="wessels2024equivariant"></cite> propose equivariant neural fields.
       </p>
       <p>
         In their work, they show that an equivariant neural field results from a <i>bi-invariant</i> between the latent variable and the coordinate.
@@ -123,7 +123,9 @@
         <p>
           Rather than using the Fourier basis, one could instead learn a basis through the principle components of a dataset.
           Alternatively, one could also represent an image through a sparse dictionary of bases with <i>Sparse Coding</i>.
-          
+
         </p>
     </div>
   </div>
+
+<div data-bib="content/EquivariantNF_biblio.bib"></div>

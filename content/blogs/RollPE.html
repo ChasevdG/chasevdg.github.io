@@ -1,4 +1,4 @@
-<!-- status: draft -->
+<!-- status: published -->
 <div class="subtab-about-header" style="text-align: center;">
   <div class="subtab-about-content">
     <div class="subtab-about-text">
@@ -14,30 +14,58 @@
   <h2>Biological Motivation</h2>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
-    <h3>Medial Septum</h3>
     <p>
-      Traveling waves have been reported since early neurophysiology, but their precise functional role remains highly debated. 
+      Traveling waves have been reported since the early days of neurophysiology, but their precise functional role remains highly debated. 
       This ongoing debate is largely a biproduct of the demanding precision needed to measure them. Characterizing traveling waves requires both high spatial and high temporal resolution simultaneously. 
       Most methods trade one off against the other: electrophysiology resolves millisecond timing but samples sparsely in space, while imaging methods cover space densely but slowly. 
       Because of these limitations, the whether waves play an active role in the brain's computations or are simply a biproduct of the individual spikes remains debated. 
       While I will take the stance that brain waves -- whether induced by synaptic spikes or a field of its own -- are the brains way of sequence ordering, i.e. <strong>positional encoding</strong> in the language of transformers.
     </p>
+    </div>
+    </div>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <h2>Medial Septum</h2>
     <p>
       To support my hypothesis, it is useful to look at the hippocampus, the region responsible for spatial learning, navigation and memory formation.
-      The medial septum widely believed to coordinate signals across the hippocampus and is composed of so called "pacemaker" neurons which, like the heart, pulse at a frequency without any external stimuli -- in this cas 4-12Hz.
+      Its theta rhythm is coordinated by the medial septum, a structure in the basal forebrain that projects densely to the hippocampus and is widely believed to pace activity across it.
+      The medial septum is composed of so-called "pacemaker" neurons which, like the heart, pulse at a frequency without any external stimuli -- in this case 4-12Hz <cite data-ref="petsche1962significance"></cite>.
       This frequency aligns with the famous theta oscillation waves in the hippocampus.
-      It was hypothesized that these neurons were driving the oscillations, but when the region was removed or surpress, the theta waves lingered.
-      The waves did however become less consistent or coherent suggesting that the medial septum acts as an important mechanism for coordinating the "clocks" across the hippocampus.
-      Now the interesting question is what actually happens now that the theta wave is less coherent.
-      Cruetially it was found that <strong>spatial learning</strong> and <strong>memory</strong> were disrupted and the periodicity of <strong>grid cells</strong> degrade.
     </p>
+    <p>
+      When the region is lesioned or inactivated, these theta oscillations are eliminated or severely disrupted, and spatial memory fails <cite data-ref="winson1978"></cite>.
+      This suggests that the medial septum acts as an important mechanism for coordinating the "clocks" across the hippocampus.
+      Crucially, it was found that <strong>spatial learning</strong> and <strong>memory</strong> were impaired and the periodicity of <strong>grid cells</strong> in the entorhinal cortex degraded when theta was reduced <cite data-ref="brandon2011reduction"></cite><cite data-ref="koenig2011spatial"></cite>.
+      Degeneration of the medial septum's cholinergic neurons is in fact an early feature of Alzheimer's disease, and is linked to disrupted theta and impaired memory <cite data-ref="goodman2018theta"></cite> restoring the theta frequency can even rescue memory deficits in disease models<cite data-ref="giovannetti2018restoring"></cite>.
+    </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/RollPEImages/mouse_brain_medial_septum_rotation.gif" alt="Additive positional encoding diagram">
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/RollPEImages/placecells2.png" alt="Additive positional encoding diagram">
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+  <h2>Place Cells and Grid Cells</h2>
     <h3>Place Cells</h3>
     <p>
       Edvard and May-Britt Moser -- in conjunction with John O'Keefe -- won the nobel prize for the discovery of two types of "GPS" cells: <i>place cells</i> and <i>grid cells</i>.
       O'Keefe discovered that place cells when an animal was at specific locations in an environment.
       Importantly, place cells can be found in the hippocampus and are highly plastic and remap to the animal's environment.
-      While place cells have concrete connections to locations in an environment, there is also theories and evidence 
+      While place cells have concrete connections to locations in an environment, there is also theories and evidence that they encode positions of other animals and positioning in more abstract spaces.
     </p>
+    </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
     <h3>Grid Cells</h3>
     <p>
       By contrast, rather than firing at particular locations, grid cells fire periodically across locations often forming a hexagonal grid.
@@ -49,11 +77,371 @@
   </div>
   <div class="subtab-about-image">
     <figure>
-      <img src="content/blogs/QuatRoImages/PE.png" alt="Additive positional encoding diagram">
+      <img src="content/blogs/RollPEImages/gridcells2.png" alt="Additive positional encoding diagram">
       <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
     </figure>
   </div>
 </div>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      In addition to place cells and grid cells animals have also been shown to have head direction cells -- which live on a ring/circle -- and border detecting cells. 
+      Bats have been shown to have 3-dimensional place cells and have 3-dimensional head direction cells <cite data-ref="finkelstein2015three"></cite> corresponding to the three Euler angles -- yaw, roll and pitch.
+      Interestingly, they found yaw (azimuthal) and pitch head direction cells on a bat correspond to two independent rings -- i.e. a 2D torus -- rather than a sphere.
+      Furthermore, their lab showed that, while hexagonal grid cells formed for bats on the ground, while flying grid cells -- or what seemingly corresponded to grid cells -- had less clear structure <cite data-ref="ginosar2021locally"></cite>.
+      They also found that, in bats, the grid cells did not need theta oscillations <cite data-ref="yartsev2011grid"></cite>.
+    </p>
+    <p>
+      For this blog post, we will stick to 1D and 2D data because it is better understood both in terms of neuroscience and tesselation theory. We will choose to ignore all the contrary evidence that point to oscillatory behavior being epiphenomenal 😜
+    </p>
+  </div>
 </div>
+<h2>Biology-inspired Positionally Encoding</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+    Because the brain seems to rely on oscillations and grid cells for positionally encoding, it is interesting to see if positional encoding in artificial networks can benefit from these mechanisms.
+    First, we will go over using traveling waves to encode position. 
+    We will start by using the cyclic permutation, or <strong>Roll</strong>, operator to perform discrete traveling waves before generalizing to a continuous roll operation.
+    Afterwards, we will create positional encodings for 2D images which reproduce the hexagonal grid structure of biological grid cells.
+    </p>
+  </div>
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+<h2>Positionally Encoding with Traveling Waves</h2>
+    <p>
+      We will define a traveling wave as a function, or <i>waveform</i>, $u(x,t) = \phi(x + \omega t)$, where $\omega$ is the speed at which the wave is traveling and $t$ is the position.
+      In contrast, a stationary or standing wave would be defined by $u(x,t) = \phi(x)\cos(\omega t + \delta)$, though any standing wave can be created by two traveling waves traveling in opposite directions.
+      Prototypical examples are shown on the right.
+    </p>
+    <p>
+      Our main goal will to be to treat queries and keys as traveling waves.
+      In the context of the brain, this would be tagging each memory "key" with a time stamp by letting the signal travel a certain distance based on time.
+      Every "query to memory" will check for whether its query-value (also propagated forward) matches the key.
+    </p>
+    <p>
+      Imagine the simplistic case where all memories get the same key value of 1.
+      ... (Create animation)
+    </p>
+  </div>
+ <div class="subtab-about-image">
+    <div class="img-tabs">
+      <button class="img-tab-btn wave-demo-btn active" onclick="switchImgTab(this, 'wave-demo', 'wave-demo-tab1')">Traveling Wave</button>
+      <button class="img-tab-btn wave-demo-btn" onclick="switchImgTab(this, 'wave-demo', 'wave-demo-tab2')">Standing Wave</button>
+    </div>
+    <div id="wave-demo-tab1" class="img-tab-panel wave-demo-panel">
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/TravelingWave.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 2A:</strong> A traveling wave $u(x,t) = \phi(x + \omega t)$ propagates through space, shifting its phase with position — the key mechanism behind RollPE.</figcaption>
+    </div>
+    <div id="wave-demo-tab2" class="img-tab-panel wave-demo-panel" style="display:none;">
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/StandingWave.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 2B:</strong> A standing wave $u(x,t) = \phi(x)\cos(\omega t + \delta)$ oscillates in place with no spatial propagation — any standing wave can be decomposed into two traveling waves moving in opposite directions.</figcaption>
+    </div>
+  </div>
+  </div>
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/MoveWord.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+  <h3> RollPE </h3>
+    <p>
+      Because we are dealing with transformers which have query and key values which are vector valued instead of continuous functions, we will rely on the <strong>Roll</strong> operator.
+      Colloquially, the Roll operator "rolls" the coefficients in the vector down one position.
+    </p>
+      <!-- Note, that because for discrete nature of the vector, $\omega t$ must be integer valued. 
+      We assume $\omega$ and $t$ to be whole numbers, such as the case for position in language or coordinates in an image.
+      We will address this limitation later.
+    </p>
+    <p>
+      Because we enforce whole numbers and periodicity, the Roll operation can be formalized as $Roll(\vec{q}, t) : q[i] \mapsto q[(i+\omega t)% N]$ where $N$ is the query/key length, $i \in \mathbb{Z} \lt N$ is the coefficient index, $\omega \in \mathbf{Z}$ is the traveling speed and $t \in \mathbf{Z}$ is the time -- i.e. position.
+      This is convenient for implementation because it just rearranges the inner product.
+      ...
+      However, it easy to work with mathematically.
+    </p> -->
+    <p>
+      A  Roll can be defined using the cyclic permutation matrix,
+      $$
+      \text{Roll}(\vec{q},1) = \begin{pmatrix}
+                                  0 & 1 & 0 & \cdots & 0 \\
+                                  0 & 0 & 1 & \cdots & 0 \\
+                                  \vdots & \vdots & \ddots & \ddots & \vdots \\
+                                  0 & 0 & \cdots & 0 & 1 \\
+                                  1 & 0 & \cdots & 0 & 0
+                                  \end{pmatrix} \vec{q}
+      $$
+      We will define the cyclic permutation matrix as $\mathbf{S}$. 
+      Rolling $t$ times ammounts to $\mathbf{S}$ $t$ times, whcih allows us to define rolling a vector for $t$ time steps as
+      $$
+        \text{Roll}(\vec{q},t) = \mathbf{S}^t \vec{q}
+      $$
+      This allows us to define a positional encoding by applying the Roll operations based on the position of the word, as shown in Fig ... .
+    </p>
+</div>
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  <h3> Relative Positional Encoding Property </h3>
+  <p>
+    As long as the boundary conditions of the traveling wave are cyclic, RollPE is a relative positional encoding -- i.e. the attention score between two tokens depends on the distance between them and not their global positions.
+    To prove this mathematically, notice that the attention is given by the inner-product of the query.
+    $$
+      \vec{q}^{T}\vec{k} = \sum_{n=0}^{N-1} q_n k_n
+    $$
+    we can define $\bar{\mathbf{q}}$ and $\bar{\mathbf{k}}$ as the original query and key before the Roll.
+    $$
+      \vec{\bar{q}}^{T}\vec{\bar{k}} = \sum_{n=0}^{N-1} \bar{q}_{n+\omega p_q} \bar{k}_{n+\omega p_k}
+    $$
+    Finally, we can rewrite the indices of the sum,
+    $$
+      \vec{\bar{q}}^{T}\vec{\bar{k}} = \sum_{n=p_k}^{N + p_k -1} \bar{q}_{i+\omega p_q - \omega p_k} \bar{k}_{i}
+    $$
+    Since the domain is cyclic, we sum over the full domain, so
+    $$
+      \vec{\bar{q}}^{T}\vec{\bar{k}} = \sum_{n=p_k}^{N + p_k -1} \bar{q}_{i+\omega (p_q - p_k)} \bar{k}_{n} =  \sum_{n=0}^{N - 1} \bar{q}_{n+\omega (p_q - p_k)} \bar{k}_{n}
+    $$
+    so the attention only depends on $p_q-p_k$.
+  </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/WordPairs.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  <p>
+    The matrix form offers a proof which is more simple and clean
+    $$
+    \vec{q}^{\top}\vec{k} = \bar{\mathbf{q}}^{\top} {\mathbf{S}^{p_q}}^\top {\mathbf{S}^{p_k}} \bar{\mathbf{k}} 
+    $$
+    Because $\mathbf{S}$ is an orthonormal matrix, ${\mathbf{S}^p}^{\top} = \mathbf{S}^{-p}$, so the equation simplifies to
+    $$
+    \vec{q}^{\top}\vec{k} = \bar{\mathbf{q}}^{\top} {\mathbf{S}^{-(p_q - p_k)}} \bar{\mathbf{k}}
+    $$
+  </p>
+</div>
+<!-- <div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/WordPairs.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div> -->
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  <h2> Continuous RollPE </h2>
+  <p>
+    One of the problems with RollPE is that the traveling wave has a periodicity proportional to the length of the query vector.
+    While this can be sufficient for data with a small set of positions, this is rather limiting for language, where context length can reach the millions.
+    We can generalize to continuous positions by using differential operators.
+  </p>
+  </div>
+</div>
+<div class="subtab-about-content">
+  
+  <div class="subtab-about-text">
+  <p>
+    If we take our query to be analytic (Taylor expansion converges), then we can expand the traveling wave via its Taylor expansion,
+    $$
+      q(x + v t) = \sum_{n=0}^{\infty} \frac{(v t)^n}{n!} \frac{d^n}{d x^n} q(x),
+    $$
+    which we can rewrite as,
+    
+    $$
+      q(x + v t) = \sum_{n=0}^{\infty} \frac{1}{n!} \left( v t \frac{d}{d x} \right)^n q(x),
+    $$
+    which can be rewritten as,
+    $$
+      q(x + v t) = e^{v t \frac{d}{d x}} q(x).
+    $$
+  </p>
+  </div>
+  <div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/SineSliderScene.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/MoveWord.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+  <p>
+    Using the Fourier identity, $\frac{d}{dx} = \mathcal{F}^{-1} (i \omega) \mathcal{F}$, where $\omega$ is the Fourier frequency,
+    and using $e^{\mathcal{F}^{-1} \Lambda \mathcal{F}} = \mathcal{F}^{-1} e^{\Lambda} \mathcal{F}$,
+    $$
+      q(x + v t) = \mathcal{F}^{-1} e^{i v t \omega} \mathcal{F} q(x).
+    $$
+    This lets us define a continuous translation by Fourier transforming $q$, multiplying appropriately, and inverting the Fourier transform.
+    (In fact, this identity holds under far weaker assumptions than analyticity: the shift theorem gives it directly whenever the Fourier transform exists.)
+  </p>
+  <p>
+    It is expensive to Fourier transform forward and back, but one could instead treat the query as already Fourier transformed.
+    In addition, by Plancherel's theorem (taking the unitary convention for $\mathcal{F}$), the inner product computed in Fourier space is the same as in the original space.
+    Working on a periodic domain with discrete modes $q_n$, $k_n$ of frequency $\omega_n$, this allows us to compute the attention score as
+    $$
+      \mathrm{Att}(q,k) = \sum_{n=-\infty}^{\infty} \overline{\left(e^{i \omega_n p_q} q_n\right)}^{\top} e^{i \omega_n p_k} k_n 
+                        = \sum_{n=-\infty}^{\infty} \bar{q}_n^{\top} e^{i \omega_n (p_k - p_q)} k_n,
+    $$
+    where $\omega_n = \frac{n}{2\pi N}$. This form makes it clear that it is relative, since it once again depends only on the relative position $p_k - p_q$.
+  </p>
+  <p>
+    If we assume that the original query/key function is real valued,  we can assume assume $q_n = q_{-n}$ and $k_n = k_{-n}$ allowing us to restrict ourselves to $n>0$ and taking only the real part of the resulting inner product.
+    Since we again are limited to fixed length vectors of size $N$ in the transformer, we get the final attention score given by
+    $$
+      \mathrm{Att}(q,k) = \mathrm{Re} \left[ \sum_{n=0}^{N} \bar{q}_n^{\top} e^{i \omega_n (p_k - p_q)} k_n \right].
+    $$
+    While one could keep the first $N$ Fourier frequencies, $\omega_n = \frac{n}{2\pi N}$, which $N$ frequencies to choose can be left to design choice.
+    The astute reader will recognize this equation as a precisely the form of attention given by <strong>RoPE</strong>.
+  </p>
+</div>
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  <h3> Axial RollPE </h3>
+  <p>
+    For positions comprised of more than one dimension, we can construct an analoguous method to Axial RoPE.
+    Just like Axial RoPE has dimensions that only depend on only the horizontal or vertical coordinate of an image, we can define an independent traveling wave for each.
+  </p>
+  <h3> Multplexed RollPE </h3>
+  <p>
+    Rather than having a single traveling wave per query, one can make the query a superposition of multiple traveling waves of different speeds.
+    To implement this, for each token creates $M$ queries/keys by using $M$ query/key matrices. 
+    The total query used for attention is given by
+  </p>
+</div>
+<div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/MoveWord.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h3> Grid Cell Positional Encodings </h3>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  <p>
+  Independent waves can serve as positional encodings, but doing so is equivalent to Axial Rotary positional encodings, which prior work has shown to be sub-optimal. 
+  Instead of encoding 2D positions with traveling waves, we turn to a different source of inspiration: grid cells.
+</p>
+<p>
+  Grid cells fire in a hexagonal lattice that tiles the environment, giving the animal a metric for <i>path integration</i> -- the ability to track its own position through space without external cues. 
+  A square lattice could tile the same space, but the hexagonal arrangement is mathematically optimal, achieving the highest spatial resolution for the least redundancy. 
+  This may explain why the hexagonal lattice emerges consistently when agents are trained to path integrate in 2D <cite data-ref="sorscher2019unified"></cite> <cite data-ref="gao2018learning"></cite><cite data-ref="gao2021path"></cite>.
+</p>
+<p>
+  Crucially for our purposes, a hexagonal lattice can be constructed by superposing three grating patterns oriented 120 degrees apart -- a form directly amenable to use as a positional encoding.
+</p>
+</div>
+<div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/HexSuperposition.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/HexSuperposition.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <p>
+    We can construct our hexagonal positional encoding by first starting with RoPE for 2D from <cite data-ref="heo2024rotary"></cite>.
+    We can define Mixed RoPE as
+    $$
+      \mathrm{Att}(q,k) = \mathrm{Re}\left[\sum_{n=0}^{N/2} \bar{q}_n^{\top} e^{i \vec{\omega}_n^{\top} (\vec{p}_k - \vec{p}_q)} k_n\right]
+    $$
+    where $\mathbf{\omega}_n$ represents the "wave vector" whose direction controls the orientation of the grating pattern, and whose magnitude controls the frequency of the grating pattern.
+  </p>
+  <p>
+    To create a hexagonal lattice, we can superpose three grating patterns oriented 120 degrees apart. 
+    We can define the wave vectors as
+    $$
+      \vec{\omega}_{n,m} = \begin{pmatrix}
+                          \cos(\theta_{m}) \\
+                          \sin(\theta_{m})
+                        \end{pmatrix} \omega_n
+    $$
+    where $\theta_{m} = m\frac{2\pi}{3}$ for $m=0,1,2$ and $\omega_n$ is the frequency of the $n$-th grating pattern.
+  </p>
+  <p>
+    Our overall attention score is then given by
+    $$
+      \mathrm{Att}(q,k) = \mathrm{Re}\left[\sum_{m=0}^{2} \sum_{n=0}^{N/6} \bar{q}_{n,m}^{\top} e^{i \vec{\omega}_{n,m}^{\top} (\vec{p}_k - \vec{p}_q)} k_{n,m}\right].
+    $$
+    To create the hexagonal lattice, we need equal amplitude across orientations: $q_{n,0} = q_{n,1} = q_{n,2}$ and $k_{n,0} = k_{n,1} = k_{n,2}$ for all $n$.
+    However, I found that to be too strict and empirically found it better to leave the model to learn the amplitudes of each orientation independently.
+    This also makes it easier to implement as it just becomes Mixed RoPE with weight sharing across the three orientations.
+  </p>
+</div>
+</div>
+<!-- <div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <video muted controls autoplay loop playsinline>
+        <source src="content/blogs/RollPEImages/HexSuperposition.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <h3> Wild Speculative Musing </h3>
+  <p>
+    The conception the these hexagonal lattices balance resolution and redundancy is appealing to cognitive scientists because of Barlow's.
+  </p>
+</div> -->
+<!-- </div> -->
 
 <div data-bib="content/blogs/biblio.bib"></div>
