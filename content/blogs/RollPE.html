@@ -1,4 +1,4 @@
-<!-- status: published -->
+<!-- status: draft -->
 <div class="subtab-about-header" style="text-align: center;">
   <div class="subtab-about-content">
     <div class="subtab-about-text">
@@ -42,7 +42,7 @@
   <div class="subtab-about-image">
     <figure>
       <img src="content/blogs/RollPEImages/mouse_brain_medial_septum_rotation.gif" alt="Additive positional encoding diagram">
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 1:</strong> Rotating 3D render of the mouse brain highlighting the medial septum (basal forebrain), whose pacemaker neurons drive the 4--12 Hz theta rhythm propagating through the hippocampus.</figcaption>
     </figure>
   </div>
 </div>
@@ -50,7 +50,7 @@
   <div class="subtab-about-image">
     <figure>
       <img src="content/blogs/RollPEImages/placecells2.png" alt="Additive positional encoding diagram">
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 2:</strong> Place cells in the hippocampus fire selectively when an animal occupies a specific location, providing a sparse, location-specific spatial code.</figcaption>
     </figure>
   </div>
   <div class="subtab-about-text">
@@ -78,11 +78,15 @@
   <div class="subtab-about-image">
     <figure>
       <img src="content/blogs/RollPEImages/gridcells2.png" alt="Additive positional encoding diagram">
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 3:</strong> Grid cells in the entorhinal cortex fire in a periodic hexagonal lattice that tiles the entire environment, providing a landmark-independent metric for path integration.</figcaption>
     </figure>
   </div>
 </div>
 <div class="subtab-about-content">
+  <div class="subtab-about-image">
+      <img src="content/blogs/RollPEImages/place_cell_bat.gif" alt="Subtab Image">
+      <figcaption><strong>Fig 4:</strong> 3D place and head direction cells in bats. Yaw and pitch tuning are organized on two independent rings (a torus) rather than a sphere, and grid-like structure degrades during free 3D flight.</figcaption>
+    </div>
   <div class="subtab-about-text">
     <p>
       In addition to place cells and grid cells animals have also been shown to have head direction cells -- which live on a ring/circle -- and border detecting cells. 
@@ -96,7 +100,7 @@
     </p>
   </div>
 </div>
-<h2>Biology-inspired Positionally Encoding</h2>
+<h2>Neuro-inspired Positionally Encoding</h2>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
     <p>
@@ -136,14 +140,14 @@
         <source src="content/blogs/RollPEImages/TravelingWave.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 2A:</strong> A traveling wave $u(x,t) = \phi(x + \omega t)$ propagates through space, shifting its phase with position — the key mechanism behind RollPE.</figcaption>
+      <figcaption><strong>Fig 5A:</strong> A traveling wave $u(x,t) = \phi(x + \omega t)$ propagates through space, shifting its phase with position — the key mechanism behind RollPE.</figcaption>
     </div>
     <div id="wave-demo-tab2" class="img-tab-panel wave-demo-panel" style="display:none;">
       <video muted controls autoplay loop playsinline>
         <source src="content/blogs/RollPEImages/StandingWave.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 2B:</strong> A standing wave $u(x,t) = \phi(x)\cos(\omega t + \delta)$ oscillates in place with no spatial propagation — any standing wave can be decomposed into two traveling waves moving in opposite directions.</figcaption>
+      <figcaption><strong>Fig 5B:</strong> A standing wave $u(x,t) = \phi(x)\cos(\omega t + \delta)$ oscillates in place with no spatial propagation — any standing wave can be decomposed into two traveling waves moving in opposite directions.</figcaption>
     </div>
   </div>
   </div>
@@ -154,7 +158,7 @@
         <source src="content/blogs/RollPEImages/MoveWord.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 6:</strong> RollPE encodes position $p$ by applying the cyclic shift $\mathbf{S}^p$ to each token's query and key, so attention reduces to the inner product of shifted waveforms.</figcaption>
     </figure>
   </div>
   <div class="subtab-about-text">
@@ -224,7 +228,7 @@
         <source src="content/blogs/RollPEImages/WordPairs.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 7:</strong> The attention score $\vec{q}^\top\vec{k}$ between any token pair depends only on their position difference $p_q - p_k$, not their absolute positions -- RollPE is a relative positional encoding.</figcaption>
     </figure>
   </div>
 </div>
@@ -287,7 +291,7 @@
         <source src="content/blogs/RollPEImages/SineSliderScene.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 8:</strong> Sliding a sine wave by $vt$ illustrates the identity $q(x+vt) = e^{vt\frac{d}{dx}}q(x)$, motivating the exponential-operator form of continuous translation.</figcaption>
     </figure>
   </div>
 </div>
@@ -295,10 +299,10 @@
   <div class="subtab-about-image">
     <figure>
       <video muted controls autoplay loop playsinline>
-        <source src="content/blogs/RollPEImages/MoveWord.mp4" type="video/mp4">
+        <source src="content/blogs/RollPEImages/FourierTranslation.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 9:</strong> Translation in Fourier space: each mode $\omega_n$ acquires a phase $e^{i\omega_n vt}$, so translation becomes pointwise multiplication -- the mechanism underlying RoPE.</figcaption>
     </figure>
   </div>
   <div class="subtab-about-text">
@@ -353,12 +357,12 @@
         <source src="content/blogs/RollPEImages/MoveWord.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 10:</strong> Multiplexed RollPE superposes $M$ traveling waves per token using $M$ independent query/key matrices, enriching the positional representation across multiple frequencies.</figcaption>
     </figure>
   </div>
 </div>
 
-<h3> Grid Cell Positional Encodings </h3>
+<h2> Grid Cell Positional Encodings </h2>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
   <p>
@@ -380,7 +384,7 @@
         <source src="content/blogs/RollPEImages/HexSuperposition.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 11:</strong> Three sinusoidal grating patterns oriented $120^\circ$ apart superpose to produce a hexagonal lattice, mirroring the firing pattern of biological grid cells.</figcaption>
     </figure>
   </div>
 </div>
@@ -392,7 +396,7 @@
         <source src="content/blogs/RollPEImages/HexSuperposition.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <figcaption><strong>Fig 1:</strong> Additive positional encoding: the position vector $\mathbf{PE}(p)$ is summed directly with the token embedding $\mathbf{x}_p$ before the attention computation. Each dimension alternates between sine and cosine at increasing wavelengths.</figcaption>
+      <figcaption><strong>Fig 12:</strong> Wave vectors $\vec{\omega}_{n,m}$ for orientations $m=0,1,2$ point $120^\circ$ apart at each frequency scale $\omega_n$, producing a hexagonal interference pattern in the attention scores.</figcaption>
     </figure>
   </div>
   <div class="subtab-about-text">
@@ -425,6 +429,81 @@
     This also makes it easier to implement as it just becomes Mixed RoPE with weight sharing across the three orientations.
   </p>
 </div>
+</div>
+  <h2> Related Work </h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <h3>Platonic Transformer</h3>
+  <p>
+    The Platonic Transformer <cite data-ref="islam2025platonic"></cite> has a similar attention construction. Rather than
+    rotating the wave vector, our method can equivalently be viewed as rotating the position vector,
+    since rotating the position is equivalent to rotating the wave vector in the opposite direction.
+    This amounts to "projecting" the position vector into three frames of reference, each
+    rotated $120^\circ$ apart. More generally, one could project onto frames defined by any regular
+    polygon -- a square ($90^\circ$ apart), a pentagon ($72^\circ$ apart) -- or, in more than two
+    dimensions, onto frames defined by a Platonic solid: a tetrahedron, cube, octahedron, dodecahedron,
+    or icosahedron.
+  </p>
+
+  <p>
+    This is essentially what the Platonic Transformer does: for each frame $R$ in a discrete
+    subgroup $G \subset O(n)$, it projects positions as $p_i(R) = R^{-1}p_i$ and runs ordinary
+    RoPE-attention within that frame, treating the $|G|$ frames as $|G|$ parallel attention heads.
+    The motivations differ though. 
+  </p>
+  <p>
+    Their frame set $G$ is chosen for full
+    roto-reflection equivariance, not spatial coverage -- $G$ is a Platonic solid rotation group
+    (12, 24, or 60 elements for the tetrahedron, octahedron, icosahedron) or a cyclic/dihedral
+    group in 2D, and achieving that equivariance further requires lifting scalar and vector features
+    to functions on $G$ and constraining every linear layer in the network to be a $G$-equivariant
+    group convolution (their Sections 3.1--3.3). 
+    Since we are not motivated by equivariance, we can use a much smaller frame set -- just three frames in 2D -- and do not need to constrain the network architecture at all.
+  </p>
+</div>
+<div class="subtab-about-image">
+    <figure>
+      <figure>
+      <img src="content/blogs/RollPEImages/PlatonicSolids.png" alt="Additive positional encoding diagram">
+      <figcaption><strong>Fig 13:</strong> The five Platonic solids define discrete rotation groups of size 12, 24, and 60 (tetrahedron, octahedron/cube, icosahedron/dodecahedron), used by the Platonic Transformer as frame sets for $G$-equivariant attention.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/RollPEImages/simplex.png" alt="Additive positional encoding diagram">
+      <figcaption><strong>Fig 14:</strong> The centered regular $(n+1)$-simplex provides $n+1$ maximally symmetric wave vectors. For $n=2$, the three vertices of an equilateral triangle give directions $120^\circ$ apart, recovering the hexagonal lattice.</figcaption>
+    </figure>
+  </div>
+<div class="subtab-about-text">
+<h3>nD-RoPE</h3>
+  <p>
+    Even more closely related is nD-RoPE <cite data-ref="li2026nd"></cite>, which reaches nearly the same construction
+    from a parallel derivation. Starting from the same translation-invariant, Fourier-based argument,
+    they show a good wave-vector set $\Omega$ must satisfy <i>coverage</i> ($\text{rank}(\Omega) = n$,
+    so no displacement direction is invisible to the phase system) and <i>maximum symmetry</i> (the
+    induced real-space pattern shouldn't privilege coordinate axes). They prove that under minimal
+    redundancy, the unique configuration meeting both is the centered regular $(n+1)$-vertex
+    simplex -- for $n=2$, exactly three wave vectors $120^\circ$ apart, reproducing the same
+    hexagonal lattice we get (their Fig. 3 shows this explicitly).
+  </p>
+</div>
+</div>
+<h2> Results </h2>
+<div class="subtab-about-content">
+<div class="subtab-about-text">
+<p>
+  I don't have results yet, but I will update this section when I do.
+</p>
+</div>
+<div class="subtab-about-image">
+    <figure>
+      <img src="content/blogs/RollPEImages/results.png" alt="Additive positional encoding diagram">
+      <figcaption><strong>Fig 15:</strong> Results -- to be updated.</figcaption>
+    </figure>
+  </div>
 </div>
 <!-- <div class="subtab-about-content">
   <div class="subtab-about-image">
