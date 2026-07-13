@@ -216,8 +216,21 @@
     </div>
     <div class="subtab-about-content">
       <div class="subtab-about-image" style="align-self: flex-start;">
+      <div class="img-tabs">
+        <button class="img-tab-btn pe-fig7-btn active" onclick="switchImgTab(this, 'pe-fig7', 'pe-fig7-tab1')">Softmax Decay</button>
+        <button class="img-tab-btn pe-fig7-btn" onclick="switchImgTab(this, 'pe-fig7', 'pe-fig7-tab2')">Many Tokens Decohering</button>
+      </div>
+      <div id="pe-fig7-tab1" class="img-tab-panel pe-fig7-panel">
         <img src="content/blogs/images/softmax_decay.png" alt="Subtab Image">
-        <figcaption><strong>Fig 7:</strong> The decay of a softmax with respect to context length. The higher the initial signal $x_0$, the longer it takes to decay. Note the similarities in decay structure to <strong>Fig 2</strong>.</figcaption>
+        <figcaption><strong>Fig 7a:</strong> The decay of a softmax with respect to context length. The higher the initial signal $x_0$, the longer it takes to decay. Note the similarities in decay structure to <strong>Fig 2</strong>.</figcaption>
+      </div>
+      <div id="pe-fig7-tab2" class="img-tab-panel pe-fig7-panel" style="display:none;">
+        <video muted controls autoplay playsinline>
+          <source src="content/blogs/images/RoPESceneMany.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <figcaption><strong>Fig 7b:</strong> For irrelevant tokens, each key vector decoheres toward a zero-mean random variable across frequencies. The more query/key pairs -- i.e. dimension size -- the smaller the standard deviation. Moreover, even for enormous context sizes, there is no cycling. This only holds, however, when the amplitude of each pair is the same.</figcaption>
+      </div>
       </div>
       <div class="subtab-about-text">
       <p>
