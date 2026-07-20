@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kuramoto Pendulums — Huygens Synchronization</title>
+<style>
+  :root {
+    --bg: transparent;
+    --panel: #ffffff;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --surface-1: #f5f4ee;
+    --text: #1a1a18;
+    --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --panel: #262624;
+      --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3);
+      --surface-1: #262624;
+      --text: #f0efea;
+      --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 16px 20px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h1 { font-size: 20px; margin: 0 0 8px 0; font-weight: 600; }
+  p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .controls { margin-bottom: 14px; }
+  .row {
+    display: grid;
+    grid-template-columns: 80px 1fr 56px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .row label { font-size: 13px; }
+  .row .val {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .statusbar {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .statusbar button {
+    font-size: 12px;
+    padding: 4px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .statusbar .spacer { margin-left: auto; }
+  .statusbar button:hover { background: var(--surface-1); }
+  .statusbar button:active { transform: scale(0.98); }
+  .canvas-wrap {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>Kuramoto pendulums</h1>
+<p class="lead">
+  Huygens' clocks, Kuramoto style: N pendulums hang from a shared beam, and each phase follows
+  &theta;&#775;&#7522; = &omega;&#7522; + K r sin(&psi; &minus; &theta;&#7522;). The beam sways with the
+  mean field r e<sup>i&psi;</sup>, so it sits still while the pendulums disagree and rocks visibly once
+  they lock. Raise K to watch them fall into step; the inset circle shows the phases and the mean-field arrow.
+</p>
+
+<div class="panel">
+  <div class="controls">
+    <div class="row">
+      <label for="nn">Pendulums</label>
+      <input type="range" id="nn" min="2" max="12" step="1" value="2">
+      <span class="val" id="nn-out">2</span>
+    </div>
+    <div class="row">
+      <label for="kk">K</label>
+      <input type="range" id="kk" min="0" max="3" step="0.05" value="0">
+      <span class="val" id="kk-out">0.00</span>
+    </div>
+    <div class="row">
+      <label for="dw">&Delta;&omega;</label>
+      <input type="range" id="dw" min="0" max="2" step="0.05" value="0.5">
+      <span class="val" id="dw-out">0.50</span>
+    </div>
+    <div class="row">
+      <label for="spd">Speed</label>
+      <input type="range" id="spd" min="0.25" max="3" step="0.25" value="1">
+      <span class="val" id="spd-out">1.0&times;</span>
+    </div>
+    <div class="statusbar">
+      <span id="regime">Uncoupled: each pendulum keeps its own beat</span>
+      <span class="spacer" id="order">r = 0.00</span>
+      <button id="reset">Reset</button>
+      <button id="pause">Pause</button>
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="cv"></canvas>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = 900, H = 430, DPR = window.devicePixelRatio || 1;
+cv.width = W * DPR; cv.height = H * DPR;
+ctx.scale(DPR, DPR);
+
+const W0 = 1.2;
+let N = 2, K = 0, dOm = 0.5, speed = 1, paused = false;
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let dark = mq.matches;
+let beamCol, tickCol, axisCol;
+function setColors(){
+  dark = mq.matches;
+  beamCol = dark ? '#cfd4dc' : '#2b3442';
+  tickCol = dark ? 'rgba(207,212,220,0.75)' : 'rgba(43,52,66,0.75)';
+  axisCol = dark ? 'rgba(160,160,155,0.4)' : 'rgba(95,94,90,0.35)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', setColors);
+
+const rodCol = '#E8912D';
+const bobCol = '#C87820';
+const meanCol = '#F5A800';
+
+let TH, OM;
+function init(){
+  TH = new Float64Array(N);
+  OM = new Float64Array(N);
+  for (let j = 0; j < N; j++){
+    OM[j] = N === 1 ? W0 : W0 - dOm/2 + dOm * j / (N - 1);
+    TH[j] = Math.random() * 6.2832;
+  }
+}
+function setFreqs(){
+  for (let j = 0; j < N; j++)
+    OM[j] = N === 1 ? W0 : W0 - dOm/2 + dOm * j / (N - 1);
+}
+
+function meanField(th){
+  let cx = 0, sy_ = 0;
+  for (let j = 0; j < N; j++){ cx += Math.cos(th[j]); sy_ += Math.sin(th[j]); }
+  cx /= N; sy_ /= N;
+  return [Math.hypot(cx, sy_), Math.atan2(sy_, cx)];
+}
+
+const dth = new Float64Array(12), tmp = new Float64Array(12);
+function deriv(th, out){
+  const [r, psi] = meanField(th);
+  for (let j = 0; j < N; j++)
+    out[j] = OM[j] + K * r * Math.sin(psi - th[j]);
+}
+function integrate(dt){
+  deriv(TH, dth);
+  for (let j = 0; j < N; j++) tmp[j] = TH[j] + dth[j]*dt*0.5;
+  deriv(tmp, dth);
+  for (let j = 0; j < N; j++) TH[j] += dth[j]*dt;
+}
+
+const BEAM_Y = 46, ROD_L = 300, AMP = 0.42;
+
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+
+  let msin = 0;
+  for (let j = 0; j < N; j++) msin += Math.sin(TH[j]);
+  msin /= N;
+  const bx = 20 * msin;
+
+  const [r, psi] = meanField(TH);
+
+  const m = 110;
+  const anchors = [];
+  for (let j = 0; j < N; j++){
+    const t = N === 1 ? 0.5 : j / (N - 1);
+    anchors.push(m + t * (W - 2*m) + bx);
+  }
+
+  const mid = [];
+  for (let j = 0; j < N; j++){
+    const phi = AMP * Math.sin(TH[j]);
+    mid.push([anchors[j] + 0.45 * ROD_L * Math.sin(phi), BEAM_Y + 0.45 * ROD_L * Math.cos(phi)]);
+  }
+  if (K > 0){
+    const kFrac = Math.min(1, K / 3);
+    const base = dark ? [207,212,220] : [43,52,66];
+    const hot  = dark ? [242,106,106] : [206,44,43];
+    ctx.globalAlpha = 0.25 + 0.75 * kFrac;
+    ctx.lineWidth = 1.5 + 5.5 * kFrac;
+    ctx.lineCap = 'round';
+    for (let j = 0; j < N - 1; j++){
+      const tension = Math.abs(Math.sin((TH[j+1] - TH[j]) / 2));
+      const c = base.map((b, i) => Math.round(b + (hot[i] - b) * tension));
+      ctx.strokeStyle = 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+      ctx.beginPath();
+      ctx.moveTo(mid[j][0], mid[j][1]);
+      ctx.lineTo(mid[j+1][0], mid[j+1][1]);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  for (let j = 0; j < N; j++){
+    const phi = AMP * Math.sin(TH[j]);
+    const ax = anchors[j], ay = BEAM_Y;
+    const ex = ax + ROD_L * Math.sin(phi);
+    const ey = ay + ROD_L * Math.cos(phi);
+
+    ctx.strokeStyle = rodCol;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+
+    ctx.fillStyle = bobCol;
+    ctx.beginPath();
+    ctx.arc(ex, ey, 14, 0, 6.2832);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = beamCol;
+  ctx.lineWidth = 9;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(m - 40 + bx, BEAM_Y);
+  ctx.lineTo(W - m + 40 + bx, BEAM_Y);
+  ctx.stroke();
+
+  const ir = 44, icx = W - 64, icy = H - 64;
+  ctx.strokeStyle = axisCol;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(icx, icy, ir, 0, 6.2832);
+  ctx.stroke();
+  ctx.strokeStyle = meanCol;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(icx, icy);
+  ctx.lineTo(icx + ir * r * Math.cos(psi), icy - ir * r * Math.sin(psi));
+  ctx.stroke();
+  for (let j = 0; j < N; j++){
+    ctx.fillStyle = rodCol;
+    ctx.beginPath();
+    ctx.arc(icx + ir * Math.cos(TH[j]), icy - ir * Math.sin(TH[j]), 4, 0, 6.2832);
+    ctx.fill();
+  }
+
+  return r;
+}
+
+function step(){
+  if (!paused){
+    const sub = 2, dt = 0.016 * speed / sub;
+    for (let s = 0; s < sub; s++) integrate(dt);
+  }
+  const r = draw();
+  document.getElementById('order').textContent = 'r = ' + r.toFixed(2);
+  requestAnimationFrame(step);
+}
+
+function updateRegime(){
+  const reg = document.getElementById('regime');
+  if (K < 0.05) reg.textContent = 'Uncoupled: each pendulum keeps its own beat';
+  else if (K > dOm) reg.textContent = 'Coupling beats the frequency spread: pendulums lock and the beam rocks';
+  else reg.textContent = 'Weak coupling: partial locking, phases drift past each other';
+}
+function updateLabels(){
+  document.getElementById('nn-out').textContent = N;
+  document.getElementById('kk-out').textContent = K.toFixed(2);
+  document.getElementById('dw-out').textContent = dOm.toFixed(2);
+  document.getElementById('spd-out').textContent = speed.toFixed(2).replace(/0$/, '') + '×';
+  updateRegime();
+}
+document.getElementById('nn').addEventListener('input', e => {
+  N = +e.target.value; init(); updateLabels();
+});
+document.getElementById('kk').addEventListener('input', e => {
+  K = +e.target.value; updateLabels();
+});
+document.getElementById('dw').addEventListener('input', e => {
+  dOm = +e.target.value; setFreqs(); updateLabels();
+});
+document.getElementById('spd').addEventListener('input', e => {
+  speed = +e.target.value; updateLabels();
+});
+document.getElementById('reset').addEventListener('click', init);
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused;
+  e.currentTarget.textContent = paused ? 'Play' : 'Pause';
+});
+
+// =========================================================================
+// Report content height to parent page (iframe.demo-embed auto-sizing)
+// =========================================================================
+function postHeight() {
+  if (window.parent === window) return;
+  const h = document.documentElement.scrollHeight;
+  window.parent.postMessage({ type: 'demo-embed-height', height: h }, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+init();
+updateLabels();
+requestAnimationFrame(step);
+</script>
+
+</body>
+</html>

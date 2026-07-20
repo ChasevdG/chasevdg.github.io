@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kuramoto clapping hands</title>
+<style>
+  :root {
+    --surface-1: #f5f4ee;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --text-primary: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-muted: #888780;
+    --bg-success: #eaf3de;
+    --text-success: #3b6d11;
+    --bg-warning: #faeeda;
+    --text-warning: #854f0b;
+    --radius: 8px;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #262624;
+      --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3);
+      --text-primary: #f0efea;
+      --text-secondary: #b4b2a9;
+      --text-muted: #888780;
+      --bg-success: #27500a;
+      --text-success: #c0dd97;
+      --bg-warning: #633806;
+      --text-warning: #fac775;
+    }
+    body { background: #1a1a18; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem;
+  }
+  button {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--surface-1); }
+  button:active { transform: scale(0.98); }
+  select, input[type=range] { accent-color: #F5A800; }
+  select {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 5px 8px;
+    font-size: 14px;
+  }
+  .mode-btn { flex: 1; padding: 6px 8px; font-size: 13px; }
+  .mode-btn.active {
+    background: #F5A800;
+    color: #1a1a18;
+    border-color: #F5A800;
+    font-weight: 500;
+  }
+  .mode-btn.active:hover { background: #F5A800; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+  }
+  .demo-grid {
+    display: grid;
+    grid-template-columns: minmax(120px,190px) minmax(0,1fr) minmax(130px,200px);
+    gap: 12px;
+    align-items: stretch;
+    padding: 1rem 0;
+  }
+  #circ { max-width: 100%; height: auto; }
+  @media (max-width: 480px) {
+    .demo-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<h2 class="sr-only">An adjustable number of Kuramoto-coupled oscillators, rendered as clapping hand pairs or firing neurons, with a spike monitor, a complex-plane phase circle, and a reset button.</h2>
+
+<div class="demo-grid">
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div role="group" aria-label="Animation mode" style="display:flex;gap:6px;">
+      <button id="modeHands" class="mode-btn active">Hands</button>
+      <button id="modeNeurons" class="mode-btn">Neurons</button>
+    </div>
+    <div id="handsCol" style="display:flex;flex-direction:column;gap:8px;flex:1;"></div>
+  </div>
+
+  <div style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;min-height:180px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span id="monLabel" style="font-size:13px;color:var(--text-secondary);">Clap monitor</span>
+      <span style="font-size:12px;font-family:var(--font-mono);color:var(--text-secondary);">r=<span id="rOut" style="color:var(--text-primary);">0.00</span></span>
+    </div>
+    <canvas id="ekg" style="width:100%;flex:1;"></canvas>
+  </div>
+
+  <div style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;">
+    <span style="font-size:13px;color:var(--text-secondary);align-self:flex-start;margin-bottom:2px;">Phase e<sup>i&theta;</sup></span>
+    <svg id="circ" viewBox="-110 -110 220 220" width="170" height="170" aria-hidden="true">
+      <line x1="-100" y1="0" x2="100" y2="0" stroke="var(--border)" stroke-width="1"/>
+      <line x1="0" y1="-100" x2="0" y2="100" stroke="var(--border)" stroke-width="1"/>
+      <circle cx="0" cy="0" r="85" fill="none" stroke="var(--border-strong)" stroke-width="1.5"/>
+      <text x="97" y="14" font-size="12" fill="var(--text-muted)" text-anchor="end" style="font-family:var(--font-mono);">Re</text>
+      <text x="8" y="-94" font-size="12" fill="var(--text-muted)" style="font-family:var(--font-mono);">Im</text>
+      <g id="rays"></g>
+      <line id="mf" x1="0" y1="0" x2="85" y2="0" stroke="var(--text-primary)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle id="mfDot" cx="85" cy="0" r="4" fill="var(--text-primary)"/>
+      <g id="dots"></g>
+    </svg>
+    <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">&mdash; r&middot;e<sup>i&psi;</sup> mean field</span>
+  </div>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+  <button id="toggle">Pause</button>
+  <button id="reset">Reset</button>
+  <label style="font-size:14px;color:var(--text-secondary);">Count</label>
+  <select id="nsel">
+    <option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option>
+  </select>
+  <label style="font-size:14px;color:var(--text-secondary);">Coupling K</label>
+  <input type="range" id="k" min="0" max="10" step="0.1" value="0" style="flex:1;min-width:110px;max-width:170px;">
+  <span id="kOut" style="font-size:14px;font-weight:500;min-width:66px;">0.0 rad/s</span>
+  <label style="font-size:14px;color:var(--text-secondary);">Reset every</label>
+  <input type="range" id="sweep" min="1" max="12" step="0.5" value="5" style="flex:1;min-width:70px;max-width:110px;">
+  <span id="sweepOut" style="font-size:14px;font-weight:500;min-width:32px;">5 s</span>
+  <span id="syncBadge" style="font-size:12px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-warning);color:var(--text-warning);">not locked</span>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const canvas = el('ekg');
+const ctx = canvas.getContext('2d');
+const NS = 'http://www.w3.org/2000/svg';
+
+const COLORS = ['#EF9F27','#1D9E75','#7F77DD','#D4537E','#D85A30','#378ADD'];
+const DARK   = ['#BA7517','#0F6E56','#534AB7','#993556','#993C1D','#185FA5'];
+
+let N = 3, K = 0, running = true;
+let mode = 'hands';
+let sweepT = 5, sweepClock = 0;
+let lastT = performance.now();
+let osc = [], hands = [], freqEls = [], dotEls = [], rayEls = [];
+
+function handSVG(color, h){
+  return '<svg viewBox="0 0 360 200" width="' + Math.round(h*1.8) + '" height="' + h + '" aria-hidden="true">' +
+    '<g class="hl"><rect x="32" y="38" width="34" height="132" rx="15" fill="' + color + '"/><rect x="2" y="118" width="64" height="54" rx="15" fill="' + color + '"/></g>' +
+    '<g transform="translate(360,0) scale(-1,1)"><g class="hr"><rect x="32" y="38" width="34" height="132" rx="15" fill="' + color + '"/><rect x="2" y="118" width="64" height="54" rx="15" fill="' + color + '"/></g></g></svg>';
+}
+
+function neuronSVG(color, h){
+  return '<svg viewBox="0 0 360 200" width="' + Math.round(h*1.8) + '" height="' + h + '" aria-hidden="true">' +
+    '<g fill="none" stroke="' + color + '" stroke-linecap="round">' +
+      '<path class="axon" d="M210,108 C165,140 115,166 48,174" stroke-width="9"/>' +
+      '<path d="M48,174 L30,166 M48,174 L26,176 M48,174 L32,186 M48,174 L44,190" stroke-width="3.5"/>' +
+      '<path d="M247,64 C252,48 254,36 250,20 M250,38 L272,26 M250,38 L232,20" stroke-width="6"/>' +
+      '<path d="M259,74 C280,60 296,52 318,48 M296,54 L312,38 M296,54 L322,66" stroke-width="6"/>' +
+      '<path d="M262,95 C288,98 306,102 330,112 M306,102 L326,92 M306,102 L318,122" stroke-width="6"/>' +
+      '<path d="M252,112 C268,132 280,146 288,166 M278,144 L298,148 M278,144 L262,162" stroke-width="6"/>' +
+      '<path d="M228,118 C224,140 220,152 208,168 M218,150 L200,148 M218,150 L226,170" stroke-width="5"/>' +
+      '<path d="M212,70 C198,52 190,44 184,26 M192,46 L174,52 M192,46 L200,28" stroke-width="5"/>' +
+    '</g>' +
+    '<circle cx="234" cy="90" r="30" fill="' + color + '"/>' +
+    '<circle cx="234" cy="90" r="10" fill="var(--surface-1)"/>' +
+    '<circle class="flash" cx="234" cy="90" r="33" fill="#ffffff" opacity="0"/>' +
+    '<circle class="pulse" r="5.5" fill="' + color + '" opacity="0" stroke="#ffffff" stroke-width="1.5"/>' +
+    '</svg>';
+}
+
+function build(){
+  osc = []; hands = []; freqEls = []; dotEls = []; rayEls = [];
+  const col = el('handsCol');
+  col.innerHTML = '';
+  el('rays').innerHTML = '';
+  el('dots').innerHTML = '';
+  const h = Math.max(46, Math.min(92, Math.floor(300 / N)));
+  const fmin = 0.7, fmax = 2.0;
+  for (let i = 0; i < N; i++){
+    const f = N === 1 ? fmax : fmax - (fmax - fmin) * i / (N - 1);
+    const c = COLORS[i], dc = DARK[i];
+    const panel = document.createElement('div');
+    panel.style.cssText = 'background:var(--surface-1);border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;flex:1;min-height:' + (h+8) + 'px;';
+    panel.innerHTML = (mode === 'neurons' ? neuronSVG(c, h) : handSVG(c, h)) +
+      '<span style="position:absolute;top:3px;left:8px;font-size:11px;color:' + dc + ';font-weight:500;">' + (i+1) + '</span>' +
+      '<span class="fq" style="position:absolute;bottom:2px;right:8px;font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);">' + f.toFixed(2) + ' Hz</span>';
+    col.appendChild(panel);
+    if (mode === 'neurons'){
+      const ax = panel.querySelector('.axon');
+      let axLen = 200;
+      try { axLen = ax.getTotalLength(); } catch(e){}
+      hands.push({flash: panel.querySelector('.flash'), pulse: panel.querySelector('.pulse'), axon: ax, axonLen: axLen});
+    } else {
+      hands.push({L: panel.querySelector('.hl'), R: panel.querySelector('.hr')});
+    }
+    freqEls.push(panel.querySelector('.fq'));
+    osc.push({theta: Math.random() * 2 * Math.PI, w: 2*Math.PI*f, prevCycle: null, spikes: [], trace: [], color: c, fireT: -1});
+
+    const ray = document.createElementNS(NS,'line');
+    ray.setAttribute('x1',0); ray.setAttribute('y1',0);
+    ray.setAttribute('stroke', c); ray.setAttribute('stroke-width','1'); ray.setAttribute('opacity','0.4');
+    el('rays').appendChild(ray); rayEls.push(ray);
+    const dot = document.createElementNS(NS,'circle');
+    dot.setAttribute('r', 6.5); dot.setAttribute('fill', c);
+    el('dots').appendChild(dot); dotEls.push(dot);
+  }
+  sweepClock = 0;
+}
+
+function resize(){
+  const r = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, r.width * devicePixelRatio);
+  canvas.height = Math.max(1, r.height * devicePixelRatio);
+}
+
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#888'; }
+
+function spikeShape(t){
+  if (t < 0 || t > 1) return 0;
+  if (t < 0.15) return -0.15 * Math.sin(t/0.15 * Math.PI);
+  if (t < 0.25) return -1.0 * Math.sin((t-0.15)/0.10 * Math.PI);
+  if (t < 0.40) return 0.35 * Math.sin((t-0.25)/0.15 * Math.PI);
+  if (t < 0.75) return -0.12 * Math.sin((t-0.40)/0.35 * Math.PI);
+  return 0;
+}
+
+const TRAVEL = 112;
+const spikeDur = 0.3;
+const R = 85;
+
+function frame(now){
+  const dt = Math.min((now - lastT)/1000, 0.05);
+  lastT = now;
+  const W = canvas.width, H = canvas.height;
+
+  if (running && osc.length){
+    let re = 0, im = 0;
+    for (const o of osc){ re += Math.cos(o.theta); im += Math.sin(o.theta); }
+    re /= N; im /= N;
+    const r = Math.sqrt(re*re + im*im);
+    const psi = Math.atan2(im, re);
+    el('rOut').textContent = r.toFixed(2);
+
+    let vmin = Infinity, vmax = -Infinity;
+    osc.forEach((o, i) => {
+      const v = o.w + K * r * Math.sin(psi - o.theta);
+      o.theta += v * dt;
+      freqEls[i].textContent = (v/(2*Math.PI)).toFixed(2) + ' Hz';
+      if (v < vmin) vmin = v;
+      if (v > vmax) vmax = v;
+    });
+
+    const badge = el('syncBadge');
+    if (vmax - vmin < 0.4){
+      badge.textContent = 'phase-locked';
+      badge.style.background = 'var(--bg-success)';
+      badge.style.color = 'var(--text-success)';
+    } else {
+      badge.textContent = 'not locked';
+      badge.style.background = 'var(--bg-warning)';
+      badge.style.color = 'var(--text-warning)';
+    }
+
+    el('mf').setAttribute('x2', R * re);
+    el('mf').setAttribute('y2', -R * im);
+    el('mfDot').setAttribute('cx', R * re);
+    el('mfDot').setAttribute('cy', -R * im);
+
+    sweepClock += dt;
+    if (sweepClock >= sweepT){
+      sweepClock = 0;
+      for (const o of osc){ o.trace = []; o.spikes = []; }
+    }
+
+    const amp = H * (0.55 / N);
+    osc.forEach((o, i) => {
+      const cycle = Math.floor((o.theta - Math.PI) / (2 * Math.PI) + 1);
+      if (o.prevCycle === null) o.prevCycle = cycle;
+      if (cycle !== o.prevCycle){ o.spikes.push(sweepClock); o.prevCycle = cycle; o.fireT = now; }
+
+      if (mode === 'neurons'){
+        const hd = hands[i];
+        const glow = o.fireT < 0 ? 0 : Math.exp(-(now - o.fireT)/150);
+        hd.flash.setAttribute('opacity', (0.8 * glow).toFixed(3));
+        const local = ((o.theta % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+        const q = (local - Math.PI) / (0.7 * Math.PI);
+        if (q >= 0 && q <= 1){
+          let pt = null;
+          try { pt = hd.axon.getPointAtLength(q * hd.axonLen); } catch(e){}
+          if (pt){
+            hd.pulse.setAttribute('cx', pt.x);
+            hd.pulse.setAttribute('cy', pt.y);
+            hd.pulse.setAttribute('opacity', '0.95');
+          }
+        } else {
+          hd.pulse.setAttribute('opacity', '0');
+        }
+      } else {
+        const closed = Math.pow((1 - Math.cos(o.theta)) / 2, 0.6);
+        const d = TRAVEL * closed;
+        hands[i].L.setAttribute('transform', 'translate(' + d + ',0)');
+        hands[i].R.setAttribute('transform', 'translate(' + d + ',0)');
+      }
+
+      const mid = H * (i + 0.6) / (N + 0.4);
+      let y = mid + (Math.random()-0.5) * H * 0.005;
+      for (const s of o.spikes){
+        const t = (sweepClock - s) / spikeDur;
+        y += spikeShape(t) * amp;
+      }
+      o.trace.push({t: sweepClock, y: y});
+
+      dotEls[i].setAttribute('cx', R * Math.cos(o.theta));
+      dotEls[i].setAttribute('cy', -R * Math.sin(o.theta));
+      rayEls[i].setAttribute('x2', R * Math.cos(o.theta));
+      rayEls[i].setAttribute('y2', -R * Math.sin(o.theta));
+    });
+  }
+
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle = css('--border');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let gx = 0; gx < W; gx += W/12){ ctx.moveTo(gx,0); ctx.lineTo(gx,H); }
+  for (let gy = 0; gy < H; gy += H/6){ ctx.moveTo(0,gy); ctx.lineTo(W,gy); }
+  ctx.stroke();
+
+  for (const o of osc){
+    ctx.strokeStyle = o.color;
+    ctx.lineWidth = 1.8 * devicePixelRatio;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < o.trace.length; i++){
+      const px = (o.trace[i].t / sweepT) * W;
+      if (i === 0) ctx.moveTo(px, o.trace[i].y);
+      else ctx.lineTo(px, o.trace[i].y);
+    }
+    ctx.stroke();
+    const last = o.trace[o.trace.length-1];
+    if (last){
+      ctx.fillStyle = o.color;
+      ctx.beginPath();
+      ctx.arc((last.t / sweepT) * W, last.y, 2.5*devicePixelRatio, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+build();
+resize();
+window.addEventListener('resize', resize);
+requestAnimationFrame(frame);
+
+function setMode(m){
+  if (mode === m) return;
+  mode = m;
+  el('modeHands').classList.toggle('active', m === 'hands');
+  el('modeNeurons').classList.toggle('active', m === 'neurons');
+  el('monLabel').textContent = m === 'neurons' ? 'Spike monitor' : 'Clap monitor';
+  build();
+}
+el('modeHands').addEventListener('click', () => setMode('hands'));
+el('modeNeurons').addEventListener('click', () => setMode('neurons'));
+el('nsel').addEventListener('change', () => {
+  N = parseInt(el('nsel').value, 10);
+  build();
+});
+el('reset').addEventListener('click', () => {
+  build();
+  if (!running){
+    running = true;
+    el('toggle').textContent = 'Pause';
+    lastT = performance.now();
+  }
+});
+el('k').addEventListener('input', () => {
+  K = parseFloat(el('k').value);
+  el('kOut').textContent = K.toFixed(1) + ' rad/s';
+});
+el('sweep').addEventListener('input', () => {
+  sweepT = parseFloat(el('sweep').value);
+  el('sweepOut').textContent = (sweepT % 1 === 0 ? sweepT.toFixed(0) : sweepT.toFixed(1)) + ' s';
+  sweepClock = 0;
+  for (const o of osc){ o.trace = []; o.spikes = []; }
+});
+if (window.frameElement){
+  const reportHeight = () => { window.frameElement.style.height = document.documentElement.scrollHeight + 'px'; };
+  new ResizeObserver(reportHeight).observe(document.body);
+  reportHeight();
+}
+
+el('toggle').addEventListener('click', () => {
+  running = !running;
+  el('toggle').textContent = running ? 'Pause' : 'Resume';
+  lastT = performance.now();
+});
+
+function postHeight(){
+  if (window.parent === window) return;
+  window.parent.postMessage({ type: 'demo-embed-height', height: document.documentElement.scrollHeight }, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+</script>
+</body>
+</html>

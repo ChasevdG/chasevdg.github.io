@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coupled Stuart-Landau Oscillators — Interactive</title>
+<style>
+  :root {
+    --bg: transparent;
+    --panel: #ffffff;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --surface-1: #f5f4ee;
+    --text: #1a1a18;
+    --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --panel: #262624;
+      --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3);
+      --surface-1: #262624;
+      --text: #f0efea;
+      --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 16px 20px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h1 { font-size: 20px; margin: 0 0 8px 0; font-weight: 600; }
+  p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .controls { margin-bottom: 14px; }
+  .row {
+    display: grid;
+    grid-template-columns: 70px 1fr 56px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .row label { font-size: 13px; }
+  .row .val {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .statusbar {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .statusbar button {
+    margin-left: auto;
+    font-size: 12px;
+    padding: 4px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .statusbar button:hover { background: var(--surface-1); }
+  .statusbar button:active { transform: scale(0.98); }
+  .canvas-wrap {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .canvas-wrap + .canvas-wrap { margin-top: 10px; }
+  canvas { display: block; width: 100%; }
+  .strip-label {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 6px 10px 0 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Coupled Stuart&ndash;Landau oscillators</h1>
+<p class="lead">
+  N oscillators &#380;&#11388; = (&mu; + i&omega;&#11388;)z&#11388; &minus; |z&#11388;|&sup2;z&#11388; + K(&#9001;z&#9002; &minus; z&#11388;)
+  with mean-field diffusive coupling and spread natural frequencies. Each dot is one oscillator in the
+  complex plane; the orange arrow is the mean field &#9001;z&#9002;. Raise K to synchronize the ensemble
+  &mdash; or raise both K and the frequency spread &Delta;&omega; to kill the oscillations entirely
+  (amplitude death).
+</p>
+
+<div class="panel">
+  <div class="controls">
+    <div class="row">
+      <label for="mm">&mu;</label>
+      <input type="range" id="mm" min="-1" max="2" step="0.05" value="1">
+      <span class="val" id="mm-out">1.00</span>
+    </div>
+    <div class="row">
+      <label for="dm">&Delta;&mu;</label>
+      <input type="range" id="dm" min="0" max="2" step="0.1" value="0">
+      <span class="val" id="dm-out">0.0</span>
+    </div>
+    <div class="row">
+      <label for="nn">Oscillators</label>
+      <input type="range" id="nn" min="2" max="48" step="1" value="8">
+      <span class="val" id="nn-out">8</span>
+    </div>
+    <div class="row">
+      <label for="kk">K</label>
+      <input type="range" id="kk" min="0" max="4" step="0.05" value="0">
+      <span class="val" id="kk-out">0.00</span>
+    </div>
+    <div class="row">
+      <label for="dw">&Delta;&omega;</label>
+      <input type="range" id="dw" min="0" max="4" step="0.1" value="1">
+      <span class="val" id="dw-out">1.0</span>
+    </div>
+    <div class="row">
+      <label for="spd">Speed</label>
+      <input type="range" id="spd" min="0.25" max="3" step="0.25" value="1">
+      <span class="val" id="spd-out">1.0&times;</span>
+    </div>
+    <div class="statusbar">
+      <span id="regime">Uncoupled: each oscillator sits on its own limit cycle</span>
+      <span id="order">R = 0.00</span>
+      <button id="reset">Reset</button>
+      <button id="pause">Pause</button>
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="cv"></canvas>
+  </div>
+  <div class="canvas-wrap">
+    <div class="strip-label">Re z&#11388;(t)</div>
+    <canvas id="strip"></canvas>
+  </div>
+</div>
+
+<script>
+const W = 900, H = 460, SH = 140, DPR = window.devicePixelRatio || 1;
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+cv.width = W * DPR; cv.height = H * DPR;
+ctx.scale(DPR, DPR);
+
+const trail = document.createElement('canvas');
+trail.width = W * DPR; trail.height = H * DPR;
+const tctx = trail.getContext('2d');
+tctx.scale(DPR, DPR);
+
+const strip = document.getElementById('strip');
+const sctx = strip.getContext('2d');
+strip.width = W * DPR; strip.height = SH * DPR;
+sctx.scale(DPR, DPR);
+
+const XMAX = 2.1, YMAX = XMAX * H / W;
+const sx = x => (x / XMAX * 0.5 + 0.5) * W;
+const sy = y => (0.5 - y / YMAX * 0.5) * H;
+
+const W0 = 1;
+let MU = 1, dMu = 0, N = 8, K = 0, dOm = 1, speed = 1, paused = false;
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let dark = mq.matches;
+let axisCol, meanCol;
+function setColors(){
+  dark = mq.matches;
+  axisCol = dark ? 'rgba(160,160,155,0.35)' : 'rgba(95,94,90,0.3)';
+  meanCol = 'rgba(255,140,0,1)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', () => { setColors(); tctx.clearRect(0, 0, W, H); });
+
+function hue(j){ return 360 * j / N; }
+function dotCol(j){ return 'hsl(' + hue(j).toFixed(0) + ',' + (dark ? '75%,65%' : '70%,45%') + ')'; }
+function trailCol(j){ return 'hsla(' + hue(j).toFixed(0) + ',' + (dark ? '75%,65%' : '70%,45%') + ',0.9)'; }
+
+let X, Y, OM, MUS, muOff;
+const HIST = 420;
+let hist, hPos, hLen;
+
+function setMus(){
+  for (let j = 0; j < N; j++) MUS[j] = MU + muOff[j] * dMu;
+}
+function init(){
+  X = new Float64Array(N);
+  Y = new Float64Array(N);
+  OM = new Float64Array(N);
+  MUS = new Float64Array(N);
+  muOff = new Float64Array(N);
+  for (let j = 0; j < N; j++){
+    OM[j] = N === 1 ? W0 : W0 - dOm/2 + dOm * j / (N - 1);
+    muOff[j] = Math.random() - 0.5;
+    const a = Math.random() * 6.2832, r = 0.3 + Math.random() * 1.2;
+    X[j] = r * Math.cos(a);
+    Y[j] = r * Math.sin(a);
+  }
+  setMus();
+  hist = new Float64Array(N * HIST);
+  hPos = 0; hLen = 0;
+  tctx.clearRect(0, 0, W, H);
+}
+function setFreqs(){
+  for (let j = 0; j < N; j++)
+    OM[j] = N === 1 ? W0 : W0 - dOm/2 + dOm * j / (N - 1);
+}
+
+function deriv(x, y, mx, my, out){
+  for (let j = 0; j < N; j++){
+    const r2 = x[j]*x[j] + y[j]*y[j];
+    out[2*j]   = MUS[j]*x[j] - OM[j]*y[j] - r2*x[j] + K*(mx - x[j]);
+    out[2*j+1] = OM[j]*x[j] + MUS[j]*y[j] - r2*y[j] + K*(my - y[j]);
+  }
+}
+
+const d1 = new Float64Array(48*2), d2 = new Float64Array(48*2);
+const tx = new Float64Array(48), ty = new Float64Array(48);
+
+function meanOf(x, y){
+  let mx = 0, my = 0;
+  for (let j = 0; j < N; j++){ mx += x[j]; my += y[j]; }
+  return [mx / N, my / N];
+}
+
+function integrate(dt){
+  let [mx, my] = meanOf(X, Y);
+  deriv(X, Y, mx, my, d1);
+  for (let j = 0; j < N; j++){
+    tx[j] = X[j] + d1[2*j]*dt*0.5;
+    ty[j] = Y[j] + d1[2*j+1]*dt*0.5;
+  }
+  [mx, my] = meanOf(tx, ty);
+  deriv(tx, ty, mx, my, d2);
+  for (let j = 0; j < N; j++){
+    X[j] += d2[2*j]*dt;
+    Y[j] += d2[2*j+1]*dt;
+  }
+}
+
+function drawPlane(){
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = axisCol;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx(0), 0); ctx.lineTo(sx(0), H); ctx.stroke();
+  if (MU > 0){
+    ctx.beginPath();
+    ctx.ellipse(sx(0), sy(0), Math.sqrt(MU)/XMAX*W*0.5, Math.sqrt(MU)/YMAX*H*0.5, 0, 0, 6.2832);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  ctx.drawImage(trail, 0, 0, W, H);
+
+  const [mx, my] = meanOf(X, Y);
+  ctx.strokeStyle = meanCol;
+  ctx.fillStyle = meanCol;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(sx(0), sy(0)); ctx.lineTo(sx(mx), sy(my)); ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx(mx), sy(my), 4, 0, 6.2832); ctx.fill();
+
+  for (let j = 0; j < N; j++){
+    ctx.fillStyle = dotCol(j);
+    ctx.beginPath();
+    ctx.arc(sx(X[j]), sy(Y[j]), 5, 0, 6.2832);
+    ctx.fill();
+  }
+  return [mx, my];
+}
+
+function drawStrip(){
+  sctx.clearRect(0, 0, W, SH);
+  sctx.strokeStyle = axisCol;
+  sctx.setLineDash([3, 4]);
+  sctx.beginPath(); sctx.moveTo(0, SH/2); sctx.lineTo(W, SH/2); sctx.stroke();
+  sctx.setLineDash([]);
+  if (hLen < 2) return;
+  const amp = SH / 2 / 1.6;
+  sctx.lineWidth = 1.2;
+  for (let j = 0; j < N; j++){
+    sctx.strokeStyle = trailCol(j);
+    sctx.beginPath();
+    for (let i = 0; i < hLen; i++){
+      const idx = (hPos - hLen + i + HIST) % HIST;
+      const px = W * i / (HIST - 1);
+      const py = SH/2 - hist[j*HIST + idx] * amp;
+      if (i === 0) sctx.moveTo(px, py); else sctx.lineTo(px, py);
+    }
+    sctx.stroke();
+  }
+}
+
+let frame = 0;
+function step(){
+  if (!paused){
+    tctx.globalCompositeOperation = 'destination-out';
+    tctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.35, 0.06 * speed) + ')';
+    tctx.fillRect(0, 0, W, H);
+    tctx.globalCompositeOperation = 'source-over';
+    tctx.lineWidth = 1.6;
+    tctx.lineCap = 'round';
+
+    const sub = 2, dt = 0.014 * speed / sub;
+    for (let s = 0; s < sub; s++){
+      const px = Array.from(X), py = Array.from(Y);
+      integrate(dt);
+      for (let j = 0; j < N; j++){
+        tctx.strokeStyle = trailCol(j);
+        tctx.beginPath();
+        tctx.moveTo(sx(px[j]), sy(py[j]));
+        tctx.lineTo(sx(X[j]), sy(Y[j]));
+        tctx.stroke();
+      }
+    }
+
+    frame++;
+    if (frame % 2 === 0){
+      for (let j = 0; j < N; j++) hist[j*HIST + hPos] = X[j];
+      hPos = (hPos + 1) % HIST;
+      if (hLen < HIST) hLen++;
+    }
+  }
+  const [mx, my] = drawPlane();
+  drawStrip();
+  const R = Math.hypot(mx, my);
+  document.getElementById('order').textContent = '|⟨z⟩| = ' + R.toFixed(2);
+  requestAnimationFrame(step);
+}
+
+function updateRegime(){
+  const reg = document.getElementById('regime');
+  if (MU + dMu/2 <= 0) reg.textContent = 'All μⱼ ≤ 0: no limit cycles — everything decays to the origin';
+  else if (dMu > 0 && MU - dMu/2 < 0) reg.textContent = 'Mixed μⱼ: some oscillators are self-sustained, others decay unless driven';
+  else if (MU <= 0) reg.textContent = 'μ ≤ 0: no limit cycles — everything decays to the origin';
+  else if (K < 0.05) reg.textContent = 'Uncoupled: each oscillator sits on its own limit cycle';
+  else if (K > MU && dOm > 2 * Math.sqrt(MU * (2*K - MU))) reg.textContent = 'Strong coupling, wide spread: watch for amplitude death at the origin';
+  else if (K > dOm / 2) reg.textContent = 'Coupling dominates the frequency spread: ensemble tends to synchronize';
+  else reg.textContent = 'Weak coupling: partial coherence, drifting phases';
+}
+function updateLabels(){
+  document.getElementById('mm-out').textContent = MU.toFixed(2);
+  document.getElementById('dm-out').textContent = dMu.toFixed(1);
+  document.getElementById('nn-out').textContent = N;
+  document.getElementById('kk-out').textContent = K.toFixed(2);
+  document.getElementById('dw-out').textContent = dOm.toFixed(1);
+  document.getElementById('spd-out').textContent = speed.toFixed(2).replace(/0$/, '') + '×';
+  updateRegime();
+}
+document.getElementById('mm').addEventListener('input', e => {
+  MU = +e.target.value; setMus(); updateLabels();
+});
+document.getElementById('dm').addEventListener('input', e => {
+  dMu = +e.target.value; setMus(); updateLabels();
+});
+document.getElementById('nn').addEventListener('input', e => {
+  N = +e.target.value; init(); updateLabels();
+});
+document.getElementById('kk').addEventListener('input', e => {
+  K = +e.target.value; updateLabels();
+});
+document.getElementById('dw').addEventListener('input', e => {
+  dOm = +e.target.value; setFreqs(); updateLabels();
+});
+document.getElementById('spd').addEventListener('input', e => {
+  speed = +e.target.value; updateLabels();
+});
+document.getElementById('reset').addEventListener('click', () => { init(); });
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused;
+  e.currentTarget.textContent = paused ? 'Play' : 'Pause';
+});
+
+// =========================================================================
+// Report content height to parent page (iframe.demo-embed auto-sizing)
+// =========================================================================
+function postHeight() {
+  if (window.parent === window) return;
+  const h = document.documentElement.scrollHeight;
+  window.parent.postMessage({ type: 'demo-embed-height', height: h }, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+init();
+updateLabels();
+requestAnimationFrame(step);
+</script>
+
+</body>
+</html>

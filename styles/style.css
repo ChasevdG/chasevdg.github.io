@@ -415,6 +415,28 @@ summary {
     /* transform: translate(-50%, -50%); */
     border-radius: 20px; /* Adjust the radius for rounded corners */
     }
+/* Live HTML/JS embeds inside subtab-about-image, styled like img/video */
+.subtab-about-image .html-embed,
+.subtab-about-image iframe {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    border: none;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    text-align: left;
+}
+.subtab-about-image .html-embed {
+    padding: 16px 20px;
+    overflow-x: auto;
+}
+.subtab-about-image iframe.demo-embed {
+    height: 400px; /* fallback until the iframe reports its real content height */
+    overflow: hidden;
+}
     .subtab-about-image-logo img{
     max-width: 100%;
     max-height: 300px;

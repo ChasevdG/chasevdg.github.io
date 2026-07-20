@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Forward-Forward Algorithm — Interactive</title>
+<style>
+  :root{
+    --bg:transparent; --panel:#ffffff; --panel2:#fbfaf6;
+    --line:rgba(0,0,0,0.14); --text:#1a1a18; --muted:#5f5e5a; --surface:#f0efe9;
+    --pos:#1f9d57; --neg:#d83a3f; --thresh:#c98a00; --accent:#2f6df0;
+    --node-idle:#e9e7de; --node-stroke:#c7c5bb;
+    --edge-idle:rgba(0,0,0,0.16); --edge-pos:rgba(31,157,87,0.6); --edge-neg:rgba(216,58,63,0.6);
+    --track-bg:#ecebe3; --cell-bg:#f0efe9;
+    --digit-bg:#0a0c12; --digit-frame:#3a3a37; --face-ink:#0e1220;
+    --pos-ink:#04140b; --neg-ink:#1a0409;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:transparent; --panel:#262624; --panel2:#201f1d;
+      --line:rgba(255,255,255,0.14); --text:#f0efea; --muted:#b4b2a9; --surface:#2f2f2c;
+      --pos:#31d07d; --neg:#ff5d73; --thresh:#f7c948; --accent:#63b3ff;
+      --node-idle:#34342f; --node-stroke:#55554f;
+      --edge-idle:rgba(255,255,255,0.16); --edge-pos:rgba(49,208,125,0.55); --edge-neg:rgba(255,93,115,0.55);
+      --track-bg:#201f1d; --cell-bg:#2b2b28;
+      --digit-bg:#05070d; --digit-frame:#4a4a45; --face-ink:#0b0d14;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:16px 20px;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1{font-size:20px;margin:0 0 4px;font-weight:600}
+  h1 .ff{color:var(--accent)}
+  p.lead{color:var(--muted);margin:0 0 14px;font-size:13px;line-height:1.5}
+
+  .stage{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px 16px 10px;box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .modebar{display:flex;gap:10px;align-items:stretch;margin-bottom:10px}
+  .pill{
+    flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:10px 14px;border-radius:12px;font-size:13px;font-weight:600;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    transition:all .3s ease;
+  }
+  .pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+  .pill.pos.active{color:var(--pos-ink);background:var(--pos);border-color:var(--pos)}
+  .pill.neg.active{color:var(--neg-ink);background:var(--neg);border-color:var(--neg)}
+  .phase-note{text-align:center;font-size:13px;color:var(--muted);min-height:18px}
+
+  svg{width:100%;height:auto;display:block;overflow:visible}
+  .layerlabel{fill:var(--muted);font-size:12px;font-weight:600}
+  .goodlabel{fill:var(--text);font-size:11px;font-weight:700}
+  .caption{fill:var(--muted);font-size:11px}
+  .lblnum{fill:var(--muted);font-size:9px;font-weight:700;font-family:monospace}
+
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+  input[type=range]{accent-color:var(--accent)}
+</style>
+</head>
+<body>
+  <h1>The <span class="ff">Forward-Forward</span> Algorithm</h1>
+  <p class="lead">An MNIST digit flows through the net twice: with the correct label baked into its first pixels (positive), then with a wrong label (negative). Each layer learns locally to raise its <b>goodness</b> above threshold θ on positive data and drop it below on negative data.</p>
+
+  <div class="stage">
+    <div class="modebar">
+      <span class="pill pos" id="pill-pos"><span class="dot"></span>Positive · digit + correct label</span>
+      <span class="pill neg" id="pill-neg"><span class="dot"></span>Negative · digit + wrong label</span>
+    </div>
+    <div class="phase-note" id="phase-note"></div>
+
+    <svg id="scene" viewBox="0 0 1000 440" role="img" aria-label="Forward-Forward network with MNIST input"></svg>
+
+    <div class="controls">
+      <span class="speed">Speed
+        <input type="range" id="speed" min="0.4" max="2.2" step="0.1" value="1">
+      </span>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const svg = document.getElementById('scene');
+  const NS = 'http://www.w3.org/2000/svg';
+
+  // ---------- MNIST-style digit "7" on a 28x28 grid ----------
+  const GRID=28;
+  function makeDigit7(){
+    const c=document.createElement('canvas'); c.width=GRID; c.height=GRID;
+    const g=c.getContext('2d');
+    g.clearRect(0,0,GRID,GRID);
+    g.strokeStyle='#ffffff'; g.lineWidth=3; g.lineJoin='round'; g.lineCap='round';
+    g.beginPath(); g.moveTo(6,7); g.lineTo(22,7); g.lineTo(12.5,24); g.stroke();
+    g.lineWidth=2.4; g.beginPath(); g.moveTo(9,15.5); g.lineTo(17,15.5); g.stroke();
+    return c.toDataURL();
+  }
+  const CORRECT_LABEL=7;
+
+  // ---------- Network geometry ----------
+  const layers = [
+    {name:'MNIST input', n:0, x:130, type:'digit'},
+    {name:'Layer 1', n:5, x:400},
+    {name:'Layer 2', n:5, x:640},
+    {name:'Layer 3', n:4, x:860},
+  ];
+  const topY=72, botY=330;
+  layers.forEach(L=>{
+    L.nodes=[];
+    for(let i=0;i<L.n;i++){
+      const y = L.n===1?(topY+botY)/2 : topY + i*(botY-topY)/(L.n-1);
+      L.nodes.push({x:L.x,y});
+    }
+  });
+  function rnd(seed){ let s=Math.sin(seed)*10000; return s-Math.floor(s); }
+
+  const MOUTH={ smile:'M -5 2.5 Q 0 9 5 2.5', frown:'M -5 7.5 Q 0 1 5 7.5', flat:'M -5 5 L 5 5' };
+
+  const edges=[];
+  for(let l=1;l<layers.length-1;l++){
+    const A=layers[l].nodes, B=layers[l+1].nodes;
+    A.forEach((a,i)=>B.forEach((b,j)=>edges.push({l,a,b,w:rnd(l*97+i*13+j*7)})));
+  }
+
+  // ---------- defs ----------
+  const defs=document.createElementNS(NS,'defs');
+  defs.innerHTML=`
+    <radialGradient id="gPos" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#7dffbf"/><stop offset="100%" stop-color="#1ea866"/></radialGradient>
+    <radialGradient id="gNeg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff9aa9"/><stop offset="100%" stop-color="#e23c54"/></radialGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  svg.appendChild(defs);
+
+  // ---------- digit box ----------
+  const DBOX={x:70,y:150,size:120};
+  const digitCenter={x:DBOX.x+DBOX.size/2, y:DBOX.y+DBOX.size/2};
+  const frame=document.createElementNS(NS,'rect');
+  frame.setAttribute('x',DBOX.x); frame.setAttribute('y',DBOX.y);
+  frame.setAttribute('width',DBOX.size); frame.setAttribute('height',DBOX.size);
+  frame.setAttribute('rx',8); frame.setAttribute('fill','var(--digit-bg)'); frame.setAttribute('stroke','var(--digit-frame)');
+  svg.appendChild(frame);
+  const img=document.createElementNS(NS,'image');
+  img.setAttribute('x',DBOX.x); img.setAttribute('y',DBOX.y);
+  img.setAttribute('width',DBOX.size); img.setAttribute('height',DBOX.size);
+  img.setAttribute('preserveAspectRatio','xMidYMid meet');
+  img.setAttribute('style','image-rendering:pixelated');
+  img.setAttributeNS('http://www.w3.org/1999/xlink','href',makeDigit7());
+  img.setAttribute('href',makeDigit7());
+  svg.appendChild(img);
+
+  const dTitle=document.createElementNS(NS,'text');
+  dTitle.setAttribute('x',digitCenter.x); dTitle.setAttribute('y',topY-30);
+  dTitle.setAttribute('text-anchor','middle'); dTitle.setAttribute('class','layerlabel');
+  dTitle.textContent='MNIST input (28×28)'; svg.appendChild(dTitle);
+
+  // ---------- one-hot label row ----------
+  const LBL={x:DBOX.x, y:DBOX.y-30, w:DBOX.size, h:16};
+  const cellW=LBL.w/10;
+  const labelCaption=document.createElementNS(NS,'text');
+  labelCaption.setAttribute('x',digitCenter.x); labelCaption.setAttribute('y',LBL.y-8);
+  labelCaption.setAttribute('text-anchor','middle'); labelCaption.setAttribute('class','caption');
+  labelCaption.textContent='label written into first 10 pixels'; svg.appendChild(labelCaption);
+
+  const labelCells=[];
+  for(let i=0;i<10;i++){
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',LBL.x+i*cellW+1); r.setAttribute('y',LBL.y);
+    r.setAttribute('width',cellW-2); r.setAttribute('height',LBL.h);
+    r.setAttribute('rx',2); r.setAttribute('fill','var(--cell-bg)'); r.setAttribute('stroke','var(--line)'); r.setAttribute('stroke-width',1);
+    svg.appendChild(r); labelCells.push(r);
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x',LBL.x+i*cellW+cellW/2); t.setAttribute('y',LBL.y+LBL.h+11);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('class','lblnum');
+    t.textContent=i; svg.appendChild(t);
+  }
+
+  // ---------- fan-in edges ----------
+  const fanEls=[];
+  const fanFrom=[0.2,0.4,0.6,0.8].map(f=>({x:DBOX.x+DBOX.size, y:DBOX.y+DBOX.size*f}));
+  layers[1].nodes.forEach(b=>{
+    fanFrom.forEach(a=>{
+      const ln=document.createElementNS(NS,'line');
+      ln.setAttribute('x1',a.x); ln.setAttribute('y1',a.y);
+      ln.setAttribute('x2',b.x); ln.setAttribute('y2',b.y);
+      ln.setAttribute('stroke','var(--edge-idle)'); ln.setAttribute('stroke-width',0.7);
+      svg.appendChild(ln); fanEls.push(ln);
+    });
+  });
+
+  // ---------- hidden-layer edges ----------
+  edges.forEach(e=>{
+    const ln=document.createElementNS(NS,'line');
+    ln.setAttribute('x1',e.a.x); ln.setAttribute('y1',e.a.y);
+    ln.setAttribute('x2',e.b.x); ln.setAttribute('y2',e.b.y);
+    ln.setAttribute('stroke','var(--edge-idle)'); ln.setAttribute('stroke-width',(0.5+e.w*1.6).toFixed(2));
+    ln.setAttribute('stroke-linecap','round');
+    svg.appendChild(ln); e.el=ln;
+  });
+
+  // ---------- goodness bars ----------
+  const barTop=360;
+  layers.forEach((L,li)=>{
+    if(li===0) return;
+    const bw=90, bx=L.x-bw/2;
+    const trk=document.createElementNS(NS,'rect');
+    trk.setAttribute('x',bx); trk.setAttribute('y',barTop); trk.setAttribute('width',bw);
+    trk.setAttribute('height',10); trk.setAttribute('rx',5); trk.setAttribute('fill','var(--track-bg)'); trk.setAttribute('stroke','var(--line)');
+    svg.appendChild(trk);
+    const fill=document.createElementNS(NS,'rect');
+    fill.setAttribute('x',bx); fill.setAttribute('y',barTop); fill.setAttribute('width',0);
+    fill.setAttribute('height',10); fill.setAttribute('rx',5); fill.setAttribute('fill','var(--pos)');
+    svg.appendChild(fill); L.bar={fill,x:bx,w:bw};
+    const th=document.createElementNS(NS,'line'); const tx=bx+bw*0.5;
+    th.setAttribute('x1',tx); th.setAttribute('x2',tx); th.setAttribute('y1',barTop-4); th.setAttribute('y2',barTop+14);
+    th.setAttribute('stroke','var(--thresh)'); th.setAttribute('stroke-width',2); svg.appendChild(th);
+    const gl=document.createElementNS(NS,'text');
+    gl.setAttribute('x',L.x); gl.setAttribute('y',barTop-8); gl.setAttribute('text-anchor','middle');
+    gl.setAttribute('class','goodlabel'); gl.textContent='goodness'; svg.appendChild(gl);
+  });
+  const thCap=document.createElementNS(NS,'text');
+  thCap.setAttribute('x',layers[1].x); thCap.setAttribute('y',barTop+30);
+  thCap.setAttribute('text-anchor','middle'); thCap.setAttribute('class','caption');
+  thCap.textContent='│ = threshold θ'; svg.appendChild(thCap);
+
+  // ---------- nodes (faces) ----------
+  layers.forEach((L,li)=>{
+    if(li===0) return;
+    const lb=document.createElementNS(NS,'text');
+    lb.setAttribute('x',L.x); lb.setAttribute('y',topY-30); lb.setAttribute('text-anchor','middle');
+    lb.setAttribute('class','layerlabel'); lb.textContent=L.name; svg.appendChild(lb);
+    L.nodes.forEach(nd=>{
+      const g=document.createElementNS(NS,'g');
+      g.setAttribute('transform','translate('+nd.x+','+nd.y+')');
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('r',12); c.setAttribute('fill','var(--node-idle)');
+      c.setAttribute('stroke','var(--node-stroke)'); c.setAttribute('stroke-width',1.5);
+      const eL=document.createElementNS(NS,'circle');
+      eL.setAttribute('cx',-4.3); eL.setAttribute('cy',-3.6); eL.setAttribute('r',1.7); eL.setAttribute('fill','var(--face-ink)');
+      const eR=document.createElementNS(NS,'circle');
+      eR.setAttribute('cx',4.3); eR.setAttribute('cy',-3.6); eR.setAttribute('r',1.7); eR.setAttribute('fill','var(--face-ink)');
+      const m=document.createElementNS(NS,'path');
+      m.setAttribute('d',MOUTH.flat); m.setAttribute('fill','none');
+      m.setAttribute('stroke','var(--face-ink)'); m.setAttribute('stroke-width',1.8); m.setAttribute('stroke-linecap','round');
+      g.appendChild(c); g.appendChild(eL); g.appendChild(eR); g.appendChild(m);
+      svg.appendChild(g);
+      nd.el=c; nd.g=g; nd.mouth=m; nd.eyes=[eL,eR];
+    });
+  });
+
+  // ---------- moving pulse ----------
+  const pulse=document.createElementNS(NS,'circle');
+  pulse.setAttribute('r',7); pulse.setAttribute('filter','url(#glow)'); pulse.setAttribute('opacity','0');
+  svg.appendChild(pulse);
+
+  // ---------- state machine ----------
+  let speed=1, playing=true, tPrev=0;
+  const phases=['pos','neg'];
+  const PHASE_DUR={pos:2.8, neg:2.8};
+  const GAP=0.8; // seconds held between the two forward passes
+  let phaseIdx=0, phaseT=0, gap=0, wrongLabel=3;
+  function pickWrong(){ let w; do{ w=Math.floor(Math.random()*10); }while(w===CORRECT_LABEL); wrongLabel=w; }
+
+  const note=document.getElementById('phase-note');
+  const pill={pos:document.getElementById('pill-pos'),neg:document.getElementById('pill-neg')};
+  function setPill(a){ pill.pos.classList.toggle('active',a==='pos'); pill.neg.classList.toggle('active',a==='neg'); }
+  function nodeFill(sign){ return sign>0?'url(#gPos)':sign<0?'url(#gNeg)':'var(--node-idle)'; }
+
+  function render(){
+    const phase=phases[phaseIdx];
+    setPill(phase);
+    const sign = phase==='neg'? -1 : 1;
+
+    const activeLabel = (phase==='neg')?wrongLabel:CORRECT_LABEL;
+    const col = sign>0? 'var(--pos)':'var(--neg)';
+    labelCells.forEach((r,i)=>{
+      if(i===activeLabel){ r.setAttribute('fill',col); r.setAttribute('stroke',col); }
+      else{ r.setAttribute('fill','var(--cell-bg)'); r.setAttribute('stroke','var(--line)'); }
+    });
+    labelCaption.textContent = phase==='neg'
+      ? 'wrong label ('+wrongLabel+') written into first pixels'
+      : 'correct label (7) written into first pixels';
+
+    frame.setAttribute('stroke', sign>0?'var(--pos)':'var(--neg)');
+
+    const nHidden=layers.length-1;
+    const reach = phaseT*nHidden;
+
+    const fanOn = phaseT>0.02;
+    fanEls.forEach(ln=>{
+      if(fanOn){ ln.setAttribute('stroke', sign>0?'var(--edge-pos)':'var(--edge-neg)'); ln.setAttribute('stroke-width',1.1); }
+      else{ ln.setAttribute('stroke','var(--edge-idle)'); ln.setAttribute('stroke-width',0.7); }
+    });
+
+    layers.forEach((L,li)=>{
+      if(li===0) return;
+      const lit = li <= reach+0.15;
+      L.nodes.forEach(nd=>{
+        if(lit){
+          nd.el.setAttribute('fill',nodeFill(sign));
+          nd.mouth.setAttribute('d', sign>0?MOUTH.smile:MOUTH.frown);
+          const s=1+0.22*Math.abs(Math.sin(phaseT*Math.PI*3+li));
+          nd.g.setAttribute('transform','translate('+nd.x+','+nd.y+') scale('+s.toFixed(3)+')');
+        } else {
+          nd.el.setAttribute('fill','var(--node-idle)');
+          nd.mouth.setAttribute('d',MOUTH.flat);
+          nd.g.setAttribute('transform','translate('+nd.x+','+nd.y+')');
+        }
+      });
+    });
+
+    edges.forEach(e=>{
+      const active = e.l <= reach;
+      if(active){ e.el.setAttribute('stroke', sign>0?'var(--edge-pos)':'var(--edge-neg)'); e.el.setAttribute('stroke-width',(0.7+e.w*2).toFixed(2)); }
+      else{ e.el.setAttribute('stroke','var(--edge-idle)'); e.el.setAttribute('stroke-width',(0.5+e.w*1.6).toFixed(2)); }
+    });
+
+    pulse.setAttribute('opacity','0.95');
+    const x0=digitCenter.x, x1=layers[layers.length-1].x;
+    pulse.setAttribute('cx', x0+(x1-x0)*phaseT);
+    pulse.setAttribute('cy', (topY+botY)/2 + 24*Math.sin(phaseT*Math.PI*2));
+    pulse.setAttribute('fill', sign>0?'#a6ffcf':'#ffb3be');
+
+    layers.forEach((L,li)=>{
+      if(li===0||!L.bar) return;
+      const lit = li<=reach;
+      const target = sign>0? 0.86:0.16;
+      const g = lit? Math.max(0.03,Math.min(target,target*(reach-li+1))) : 0.03;
+      L.bar.fill.setAttribute('width',(L.bar.w*g).toFixed(1));
+      L.bar.fill.setAttribute('fill', sign>0?'var(--pos)':'var(--neg)');
+    });
+
+    note.textContent = phase==='pos'
+      ? 'Digit + correct label flows forward → goodness climbs above θ ✓'
+      : 'Digit + wrong label flows forward → goodness drops below θ ✗';
+  }
+
+  function advancePhase(){
+    phaseIdx=(phaseIdx+1)%phases.length;
+    if(phases[phaseIdx]==='neg') pickWrong();
+    phaseT=0;
+  }
+  function loop(ts){
+    if(!tPrev) tPrev=ts;
+    const dt=(ts-tPrev)/1000; tPrev=ts;
+    if(playing){
+      if(gap>0){
+        gap-=dt;               // hold the completed pass briefly
+        if(gap<=0) advancePhase();
+      } else {
+        phaseT+=dt*speed/PHASE_DUR[phases[phaseIdx]];
+        if(phaseT>=1){ phaseT=1; gap=GAP; }
+      }
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('speed').oninput=e=>{ speed=parseFloat(e.target.value); };
+  render();
+  requestAnimationFrame(loop);
+
+  // ---------- report height to parent (iframe.demo-embed auto-sizing) ----------
+  function postHeight(){
+    if(window.parent===window) return;
+    window.parent.postMessage({type:'demo-embed-height', height:document.documentElement.scrollHeight}, '*');
+  }
+  window.addEventListener('load', postHeight);
+  window.addEventListener('resize', postHeight);
+  if(window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+})();
+</script>
+</body>
+</html>

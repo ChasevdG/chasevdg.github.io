@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kuramoto Model — Interactive</title>
+<style>
+  :root {
+    --surface-1: #f5f4ee;
+    --panel: #ffffff;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --text-primary: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-muted: #888780;
+    --accent: #F5A800;
+    --accent-strong: #BA7517;
+    --radius: 8px;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #262624;
+      --panel: #1f1f1e;
+      --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3);
+      --text-primary: #f0efea;
+      --text-secondary: #b4b2a9;
+      --text-muted: #888780;
+      --accent: #F5A800;
+      --accent-strong: #F5A800;
+    }
+    body { background: #1a1a18; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 16px 20px;
+    background: #ffffff;
+    color: var(--text-primary);
+  }
+  h1 { font-size: 20px; margin: 0 0 8px 0; font-weight: 600; }
+  p.lead { color: var(--text-secondary); margin: 0 0 16px 0; font-size: 13px; }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    padding: 8px 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active {
+    color: var(--accent-strong);
+    border-bottom-color: var(--accent-strong);
+  }
+
+  .group { margin-bottom: 12px; }
+  .group h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin: 4px 0 8px 0;
+    font-weight: 600;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 90px 1fr 50px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .row label { font-size: 13px; }
+  .row .val {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  input[type="number"], select {
+    font-size: 13px;
+    padding: 4px 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-primary);
+    width: 100%;
+  }
+  .row-narrow { grid-template-columns: 90px 1fr; }
+  .checkbox-row {
+    display: flex;
+    gap: 14px;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .checkbox-row label { display: flex; align-items: center; gap: 4px; }
+  input[type="checkbox"] { accent-color: var(--accent); }
+
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+  button.primary {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--accent);
+    color: #1a1a18;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  button.primary:hover { background: #e09a00; }
+  button.secondary {
+    padding: 8px 12px;
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button.secondary:hover { background: var(--surface-1); }
+
+  .viz { display: grid; grid-template-rows: 1fr auto auto; gap: 10px; }
+  .canvas-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    position: relative;
+  }
+  canvas { display: block; width: 100%; }
+  #network { aspect-ratio: 1.6/1; }
+  #order { aspect-ratio: 4/1; }
+
+  .playback {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .playback input[type="range"] { flex: 1; }
+  .playback .time {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    min-width: 130px;
+    font-family: var(--font-mono);
+  }
+  .play-btn {
+    width: 32px; height: 32px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .play-btn:hover { background: var(--surface-1); }
+
+  .status {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    min-height: 16px;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>Kuramoto Model — Interactive</h1>
+<p class="lead">Choose a graph type, tune parameters, and click <strong>Run</strong> to simulate. Each oscillator's phase is shown by its hue; <em>r(t)</em> tracks the mean-field order parameter.</p>
+
+<div class="layout">
+
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" data-graph="grid">Grid 2D</button>
+      <button class="tab" data-graph="erdos-renyi">Erdős–Rényi</button>
+      <button class="tab" data-graph="hyperbolic">Hyperbolic</button>
+      <button class="tab" data-graph="line-1d">Line 1D</button>
+    </div>
+
+    <!-- Graph-specific controls -->
+    <div class="group params-grid" data-graph="grid">
+      <h3>Grid parameters</h3>
+      <div class="row"><label for="grid_L">L (side)</label>
+        <input type="range" id="grid_L" min="3" max="100" step="1" value="8">
+        <span class="val" id="grid_L_v">8</span></div>
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="grid_px" checked> wrap X</label>
+        <label><input type="checkbox" id="grid_py" checked> wrap Y</label>
+      </div>
+    </div>
+
+    <div class="group params-erdos-renyi hidden" data-graph="erdos-renyi">
+      <h3>Erdős–Rényi parameters</h3>
+      <div class="row"><label for="er_N">N (nodes)</label>
+        <input type="range" id="er_N" min="10" max="300" step="1" value="50">
+        <span class="val" id="er_N_v">50</span></div>
+      <div class="row"><label for="er_p">p (edge prob.)</label>
+        <input type="range" id="er_p" min="0.005" max="0.5" step="0.005" value="0.05">
+        <span class="val" id="er_p_v">0.050</span></div>
+    </div>
+
+    <div class="group params-hyperbolic hidden" data-graph="hyperbolic">
+      <h3>Hyperbolic parameters</h3>
+      <div class="row"><label for="hyp_N">N (nodes)</label>
+        <input type="range" id="hyp_N" min="10" max="300" step="1" value="50">
+        <span class="val" id="hyp_N_v">50</span></div>
+      <div class="row"><label for="hyp_alpha">α</label>
+        <input type="range" id="hyp_alpha" min="0.3" max="2" step="0.05" value="0.9">
+        <span class="val" id="hyp_alpha_v">0.90</span></div>
+    </div>
+
+    <div class="group params-line-1d hidden" data-graph="line-1d">
+      <h3>Line 1D parameters</h3>
+      <div class="row"><label for="line_N">N (nodes)</label>
+        <input type="range" id="line_N" min="5" max="200" step="1" value="30">
+        <span class="val" id="line_N_v">30</span></div>
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="line_periodic"> periodic (ring)</label>
+      </div>
+    </div>
+
+    <!-- Common dynamics controls -->
+    <div class="group">
+      <h3>Dynamics</h3>
+      <div class="row"><label for="K">K (coupling)</label>
+        <input type="range" id="K" min="0" max="20" step="0.1" value="2.5">
+        <span class="val" id="K_v">2.5</span></div>
+      <div class="row"><label for="T">T (sim time)</label>
+        <input type="range" id="T" min="5" max="200" step="1" value="40">
+        <span class="val" id="T_v">40</span></div>
+      <div class="row"><label for="dt">dt</label>
+        <input type="range" id="dt" min="0.01" max="0.2" step="0.01" value="0.05">
+        <span class="val" id="dt_v">0.05</span></div>
+      <div class="row"><label for="omega_mode">ω sample</label>
+        <select id="omega_mode">
+          <option value="random" selected>standard normal</option>
+          <option value="one">all ω = 1</option>
+          <option value="zero">all ω = 0</option>
+        </select>
+        <span></span>
+      </div>
+      <div class="row"><label for="seed">seed</label>
+        <input type="number" id="seed" value="0" step="1">
+        <span></span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="run">Run simulation</button>
+      <button class="secondary" id="random_seed" title="Random seed and run">🎲</button>
+    </div>
+    <div class="status" id="status">Ready.</div>
+  </div>
+
+  <div class="viz">
+    <div class="canvas-wrap"><canvas id="network"></canvas></div>
+    <div class="canvas-wrap"><canvas id="order"></canvas></div>
+    <div class="playback">
+      <button class="play-btn" id="play">▶</button>
+      <input type="range" id="step_slider" min="0" max="0" value="0" step="1">
+      <span class="time" id="time_label">t = 0.00 / 0.00</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =========================================================================
+// Seeded RNG  (mulberry32 + Box-Muller for normal samples)
+// =========================================================================
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function() {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function makeRng(seed) {
+  const r = mulberry32(seed);
+  let spare = null;
+  return {
+    random: r,
+    standardNormal() {
+      if (spare !== null) { const v = spare; spare = null; return v; }
+      let u, v, s;
+      do { u = 2*r() - 1; v = 2*r() - 1; s = u*u + v*v; } while (s >= 1 || s === 0);
+      const f = Math.sqrt(-2*Math.log(s)/s);
+      spare = v*f; return u*f;
+    },
+    uniform(a, b) { return a + (b-a)*r(); },
+    randint(n) { return Math.floor(r() * n); }
+  };
+}
+
+// =========================================================================
+// Graph builders — each returns { adj: Int32Array[], xy: [[x,y],...], N }
+// =========================================================================
+function gridGraph(L, periodicX, periodicY) {
+  const N = L*L;
+  const edges = [];
+  for (let y = 0; y < L; y++) {
+    for (let x = 0; x < L; x++) {
+      const i = y*L + x;
+      // right neighbor
+      if (x < L-1) edges.push([i, y*L + x+1]);
+      else if (periodicX && L > 2) edges.push([i, y*L]);
+      // down neighbor
+      if (y < L-1) edges.push([i, (y+1)*L + x]);
+      else if (periodicY && L > 2) edges.push([i, x]);
+    }
+  }
+  const xy = [];
+  for (let i = 0; i < N; i++) xy.push([i % L, Math.floor(i/L)]);
+  return finalize(N, edges, xy);
+}
+
+function lineGraph(N, periodic) {
+  const edges = [];
+  for (let i = 0; i < N-1; i++) edges.push([i, i+1]);
+  if (periodic && N > 2) edges.push([0, N-1]);
+  let xy;
+  if (periodic) {
+    xy = [];
+    for (let i = 0; i < N; i++) {
+      const a = 2*Math.PI*i/N;
+      xy.push([Math.cos(a), Math.sin(a)]);
+    }
+  } else {
+    xy = [];
+    for (let i = 0; i < N; i++) xy.push([i, 0]);
+  }
+  return finalize(N, edges, xy);
+}
+
+function erdosRenyi(N, p, rng) {
+  const A = Array.from({length: N}, () => new Uint8Array(N));
+  const edges = [];
+  for (let i = 0; i < N; i++)
+    for (let j = i+1; j < N; j++)
+      if (rng.random() < p) { A[i][j] = 1; A[j][i] = 1; edges.push([i, j]); }
+  ensureConnected(N, A, edges, null, rng);
+  const xy = [];
+  for (let i = 0; i < N; i++) {
+    const a = 2*Math.PI*i/N;
+    xy.push([Math.cos(a), Math.sin(a)]);
+  }
+  return finalize(N, edges, xy);
+}
+
+function hyperbolicGraph(N, alpha, rng) {
+  const R = 2*Math.log(N);
+  const r_hyp = new Float64Array(N), phi = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    const u = rng.random();
+    r_hyp[i] = Math.acosh(1 + u*(Math.cosh(alpha*R) - 1)) / alpha;
+    phi[i] = 2*Math.PI*rng.random();
+  }
+  const A = Array.from({length: N}, () => new Uint8Array(N));
+  const edges = [];
+  const D = Array.from({length: N}, () => new Float64Array(N)); // distances
+  for (let i = 0; i < N; i++) {
+    D[i][i] = 0;
+    for (let j = i+1; j < N; j++) {
+      const cosDphi = Math.cos(phi[i] - phi[j]);
+      let coshD = Math.cosh(r_hyp[i])*Math.cosh(r_hyp[j])
+                 - Math.sinh(r_hyp[i])*Math.sinh(r_hyp[j])*cosDphi;
+      if (coshD < 1) coshD = 1;
+      const d = Math.acosh(coshD);
+      D[i][j] = d; D[j][i] = d;
+      if (d < R) { A[i][j] = 1; A[j][i] = 1; edges.push([i, j]); }
+    }
+  }
+  ensureConnected(N, A, edges, D, rng);
+  const xy = [];
+  for (let i = 0; i < N; i++) {
+    const re = Math.tanh(r_hyp[i]/2);
+    xy.push([re*Math.cos(phi[i]), re*Math.sin(phi[i])]);
+  }
+  return finalize(N, edges, xy);
+}
+
+// =========================================================================
+// Connected-component helpers (BFS)
+// =========================================================================
+function components(N, A) {
+  const visited = new Uint8Array(N);
+  const comps = [];
+  for (let s = 0; s < N; s++) {
+    if (visited[s]) continue;
+    const stack = [s], comp = [];
+    visited[s] = 1;
+    while (stack.length) {
+      const i = stack.pop();
+      comp.push(i);
+      for (let j = 0; j < N; j++) {
+        if (A[i][j] && !visited[j]) { visited[j] = 1; stack.push(j); }
+      }
+    }
+    comps.push(comp);
+  }
+  return comps;
+}
+
+function ensureConnected(N, A, edges, D, rng) {
+  let comps = components(N, A);
+  while (comps.length > 1) {
+    const anchor = comps[0];
+    let bestI = -1, bestJ = -1, bestK = 1, bestD = Infinity;
+    if (D !== null) {
+      for (let k = 1; k < comps.length; k++) {
+        for (const i of anchor) {
+          for (const j of comps[k]) {
+            if (D[i][j] < bestD) { bestD = D[i][j]; bestI = i; bestJ = j; bestK = k; }
+          }
+        }
+      }
+    } else {
+      bestI = anchor[rng.randint(anchor.length)];
+      bestJ = comps[1][rng.randint(comps[1].length)];
+      bestK = 1;
+    }
+    A[bestI][bestJ] = 1; A[bestJ][bestI] = 1;
+    edges.push([bestI, bestJ]);
+    comps[0] = comps[0].concat(comps[bestK]);
+    comps.splice(bestK, 1);
+  }
+}
+
+function finalize(N, edges, xy) {
+  const adjArr = Array.from({length: N}, () => []);
+  for (const [i, j] of edges) {
+    adjArr[i].push(j);
+    if (i !== j) adjArr[j].push(i);
+  }
+  const adj = adjArr.map(a => Int32Array.from(a));
+  return { N, adj, xy, edges };
+}
+
+// =========================================================================
+// Kuramoto RHS + RK4 integrator
+// =========================================================================
+function kuramotoRhs(theta, omega, K, adj, deg, sin_t, cos_t, out) {
+  const N = theta.length;
+  for (let i = 0; i < N; i++) { sin_t[i] = Math.sin(theta[i]); cos_t[i] = Math.cos(theta[i]); }
+  for (let i = 0; i < N; i++) {
+    const nb = adj[i];
+    let sumSin = 0, sumCos = 0;
+    for (let k = 0; k < nb.length; k++) {
+      const j = nb[k];
+      sumSin += sin_t[j];
+      sumCos += cos_t[j];
+    }
+    // (1/deg) sum_j sin(theta_j - theta_i) = (cos_i*sumSin - sin_i*sumCos)/deg
+    out[i] = omega[i] + (K / deg[i]) * (cos_t[i]*sumSin - sin_t[i]*sumCos);
+  }
+}
+
+function integrate(theta0, omega, K, adj, deg, T, dt) {
+  const N = theta0.length;
+  const steps = Math.floor(T / dt);
+  // Subsample to keep memory reasonable: at most ~1500 frames
+  const frameStride = Math.max(1, Math.ceil(steps / 1500));
+  const nFrames = Math.floor(steps / frameStride) + 1;
+  const theta_hist = new Float32Array(nFrames * N);
+  const r_hist = new Float32Array(nFrames);
+  const time = new Float32Array(nFrames);
+
+  let theta = new Float64Array(theta0);
+  const k1 = new Float64Array(N), k2 = new Float64Array(N),
+        k3 = new Float64Array(N), k4 = new Float64Array(N);
+  const tmp = new Float64Array(N);
+  const sin_t = new Float64Array(N), cos_t = new Float64Array(N);
+  const TWO_PI = 2*Math.PI;
+
+  let frameIdx = 0;
+  // record initial frame
+  for (let i = 0; i < N; i++) theta_hist[i] = theta[i];
+  r_hist[0] = orderParameter(theta);
+  time[0] = 0;
+  frameIdx = 1;
+
+  for (let s = 0; s < steps; s++) {
+    kuramotoRhs(theta, omega, K, adj, deg, sin_t, cos_t, k1);
+    for (let i = 0; i < N; i++) tmp[i] = theta[i] + 0.5*dt*k1[i];
+    kuramotoRhs(tmp, omega, K, adj, deg, sin_t, cos_t, k2);
+    for (let i = 0; i < N; i++) tmp[i] = theta[i] + 0.5*dt*k2[i];
+    kuramotoRhs(tmp, omega, K, adj, deg, sin_t, cos_t, k3);
+    for (let i = 0; i < N; i++) tmp[i] = theta[i] + dt*k3[i];
+    kuramotoRhs(tmp, omega, K, adj, deg, sin_t, cos_t, k4);
+    for (let i = 0; i < N; i++) {
+      let v = theta[i] + (dt/6)*(k1[i] + 2*k2[i] + 2*k3[i] + k4[i]);
+      v = v % TWO_PI; if (v < 0) v += TWO_PI;
+      theta[i] = v;
+    }
+    if ((s+1) % frameStride === 0 && frameIdx < nFrames) {
+      for (let i = 0; i < N; i++) theta_hist[frameIdx*N + i] = theta[i];
+      r_hist[frameIdx] = orderParameter(theta);
+      time[frameIdx] = (s+1)*dt;
+      frameIdx++;
+    }
+  }
+  return {
+    theta_hist, r_hist, time,
+    nFrames: frameIdx, N
+  };
+}
+
+function orderParameter(theta) {
+  let cx = 0, cy = 0;
+  for (let i = 0; i < theta.length; i++) {
+    cx += Math.cos(theta[i]); cy += Math.sin(theta[i]);
+  }
+  return Math.sqrt(cx*cx + cy*cy) / theta.length;
+}
+
+// =========================================================================
+// Drawing
+// =========================================================================
+// =========================================================================
+// Theme palette for canvas drawing (follows prefers-color-scheme)
+// =========================================================================
+const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+function makePalette() {
+  return darkMq.matches ? {
+    text: '#f0efea', muted: '#b4b2a9', grid: '#33332f', axis: '#5f5e5a',
+    edge: '#3a3a36', nodeStroke: 'rgba(255,255,255,0.3)', phase: 'rgba(255,255,255,0.65)',
+    curve: '#F5A800', marker: '#f87171'
+  } : {
+    text: '#1a1a18', muted: '#5f5e5a', grid: '#eeeeee', axis: '#bbbbbb',
+    edge: '#d8d6ce', nodeStroke: 'rgba(0,0,0,0.25)', phase: 'rgba(0,0,0,0.55)',
+    curve: '#BA7517', marker: '#dc2626'
+  };
+}
+let PAL = makePalette();
+if (darkMq.addEventListener) darkMq.addEventListener('change', () => { PAL = makePalette(); if (state.sim) draw(); });
+
+function hsvToRgb(h, s, v) {
+  // h in [0,1], s,v in [0,1]
+  const i = Math.floor(h*6);
+  const f = h*6 - i;
+  const p = v*(1-s), q = v*(1-f*s), t = v*(1-(1-f)*s);
+  let r, g, b;
+  switch (i % 6) {
+    case 0: r=v; g=t; b=p; break;
+    case 1: r=q; g=v; b=p; break;
+    case 2: r=p; g=v; b=t; break;
+    case 3: r=p; g=q; b=v; break;
+    case 4: r=t; g=p; b=v; break;
+    case 5: r=v; g=p; b=q; break;
+  }
+  return `rgb(${(r*255)|0},${(g*255)|0},${(b*255)|0})`;
+}
+
+function fitCanvasToCSS(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, Math.round(r.width * dpr));
+  canvas.height = Math.max(1, Math.round(r.height * dpr));
+  return dpr;
+}
+
+function drawNetwork(canvas, sim, frame) {
+  const ctx = canvas.getContext('2d');
+  const dpr = fitCanvasToCSS(canvas);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = canvas.width / dpr, H = canvas.height / dpr;
+  ctx.clearRect(0, 0, W, H);
+
+  const xy = sim.xy, N = sim.N;
+  let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+  for (const [x, y] of xy) {
+    if (x < xmin) xmin = x;
+    if (x > xmax) xmax = x;
+    if (y < ymin) ymin = y;
+    if (y > ymax) ymax = y;
+  }
+  if (xmin === xmax) { xmin -= 1; xmax += 1; }
+  if (ymin === ymax) { ymin -= 0.5; ymax += 0.5; }
+
+  // Compute node radius from typical inter-node distance
+  let medMin = 0;
+  if (N > 1) {
+    const samples = Math.min(N, 60);
+    const mins = [];
+    for (let i = 0; i < samples; i++) {
+      const idx = Math.floor(i * N / samples);
+      let best = Infinity;
+      for (let j = 0; j < N; j++) {
+        if (j === idx) continue;
+        const dx = xy[idx][0]-xy[j][0], dy = xy[idx][1]-xy[j][1];
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < best) best = d;
+      }
+      mins.push(best);
+    }
+    mins.sort((a,b)=>a-b);
+    medMin = mins[Math.floor(mins.length/2)];
+  } else medMin = 1;
+
+  const dataW = (xmax-xmin), dataH = (ymax-ymin);
+  const pad = 0.06 * Math.max(dataW, dataH) + 1.5*medMin;
+  const sx = (W - 20) / (dataW + 2*pad);
+  const sy = (H - 20) / (dataH + 2*pad);
+  const scale = Math.min(sx, sy);
+  const ox = 10 + (W - 20 - scale*(dataW + 2*pad))/2 - scale*(xmin - pad);
+  const oy = 10 + (H - 20 - scale*(dataH + 2*pad))/2 - scale*(ymin - pad);
+  const project = (x, y) => [ox + scale*x, oy + scale*y];
+  const radiusPx = Math.max(2.5, Math.min(18, 0.42 * medMin * scale));
+
+  // Edges
+  ctx.strokeStyle = PAL.edge;
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  for (const [i, j] of sim.edges) {
+    // Skip lattice wrap-around edges to avoid visual clutter on grids
+    const dx = xy[i][0]-xy[j][0], dy = xy[i][1]-xy[j][1];
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 3*medMin) continue;
+    const [x1, y1] = project(xy[i][0], xy[i][1]);
+    const [x2, y2] = project(xy[j][0], xy[j][1]);
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  }
+  ctx.stroke();
+
+  // Nodes (filled disc colored by phase)
+  const TWO_PI = 2*Math.PI;
+  const offset = frame * N;
+  for (let i = 0; i < N; i++) {
+    const th = sim.theta_hist[offset + i];
+    const [px, py] = project(xy[i][0], xy[i][1]);
+    ctx.fillStyle = hsvToRgb(th / TWO_PI, 0.85, 0.95);
+    ctx.beginPath();
+    ctx.arc(px, py, radiusPx, 0, TWO_PI);
+    ctx.fill();
+    ctx.strokeStyle = PAL.nodeStroke;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    // Phase indicator: small line from center
+    const lx = px + Math.cos(th)*radiusPx*0.95;
+    const ly = py + Math.sin(th)*radiusPx*0.95;
+    ctx.strokeStyle = PAL.phase;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px, py); ctx.lineTo(lx, ly);
+    ctx.stroke();
+  }
+
+  // Title text
+  ctx.fillStyle = PAL.text;
+  ctx.font = '12px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  const t = sim.time[frame];
+  const r = sim.r_hist[frame];
+  ctx.fillText(`t = ${t.toFixed(2)}    r = ${r.toFixed(3)}    N = ${N}`, 10, 18);
+}
+
+function drawOrder(canvas, sim, frame) {
+  const ctx = canvas.getContext('2d');
+  const dpr = fitCanvasToCSS(canvas);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = canvas.width/dpr, H = canvas.height/dpr;
+  ctx.clearRect(0, 0, W, H);
+
+  const padL = 36, padR = 12, padT = 8, padB = 22;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const Tmax = sim.time[sim.nFrames-1];
+
+  // Axes
+  ctx.strokeStyle = PAL.axis; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT+plotH);
+  ctx.lineTo(padL+plotW, padT+plotH);
+  ctx.stroke();
+
+  // Y ticks (0, 0.5, 1)
+  ctx.fillStyle = PAL.muted; ctx.font = '10px -apple-system, sans-serif';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const yv of [0, 0.5, 1]) {
+    const py = padT + plotH*(1 - yv);
+    ctx.strokeStyle = PAL.grid;
+    ctx.beginPath(); ctx.moveTo(padL, py); ctx.lineTo(padL+plotW, py); ctx.stroke();
+    ctx.fillText(yv.toFixed(1), padL-4, py);
+  }
+  // X ticks
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let k = 0; k <= 4; k++) {
+    const tv = Tmax * k/4;
+    const px = padL + plotW * k/4;
+    ctx.fillStyle = PAL.muted;
+    ctx.fillText(tv.toFixed(1), px, padT+plotH+4);
+  }
+  // Labels
+  ctx.fillStyle = PAL.text;
+  ctx.textAlign = 'left';
+  ctx.fillText('r(t)', padL-30, padT-2);
+
+  // Curve
+  ctx.strokeStyle = PAL.curve;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for (let k = 0; k < sim.nFrames; k++) {
+    const px = padL + plotW * (sim.time[k]/Tmax);
+    const py = padT + plotH * (1 - sim.r_hist[k]);
+    if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Marker
+  const mx = padL + plotW * (sim.time[frame]/Tmax);
+  const my = padT + plotH * (1 - sim.r_hist[frame]);
+  ctx.fillStyle = PAL.marker;
+  ctx.beginPath();
+  ctx.arc(mx, my, 4, 0, Math.PI*2); ctx.fill();
+}
+
+// =========================================================================
+// UI wiring
+// =========================================================================
+const state = {
+  graph: 'grid',
+  sim: null,
+  frame: 0,
+  playing: false,
+};
+
+const ui = {
+  tabs:        document.querySelectorAll('.tab'),
+  paramPanels: {
+    'grid':        document.querySelector('[data-graph="grid"].group'),
+    'erdos-renyi': document.querySelector('[data-graph="erdos-renyi"].group'),
+    'hyperbolic':  document.querySelector('[data-graph="hyperbolic"].group'),
+    'line-1d':     document.querySelector('[data-graph="line-1d"].group'),
+  },
+  network: document.getElementById('network'),
+  order:   document.getElementById('order'),
+  slider:  document.getElementById('step_slider'),
+  timeLabel: document.getElementById('time_label'),
+  playBtn: document.getElementById('play'),
+  status:  document.getElementById('status'),
+};
+
+// Bind range sliders to their value displays
+function bindRange(id, fmt = v => v) {
+  const el = document.getElementById(id);
+  const out = document.getElementById(id+'_v');
+  if (!el || !out) return;
+  const update = () => out.textContent = fmt(el.value);
+  el.addEventListener('input', update); update();
+}
+bindRange('grid_L');
+bindRange('er_N');
+bindRange('er_p', v => Number(v).toFixed(3));
+bindRange('hyp_N');
+bindRange('hyp_alpha', v => Number(v).toFixed(2));
+bindRange('line_N');
+bindRange('K', v => Number(v).toFixed(1));
+bindRange('T');
+bindRange('dt', v => Number(v).toFixed(2));
+
+ui.tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    state.graph = tab.dataset.graph;
+    ui.tabs.forEach(t => t.classList.toggle('active', t === tab));
+    for (const [g, panel] of Object.entries(ui.paramPanels)) {
+      panel.classList.toggle('hidden', g !== state.graph);
+    }
+  });
+});
+
+document.getElementById('run').addEventListener('click', runSimulation);
+document.getElementById('random_seed').addEventListener('click', () => {
+  document.getElementById('seed').value = Math.floor(Math.random()*1e9);
+  runSimulation();
+});
+
+ui.slider.addEventListener('input', () => {
+  state.frame = +ui.slider.value;
+  draw();
+});
+
+ui.playBtn.addEventListener('click', () => {
+  state.playing = !state.playing;
+  ui.playBtn.textContent = state.playing ? '⏸' : '▶';
+  if (state.playing) animate();
+});
+
+function animate() {
+  if (!state.playing || !state.sim) return;
+  state.frame = (state.frame + 1) % state.sim.nFrames;
+  ui.slider.value = state.frame;
+  draw();
+  requestAnimationFrame(animate);
+}
+
+function buildGraph(rng) {
+  const g = state.graph;
+  if (g === 'grid') {
+    const L = +document.getElementById('grid_L').value;
+    return gridGraph(L,
+      document.getElementById('grid_px').checked,
+      document.getElementById('grid_py').checked);
+  }
+  if (g === 'line-1d') {
+    return lineGraph(+document.getElementById('line_N').value,
+      document.getElementById('line_periodic').checked);
+  }
+  if (g === 'erdos-renyi') {
+    return erdosRenyi(+document.getElementById('er_N').value,
+      +document.getElementById('er_p').value, rng);
+  }
+  if (g === 'hyperbolic') {
+    return hyperbolicGraph(+document.getElementById('hyp_N').value,
+      +document.getElementById('hyp_alpha').value, rng);
+  }
+}
+
+function runSimulation() {
+  ui.status.textContent = 'Building graph…';
+  // Defer to next frame so the status update paints
+  setTimeout(() => {
+    try {
+      const seed = +document.getElementById('seed').value | 0;
+      const rng = makeRng(seed);
+      const t0 = performance.now();
+      const G = buildGraph(rng);
+      const N = G.N;
+      const omega = new Float64Array(N);
+      const omegaMode = document.getElementById('omega_mode').value;
+      for (let i = 0; i < N; i++) {
+        if (omegaMode === 'random') omega[i] = rng.standardNormal();
+        else if (omegaMode === 'one') omega[i] = 1;
+        else omega[i] = 0;
+      }
+      const theta0 = new Float64Array(N);
+      for (let i = 0; i < N; i++) theta0[i] = rng.uniform(0, 2*Math.PI);
+      const deg = new Float64Array(N);
+      for (let i = 0; i < N; i++) deg[i] = Math.max(1, G.adj[i].length);
+      const K = +document.getElementById('K').value;
+      const T = +document.getElementById('T').value;
+      const dt = +document.getElementById('dt').value;
+      ui.status.textContent = 'Integrating…';
+
+      setTimeout(() => {
+        const result = integrate(theta0, omega, K, G.adj, deg, T, dt);
+        const sim = {
+          ...result,
+          xy: G.xy,
+          edges: G.edges,
+        };
+        state.sim = sim;
+        state.frame = 0;
+        ui.slider.min = 0;
+        ui.slider.max = sim.nFrames - 1;
+        ui.slider.value = 0;
+        const ms = (performance.now() - t0).toFixed(0);
+        ui.status.textContent =
+          `Done — ${state.graph}, N = ${N}, ${sim.nFrames} frames, ${ms} ms.`;
+        draw();
+      }, 10);
+    } catch (e) {
+      ui.status.textContent = 'Error: ' + e.message;
+      console.error(e);
+    }
+  }, 10);
+}
+
+function draw() {
+  if (!state.sim) return;
+  drawNetwork(ui.network, state.sim, state.frame);
+  drawOrder(ui.order, state.sim, state.frame);
+  const t = state.sim.time[state.frame];
+  const Tmax = state.sim.time[state.sim.nFrames-1];
+  ui.timeLabel.textContent = `t = ${t.toFixed(2)} / ${Tmax.toFixed(2)}    r = ${state.sim.r_hist[state.frame].toFixed(3)}`;
+}
+
+window.addEventListener('resize', () => { if (state.sim) draw(); });
+
+// =========================================================================
+// Report content height to parent page (iframe.demo-embed auto-sizing)
+// =========================================================================
+function postHeight() {
+  if (window.parent === window) return;
+  const h = document.documentElement.scrollHeight;
+  window.parent.postMessage({ type: 'demo-embed-height', height: h }, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// Initial run
+runSimulation();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!-- status: draft -->
+<div class="subtab-about-header" style="text-align: center;">
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        <strong>Synchronizing applause with the Kuramoto model.</strong>
+        When an audience claps, individual clappers with different natural tempos can spontaneously fall into a common rhythm.
+        This is a textbook instance of the <strong>Kuramoto model</strong> of coupled phase oscillators.
+        This post embeds a live demo: each pair of hands is an oscillator, a monitor spikes on every clap, and the phases are shown on the complex unit circle.
+        It also demonstrates that <code>subtab-about-image</code> blocks can embed a live demo straight from its own standalone HTML file.
+      </p>
+    </div>
+  </div>
+</div>
+
+<h2>The Model</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Each clapper $i$ carries a phase $\theta_i(t)$ that advances at its natural frequency $\omega_i$, and the displayed animation frame is a pure function of that phase: the hands close as $\bigl(\tfrac{1-\cos\theta_i}{2}\bigr)^{0.6}$ and a clap fires each time $\theta_i$ crosses $\pi \pmod{2\pi}$.
+      Coupling ties the ensemble together through the mean field
+      $$r e^{i\psi} = \frac{1}{N}\sum_{j=1}^{N} e^{i\theta_j},$$
+      giving the dynamics
+      $$\dot{\theta}_i = \omega_i + K r \sin(\psi - \theta_i).$$
+      The order parameter $r \in [0,1]$ measures coherence: $r \approx 0$ for scattered phases, $r = 1$ for perfect sync.
+      For two oscillators, phase-locking requires $K > |\omega_1 - \omega_2| / 2$; below threshold the phases drift past each other forever.
+      Because the coupling strength each oscillator feels is proportional to $r$, synchronization is self-reinforcing — once a few clappers lock, $r$ grows and drags in the stragglers.
+    </p>
+  </div>
+</div>
+
+<h2>Live Demo</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Each clapper $i$ carries a phase $\theta_i(t)$ that advances at its natural frequency $\omega_i$, and the displayed animation frame is a pure function of that phase: the hands close as $\bigl(\tfrac{1-\cos\theta_i}{2}\bigr)^{0.6}$ and a clap fires each time $\theta_i$ crosses $\pi \pmod{2\pi}$.
+      Coupling ties the ensemble together through the mean field
+      $$r e^{i\psi} = \frac{1}{N}\sum_{j=1}^{N} e^{i\theta_j},$$
+      giving the dynamics
+      $$\dot{\theta}_i = \omega_i + K r \sin(\psi - \theta_i).$$
+      The order parameter $r \in [0,1]$ measures coherence: $r \approx 0$ for scattered phases, $r = 1$ for perfect sync.
+      For two oscillators, phase-locking requires $K > |\omega_1 - \omega_2| / 2$; below threshold the phases drift past each other forever.
+      Because the coupling strength each oscillator feels is proportional to $r$, synchronization is self-reinforcing — once a few clappers lock, $r$ grows and drags in the stragglers.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/kuramoto_clap.html"
+        title="Kuramoto clapping hands demo" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Demo:</strong> $N$ pairs of hands with natural frequencies spread from 2.0 Hz to 0.7 Hz, coupled through the Kuramoto mean field. Raise $K$ and watch the spike trains align, the phase dots clump on the circle, and the mean-field arrow stretch to the rim.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Kuramoto on Networks</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The mean-field model assumes every oscillator talks to every other.
+      On a network, each oscillator only couples to its neighbors,
+      $$\dot{\theta}_i = \omega_i + \frac{K}{\deg(i)} \sum_{j \in \mathcal{N}(i)} \sin(\theta_j - \theta_i),$$
+      and the topology decides how synchronization spreads: on a 2D grid or 1D line, locking grows in local patches whose domain walls slowly anneal; on an Erd&#337;s&ndash;R&eacute;nyi graph, random shortcuts let coherence spread globally at much lower $K$; hyperbolic graphs sit in between, with hubs that entrain their periphery.
+      The demo below integrates the network dynamics with RK4 &mdash; pick a topology, tune $K$, and scrub through the simulation. Node hue is phase $\theta_i$; the curve tracks the order parameter $r(t)$.
+    </p>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/kuramoto.html"
+        title="Kuramoto model on networks — interactive simulator" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Demo:</strong> Kuramoto dynamics on a 2D grid, Erd&#337;s&ndash;R&eacute;nyi, hyperbolic, or 1D line graph, with seeded reproducible runs. Compare how fast $r(t)$ climbs on a grid versus a random graph at the same $K$.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Kuramoto on the Sphere</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The clapping model lives on the circle — each phase $\theta_i$ is a point on $S^1$. The <strong>Lohe model</strong> lifts the same idea to the 2-sphere: each oscillator becomes a unit vector $\mathbf{x}_i \in S^2$ that precesses at its own natural frequency $W_i$ and is pulled toward the mean field,
+      $$\dot{\mathbf{x}}_i = W_i \mathbf{x}_i + K\,\mathrm{P}_{\mathbf{x}_i}\!\Big(\tfrac1N\sum_j \mathbf{x}_j\Big),$$
+      where $\mathrm{P}_{\mathbf{x}_i}$ projects onto the tangent plane so the vector stays on the sphere. With <em>uniform</em> frequencies the swarm co-rotates and locks trivially; with <em>normal</em>-distributed frequencies the spread competes with $K$, reproducing the Kuramoto synchronization transition one dimension up.
+      The demo also contrasts this pure synchronization with two richer relatives — <strong>swarmalators</strong>, which couple an internal phase to spatial position, and <strong>Vicsek flocking</strong>, where agents align velocities rather than positions.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/spherical_swarm.html"
+        title="Spherical swarm — Lohe oscillators, swarmalators, and Vicsek flocking on a sphere" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Demo:</strong> A swarm on $S^2$ under three models. For the Lohe oscillators, switch natural frequencies between uniform and normal and raise $K$ (now up to 10) to watch the order parameter $r$ climb as the swarm collapses to a single precessing cluster.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Huygens' Pendulums</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The oldest recorded observation of spontaneous synchronization is Christiaan Huygens' 1665 account of two pendulum clocks hanging from a common beam falling into step — the "odd kind of sympathy" that Kuramoto's model would formalize three centuries later.
+      Here $N$ pendulums hang from a shared beam; each carries a phase $\theta_i$ obeying the mean-field Kuramoto dynamics
+      $$\dot{\theta}_i = \omega_i + K r \sin(\psi - \theta_i),$$
+      and swings as $\varphi_i = A \sin\theta_i$.
+      The beam plays the role of the coupling medium: it sways with the mean field, so it barely moves while the phases are scattered and rocks visibly once the ensemble locks.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/kuramoto_pendulums.html"
+        title="Kuramoto pendulums — Huygens synchronization on a shared beam" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Demo:</strong> $N$ pendulums on a shared beam with natural frequencies spread over $\Delta\omega$, coupled through the Kuramoto mean field. Raise $K$ above $\Delta\omega$ and watch the swings align and the beam start to rock; the inset circle shows the phases and the mean-field arrow $r e^{i\psi}$.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Aside: The Forward-Forward Algorithm</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      A different kind of local, self-organizing dynamics: Hinton's <strong>Forward-Forward</strong> algorithm replaces backprop's forward + backward pass with two forward passes.
+      An MNIST digit is fed through the network twice — once with the correct label written into its first pixels (<em>positive</em> data), once with a wrong label (<em>negative</em> data).
+      Each layer optimizes only its own objective $p = \sigma\bigl(\sum_j y_j^2 - \theta\bigr)$, raising its <strong>goodness</strong> (the sum of squared activations) above the threshold $\theta$ on positive data and pushing it below on negative data.
+      No gradients travel between layers; each learns locally.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/forward_forward.html"
+        title="Forward-Forward algorithm — MNIST digit passing through the network" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Demo:</strong> An MNIST &ldquo;7&rdquo; flows through the net on the positive pass (correct label, goodness climbs above $\theta$) and the negative pass (wrong label, goodness drops below). Each neuron smiles when its layer&rsquo;s goodness is high, frowns when it is low.</figcaption>
+    </figure>
+  </div>
+</div>

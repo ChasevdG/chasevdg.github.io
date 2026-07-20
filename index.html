@@ -143,10 +143,14 @@
           <div class="sub-tab-label" onclick="showSubTab('RoPE', 'content/blogs/RoPE.html')">RoPE</div>
           <div class="sub-tab-label" onclick="showSubTab('PE', 'content/blogs/PE.html')">Long Context, Provably</div>
           <div class="sub-tab-label" onclick="showSubTab('RollPE', 'content/blogs/RollPE.html')">RollPE</div>
+          <div class="sub-tab-label" onclick="showSubTab('KuramotoClap', 'content/blogs/KuramotoClap.html')">Kuramoto Clapping</div>
+          <div class="sub-tab-label" onclick="showSubTab('LandauStuart', 'content/blogs/LandauStuart.html')">Landau-Stuart</div>
       </div>
       <div class="tab-content sub-tab-content" id="RoPE"></div>
       <div class="tab-content sub-tab-content" id="PE"></div>
       <div class="tab-content sub-tab-content" id="RollPE"></div>
+      <div class="tab-content sub-tab-content" id="KuramotoClap"></div>
+      <div class="tab-content sub-tab-content" id="LandauStuart"></div>
 
   </div>
     <div class="tab-content" id="research">
@@ -303,6 +307,16 @@
             subTabToShow.innerHTML = data; // Load external content into the div
             subTabToShow.style.display = 'block'; // Show the tab after loading content
 
+            // Execute script tags in the loaded HTML (innerHTML does not run them).
+            // This lets .subtab-about-image blocks hold live HTML/JS demos, not just img/video.
+            // (iframe.demo-embed heights are handled by the demo-embed-height message listener below.)
+            subTabToShow.querySelectorAll('script').forEach(oldScript => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.textContent = oldScript.textContent;
+                oldScript.replaceWith(newScript);
+            });
+
             // Re-render MathJax
             if (window.MathJax) {
                 MathJax.typesetPromise();
@@ -315,6 +329,18 @@
         })
         .catch(error => console.error("Error loading content:", error));
 }
+
+    // Auto-size iframe.demo-embed elements: demo pages post their content
+    // height via postMessage({ type: 'demo-embed-height', height }).
+    window.addEventListener('message', (event) => {
+      const d = event.data;
+      if (!d || d.type !== 'demo-embed-height' || typeof d.height !== 'number') return;
+      document.querySelectorAll('iframe.demo-embed').forEach(frame => {
+        if (frame.contentWindow === event.source) {
+          frame.style.height = Math.ceil(d.height) + 'px';
+        }
+      });
+    });
 
     function routeFromHash() {
       const hash = window.location.hash.slice(1);
@@ -507,14 +533,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-window.onload = function() {
-    fetch('header.html')  // Fetch the header file
-        .then(response => response.text())
-        .then(data => {
-            document.getElementById('header').innerHTML = data;  // Insert into the header div
-        })
-        .catch(error => console.error('Error loading header:', error));
-};
   </script>
   <footer>
     <!-- <p>&copy; 2025 My Website. All rights reserved.</p> -->

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spherical Swarm — Interactive</title>
+<style>
+  :root{
+    --bg:transparent; --panel:#ffffff; --line:rgba(0,0,0,0.14);
+    --text:#1a1a18; --muted:#5f5e5a; --surface:#f0efe9;
+    --accent:#2f6df0; --sphere:rgba(0,0,0,0.10); --spherefill:rgba(47,109,240,0.05);
+    --a-lohe:#2f6df0; --a-swarm:#c25db0; --a-boid:#1f9d57;
+    --a-ink:#ffffff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:transparent; --panel:#262624; --line:rgba(255,255,255,0.14);
+      --text:#f0efea; --muted:#b4b2a9; --surface:#2f2f2c;
+      --accent:#63b3ff; --sphere:rgba(255,255,255,0.14); --spherefill:rgba(99,179,255,0.06);
+      --a-lohe:#63b3ff; --a-swarm:#e58fd0; --a-boid:#31d07d;
+      --a-ink:#0b0d14;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:16px 20px;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1{font-size:20px;margin:0 0 4px;font-weight:600}
+  p.lead{color:var(--muted);margin:0 0 14px;font-size:13px;line-height:1.5}
+
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px 14px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .modebar{display:flex;gap:10px;align-items:stretch;margin-bottom:12px}
+  .pill{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);transition:all .25s ease}
+  .pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+  .pill.active{color:var(--a-ink)}
+  .pill.lohe.active{background:var(--a-lohe);border-color:var(--a-lohe)}
+  .pill.swarm.active{background:var(--a-swarm);border-color:var(--a-swarm)}
+  .pill.boid.active{background:var(--a-boid);border-color:var(--a-boid)}
+
+  canvas{display:block;width:100%;height:440px;border-radius:10px}
+  .readout{text-align:center;font-size:12px;color:var(--muted);margin-top:6px;min-height:16px;font-variant-numeric:tabular-nums}
+
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;margin-top:12px;align-items:center}
+  .ctl{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+  .ctl .row{display:flex;justify-content:space-between}
+  .ctl b{color:var(--text);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .btns{display:flex;gap:8px;align-items:end}
+  button{font:inherit;font-weight:600;font-size:13px;color:var(--text);background:var(--surface);
+    border:1px solid var(--line);padding:8px 14px;border-radius:9px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  .seg{display:flex;gap:6px}
+  .segbtn{flex:1;padding:6px 8px;font-size:12px;font-weight:600;border:1px solid var(--line);
+    background:var(--surface);color:var(--muted);border-radius:8px;cursor:pointer}
+  .segbtn.active{background:var(--accent);color:var(--a-ink);border-color:var(--accent)}
+  .hidden{display:none}
+
+  .diff{margin-top:16px;font-size:13px;line-height:1.55;color:var(--text)}
+  .diff h2{font-size:15px;margin:0 0 8px}
+  .diff p{margin:0 0 8px;color:var(--muted)}
+  .diff .tag{font-weight:600}
+  .diff .tag.lohe{color:var(--a-lohe)} .diff .tag.swarm{color:var(--a-swarm)} .diff .tag.boid{color:var(--a-boid)}
+</style>
+</head>
+<body>
+  <h1>The Spherical Swarm</h1>
+  <p class="lead">Three ways a crowd of agents can self-organize on the surface of a sphere. Pick a model, then tune the coupling and watch order emerge. All three live on the same 2-sphere but differ in <em>what</em> each agent carries and <em>what</em> it agrees on.</p>
+
+  <div class="stage">
+    <div class="modebar">
+      <span class="pill lohe active" data-model="lohe"><span class="dot"></span>Lohe oscillators</span>
+      <span class="pill swarm" data-model="swarm"><span class="dot"></span>Swarmalators</span>
+      <span class="pill boid" data-model="boid"><span class="dot"></span>Flocking (Vicsek)</span>
+    </div>
+
+    <canvas id="cv"></canvas>
+    <div class="readout" id="readout"></div>
+
+    <div class="controls">
+      <div class="ctl"><div class="row"><span id="lblK">Coupling K</span><b id="valK">1.0</b></div>
+        <input type="range" id="K" min="0" max="10" step="0.05" value="1.0"></div>
+      <div class="ctl" id="ctlJ"><div class="row"><span>Space–phase J</span><b id="valJ">0.8</b></div>
+        <input type="range" id="J" min="-1" max="1" step="0.02" value="0.8"></div>
+      <div class="ctl" id="ctlFreq"><div class="row"><span>Natural frequency ω</span></div>
+        <div class="seg">
+          <button class="segbtn active" data-freq="uniform">Uniform (1)</button>
+          <button class="segbtn" data-freq="normal">Normal</button>
+        </div></div>
+      <div class="ctl"><div class="row"><span id="lblNoise">Noise</span><b id="valNoise">0.10</b></div>
+        <input type="range" id="noise" min="0" max="0.6" step="0.01" value="0.1"></div>
+      <div class="ctl"><div class="row"><span>Speed</span><b id="valSpeed">1.0</b></div>
+        <input type="range" id="speed" min="0.2" max="2.5" step="0.05" value="1.0"></div>
+      <div class="btns">
+        <button id="randomize">Randomize</button>
+        <button id="pause">Pause</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="diff">
+    <h2>What's the difference?</h2>
+    <p><span class="tag lohe">Lohe oscillators</span> generalize the Kuramoto model to the sphere: each agent <em>is</em> a unit vector that spins about the vertical axis at its own natural frequency $\omega_i$, while coupling $K$ pulls every vector toward the mean field. With <b>uniform</b> $\omega_i=1$ (a shared axis and rate) the whole swarm co-rotates and locks into a single precessing cluster at any $K$; with <b>normal</b>-distributed frequencies each vector precesses about its own random axis, so the coupling must fight the spread — exactly the Kuramoto competition — and only large $K$ pulls them into one cluster. Order parameter $r=\lvert\frac1N\sum_i \mathbf{x}_i\rvert$ runs from 0 (scattered) to 1 (one cluster).</p>
+    <p><span class="tag swarm">Swarmalators</span> add an <em>internal phase</em> $\theta_i$ (shown as colour) that co-evolves with position. Space coupling makes agents aggregate; the term $J\cos(\theta_j-\theta_i)$ makes that attraction depend on phase similarity, while phase coupling $K$ syncs colours of nearby agents. Positive $J$ gives a synced ball of one colour; negative $J$ splits space by phase into coloured patches — behaviour Lohe sync cannot produce.</p>
+    <p><span class="tag boid">Flocking (Vicsek)</span> agents instead carry a <em>velocity</em> and move along geodesics, steering each step toward the average heading of their neighbours (plus noise). They agree on a <em>direction of motion</em>, not a location, so order shows up as migrating flocks and rotating polar vortices. The order parameter here is the polarization $\lvert\frac1N\sum_i \mathbf{v}_i\rvert$.</p>
+  </div>
+
+<script>
+(function(){
+  const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  const cs=getComputedStyle(document.body);
+  const col=n=>cs.getPropertyValue(n).trim();
+
+  // ---------- vector helpers (R^3) ----------
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+  const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+  const scal=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  const len=a=>Math.hypot(a[0],a[1],a[2]);
+  const norm=a=>{const l=len(a)||1;return[a[0]/l,a[1]/l,a[2]/l];};
+  const tangent=(v,x)=>{const d=dot(v,x);return[v[0]-d*x[0],v[1]-d*x[1],v[2]-d*x[2]];};
+  function randUnit(){ // uniform on sphere
+    let z=2*Math.random()-1, t=2*Math.PI*Math.random(), r=Math.sqrt(1-z*z);
+    return [r*Math.cos(t), r*Math.sin(t), z];
+  }
+  let gSpare=null;
+  function gauss(){ // standard normal (Marsaglia polar)
+    if(gSpare!==null){ const s=gSpare; gSpare=null; return s; }
+    let u,v,s2; do{ u=2*Math.random()-1; v=2*Math.random()-1; s2=u*u+v*v; }while(s2===0||s2>=1);
+    const mul=Math.sqrt(-2*Math.log(s2)/s2); gSpare=v*mul; return u*mul;
+  }
+  // move x along tangent unit dir by arc ds (great circle); returns [newx,newv]
+  function geo(x,v,ds){
+    const c=Math.cos(ds), s=Math.sin(ds);
+    const nx=norm([x[0]*c+v[0]*s, x[1]*c+v[1]*s, x[2]*c+v[2]*s]);
+    let nv=[-x[0]*s+v[0]*c, -x[1]*s+v[1]*c, -x[2]*s+v[2]*c];
+    nv=norm(tangent(nv,nx));
+    return [nx,nv];
+  }
+  // rotate tangent v around axis x (unit, x⟂v) by angle a
+  function rotAround(v,x,a){
+    const c=Math.cos(a), s=Math.sin(a), cx=cross(x,v);
+    return [v[0]*c+cx[0]*s, v[1]*c+cx[1]*s, v[2]*c+cx[2]*s];
+  }
+
+  // ---------- state ----------
+  let model='lohe', paused=false, phi=0, tilt=-0.42;
+  let X=[], TH=[], V=[], WVEC=[];
+  let freqMode='uniform';           // Lohe natural-frequency distribution
+  const FREQ_SIGMA=0.6;             // per-component std for the normal option
+  const CAP={lohe:320, swarm:110, boid:150};
+  let N=CAP.lohe;
+
+  // natural frequency = angular-velocity vector W_i; contributes W_i × x to the tangent flow.
+  // uniform: everyone shares the axis ẑ at rate 1 (co-rotate → trivial sync).
+  // normal:  each gets a random axis & rate (competes with coupling, Kuramoto-style).
+  function setOmega(){
+    for(let i=0;i<N;i++){
+      WVEC[i] = (freqMode==='uniform')
+        ? [0,0,1]
+        : [gauss()*FREQ_SIGMA, gauss()*FREQ_SIGMA, gauss()*FREQ_SIGMA];
+    }
+  }
+
+  function initState(){
+    N=CAP[model];
+    X=[]; TH=[]; V=[]; WVEC=[];
+    for(let i=0;i<N;i++){
+      const x=randUnit(); X.push(x);
+      TH.push(Math.random()*2*Math.PI);
+      // random tangent velocity
+      let v=norm(tangent([Math.random()-0.5,Math.random()-0.5,Math.random()-0.5],x));
+      V.push(v);
+    }
+    setOmega();
+  }
+
+  // ---------- dynamics ----------
+  function stepLohe(K,noise,dt){
+    // mean field
+    let m=[0,0,0];
+    for(const x of X){ m[0]+=x[0]; m[1]+=x[1]; m[2]+=x[2]; }
+    m=scal(m,1/N);
+    for(let i=0;i<N;i++){
+      const x=X[i];
+      let g=tangent(scal(m,K),x);                 // pull toward mean field
+      const w=WVEC[i];                            // natural rotation: W × x (tangent to sphere)
+      g[0]+= w[1]*x[2]-w[2]*x[1];
+      g[1]+= w[2]*x[0]-w[0]*x[2];
+      g[2]+= w[0]*x[1]-w[1]*x[0];
+      if(noise>0){ const nz=norm(tangent([Math.random()-0.5,Math.random()-0.5,Math.random()-0.5],x)); g=add(g,scal(nz,noise)); }
+      X[i]=norm(add(x,scal(g,dt)));
+    }
+  }
+
+  function stepSwarm(K,J,noise,dt){
+    const A=1.0, invN=1/N;
+    const nx=[];
+    for(let i=0;i<N;i++){
+      const xi=X[i], ti=TH[i];
+      let pf=[0,0,0], ph=0;
+      for(let j=0;j<N;j++){ if(j===i) continue;
+        const d=sub(X[j],xi); let dist=len(d); if(dist<0.18) dist=0.18;
+        const dphi=TH[j]-ti;
+        const attr=(A+J*Math.cos(dphi))/dist;     // phase-weighted attraction
+        const rep=1/(dist*dist);                   // short-range repulsion
+        const f=attr-rep;
+        pf[0]+=d[0]*f; pf[1]+=d[1]*f; pf[2]+=d[2]*f;
+        ph+=Math.sin(dphi)/dist;
+      }
+      pf=scal(pf,invN);
+      let g=tangent(pf,xi);
+      const gl=len(g); if(gl>2.5) g=scal(g,2.5/gl);  // clamp for stability
+      if(noise>0){ const nz=norm(tangent([Math.random()-0.5,Math.random()-0.5,Math.random()-0.5],xi)); g=add(g,scal(nz,noise*0.6)); }
+      nx[i]=norm(add(xi,scal(g,dt)));
+      TH[i]=ti+dt*(OM[i]+K*invN*ph);
+    }
+    for(let i=0;i<N;i++) X[i]=nx[i];
+  }
+
+  function stepBoid(K,noise,ds){
+    const cosR=Math.cos(0.55);   // neighbour angular radius
+    const nV=[];
+    for(let i=0;i<N;i++){
+      const xi=X[i];
+      let acc=[0,0,0];
+      for(let j=0;j<N;j++){
+        if(dot(xi,X[j])<cosR) continue;            // only neighbours
+        const t=tangent(V[j],xi);                  // parallel-transport heading
+        acc=add(acc,t);
+      }
+      let dir=tangent(acc,xi);
+      if(len(dir)<1e-6) dir=V[i];
+      dir=norm(dir);
+      // K blends current heading with neighbour average (alignment strength, saturates at 1)
+      const kb=Math.min(Math.max(K,0),1)*0.9;
+      let v=norm(tangent(add(scal(V[i],1-kb), scal(dir,kb)),xi));
+      if(noise>0) v=norm(rotAround(v,xi,(Math.random()-0.5)*noise*2));
+      nV[i]=v;
+    }
+    for(let i=0;i<N;i++){ const r=geo(X[i],nV[i],ds); X[i]=r[0]; V[i]=r[1]; }
+  }
+
+  // ---------- rendering ----------
+  let W=800,Hpx=440,cx=400,cy=220,R=170,dpr=1;
+  function fit(){
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    W=cv.clientWidth||800; Hpx=440;
+    cv.width=W*dpr; cv.height=Hpx*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    cx=W/2; cy=Hpx/2; R=Math.min(W,Hpx)/2*0.82;
+  }
+  const view=p=>{ // rotate around Y by phi, then X by tilt
+    const cY=Math.cos(phi), sY=Math.sin(phi);
+    let x=p[0]*cY+p[2]*sY, z=-p[0]*sY+p[2]*cY, y=p[1];
+    const cX=Math.cos(tilt), sX=Math.sin(tilt);
+    const y2=y*cX - z*sX, z2=y*sX + z*cX;
+    return [x,y2,z2]; // z2>0 toward viewer
+  };
+  const proj=v=>[cx+R*v[0], cy-R*v[1]];
+
+  // grid circles (great/small circles) as unit-vector polylines
+  const grid=[];
+  (function(){
+    for(const lat of [-Math.PI/3,-Math.PI/6,0,Math.PI/6,Math.PI/3]){
+      const ring=[]; const cz=Math.sin(lat), rr=Math.cos(lat);
+      for(let k=0;k<=48;k++){ const a=k/48*2*Math.PI; ring.push([rr*Math.cos(a), cz, rr*Math.sin(a)]); }
+      grid.push(ring);
+    }
+    for(let mi=0;mi<6;mi++){ const a0=mi/6*Math.PI; const ring=[];
+      for(let k=0;k<=48;k++){ const b=k/48*2*Math.PI; ring.push([Math.sin(b)*Math.cos(a0), Math.cos(b), Math.sin(b)*Math.sin(a0)]); }
+      grid.push(ring);
+    }
+  })();
+
+  function phaseColor(th,alpha){
+    const h=((th%(2*Math.PI))/(2*Math.PI)*360+360)%360;
+    return 'hsla('+h.toFixed(0)+',70%,55%,'+alpha+')';
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,Hpx);
+    // sphere body
+    const g=ctx.createRadialGradient(cx-R*0.3,cy-R*0.3,R*0.2,cx,cy,R);
+    g.addColorStop(0,col('--spherefill')); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI); ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle=col('--sphere'); ctx.lineWidth=1; ctx.stroke();
+
+    // grid
+    const sph=col('--sphere');
+    for(const ring of grid){
+      ctx.beginPath();
+      for(let k=0;k<ring.length;k++){ const v=view(ring[k]); const p=proj(v);
+        const a=0.25+0.35*Math.max(0,v[2]); // fade back
+        if(k===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]);
+      }
+      ctx.strokeStyle=sph; ctx.globalAlpha=0.5; ctx.lineWidth=0.8; ctx.stroke(); ctx.globalAlpha=1;
+    }
+
+    // agents (depth sorted)
+    const pts=[];
+    for(let i=0;i<N;i++){ const v=view(X[i]); pts.push({v,i}); }
+    pts.sort((a,b)=>a.v[2]-b.v[2]);
+    const accent=col(model==='lohe'?'--a-lohe':model==='boid'?'--a-boid':'--a-swarm');
+    for(const {v,i} of pts){
+      const p=proj(v);
+      const depth=(v[2]+1)/2;                 // 0 back .. 1 front
+      const a=0.28+0.72*depth;
+      const rad=(model==='boid'?2.6:3.0)*(0.6+0.6*depth);
+      if(model==='swarm'){ ctx.fillStyle=phaseColor(TH[i],a); }
+      else if(model==='boid'){ ctx.fillStyle=accent; ctx.globalAlpha=a; }
+      else { ctx.fillStyle=accent; ctx.globalAlpha=a; }
+      if(model==='boid'){
+        // little heading tick
+        const vv=view(add(X[i],scal(V[i],0.13))); const p2=proj(vv);
+        ctx.strokeStyle=accent; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(p[0],p[1],rad,0,2*Math.PI); ctx.fill(); ctx.globalAlpha=1;
+    }
+  }
+
+  // ---------- order parameter ----------
+  function orderR(){ let m=[0,0,0]; for(const x of X){ m=add(m,x); } return len(scal(m,1/N)); }
+  function polarization(){ let m=[0,0,0]; for(const v of V){ m=add(m,v); } return len(scal(m,1/N)); }
+
+  // ---------- controls ----------
+  const $=id=>document.getElementById(id);
+  const K=$('K'), J=$('J'), noise=$('noise'), speed=$('speed');
+  function syncLabels(){
+    $('valK').textContent=(+K.value).toFixed(2);
+    $('valJ').textContent=(+J.value).toFixed(2);
+    $('valNoise').textContent=(+noise.value).toFixed(2);
+    $('valSpeed').textContent=(+speed.value).toFixed(2);
+    $('lblK').textContent = model==='swarm'?'Phase sync K' : model==='boid'?'Alignment' : 'Coupling K';
+    $('lblNoise').textContent = model==='boid'?'Heading noise':'Noise';
+    $('ctlJ').classList.toggle('hidden', model!=='swarm');
+    $('ctlFreq').classList.toggle('hidden', model!=='lohe');
+  }
+  function setModel(m){
+    model=m;
+    document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.model===m));
+    // sensible defaults per model
+    if(m==='lohe'){ K.value=1.0; noise.value=0.10; }
+    if(m==='swarm'){ K.value=0.6; J.value=0.8; noise.value=0.05; }
+    if(m==='boid'){ K.value=0.35; noise.value=0.12; }
+    syncLabels(); initState();
+  }
+  document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>setModel(p.dataset.model)));
+  document.querySelectorAll('.segbtn').forEach(b=>b.addEventListener('click',()=>{
+    freqMode=b.dataset.freq;
+    document.querySelectorAll('.segbtn').forEach(x=>x.classList.toggle('active',x.dataset.freq===freqMode));
+    setOmega();                    // re-draw frequencies live, keep positions
+  }));
+  [K,J,noise,speed].forEach(s=>s.addEventListener('input',syncLabels));
+  $('randomize').addEventListener('click',initState);
+  $('pause').addEventListener('click',e=>{ paused=!paused; e.currentTarget.textContent=paused?'Play':'Pause'; });
+
+  // ---------- loop ----------
+  function step(){
+    if(!paused){
+      const sp=+speed.value, k=+K.value, j=+J.value, nz=+noise.value;
+      if(model==='lohe') stepLohe(k, nz*0.5, 0.03*sp);
+      else if(model==='swarm') stepSwarm(k, j, nz, 0.022*sp);
+      else stepBoid(k, nz, 0.016*sp);
+    }
+    phi+=0.0016;                 // gentle globe spin
+    draw();
+    // readout
+    if(model==='boid') $('readout').textContent='polarization  |⟨v⟩| = '+polarization().toFixed(3);
+    else $('readout').textContent='order parameter  r = '+orderR().toFixed(3);
+    requestAnimationFrame(step);
+  }
+
+  window.addEventListener('resize',()=>{ fit(); postHeight(); });
+  fit(); setModel('lohe'); requestAnimationFrame(step);
+
+  // ---------- report height to parent (iframe.demo-embed auto-sizing) ----------
+  function postHeight(){
+    if(window.parent===window) return;
+    window.parent.postMessage({type:'demo-embed-height', height:document.documentElement.scrollHeight}, '*');
+  }
+  window.addEventListener('load', postHeight);
+  if(window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+})();
+</script>
+</body>
+</html>

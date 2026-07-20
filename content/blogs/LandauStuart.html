@@ -1,0 +1,70 @@
+<!-- status: draft -->
+<div class="subtab-about-header" style="text-align: center;">
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        <strong>The Landau&ndash;Stuart oscillator.</strong>
+        The simplest system that spontaneously starts to oscillate: a single complex ODE that is the normal form of the supercritical Hopf bifurcation.
+        Tune one parameter through zero and a stable fixed point gives way to a stable limit cycle.
+        This post embeds a live demo showing the vector field and short trajectory streaks as the parameters change.
+      </p>
+    </div>
+  </div>
+</div>
+
+<h2>The Model</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The Landau&ndash;Stuart (or Stuart&ndash;Landau) model describes a complex amplitude $z(t) \in \mathbb{C}$ evolving as
+      $$\dot{z} = (\mu + i\omega)\,z - |z|^2 z,$$
+      where $\mu$ controls the linear growth rate and $\omega$ the rotation frequency.
+      In polar coordinates $z = r e^{i\theta}$ the dynamics decouple:
+      $$\dot{r} = \mu r - r^3, \qquad \dot{\theta} = \omega.$$
+      The radial equation makes the phase portrait easy to read.
+      For $\mu \le 0$ the only attractor is the origin: every trajectory spirals into the fixed point $r = 0$.
+      For $\mu > 0$ the origin becomes unstable and a stable limit cycle appears at $r = \sqrt{\mu}$ — trajectories inside the circle spiral outward onto it, trajectories outside spiral inward.
+      The transition at $\mu = 0$ is the supercritical Hopf bifurcation, and because every generic Hopf bifurcation reduces to this equation near onset, the Landau&ndash;Stuart model shows up everywhere from fluid instabilities to coupled-oscillator networks.
+    </p>
+  </div>
+</div>
+
+<h2>Live Demo</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The demo shows the vector field (orange arrows) together with brief trajectory streaks integrated on the fly: crimson while a trajectory is inside the attracting circle, green outside.
+      The attractor itself is drawn in solid orange — a ring at $r = \sqrt{\mu}$ when $\mu > 0$, collapsing to a point at the origin when $\mu \le 0$.
+      Drag $\mu$ below zero to watch the limit cycle vanish through the Hopf bifurcation, set $\omega$ negative to reverse the rotation, or set $\omega = 0$ to see purely radial flow onto the attractor.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/landau_stuart.html"
+        title="Landau-Stuart oscillator — interactive vector field and trajectories" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Demo:</strong> Vector field and trajectory streaks of $\dot{z} = (\mu + i\omega)z - |z|^2 z$. The orange ring marks the limit cycle at $r = \sqrt{\mu}$; for $\mu \le 0$ it collapses to a point attractor at the origin.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Coupled Oscillators</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Because the Landau&ndash;Stuart equation is the normal form of any oscillator near onset, it is the natural building block for studying collections of interacting oscillators.
+      Coupling $N$ of them diffusively through their mean field,
+      $$\dot{z}_j = (\mu + i\omega_j)\,z_j - |z_j|^2 z_j + K\,(\langle z \rangle - z_j), \qquad \langle z \rangle = \frac{1}{N}\sum_{k=1}^{N} z_k,$$
+      with natural frequencies $\omega_j$ spread over a width $\Delta\omega$, produces two competing effects.
+      Coupling pulls the oscillators toward their common mean field, so for $K$ large relative to $\Delta\omega$ the ensemble phase-locks and rotates as one &mdash; the amplitude analogue of Kuramoto synchronization.
+      But unlike phase-only models, the amplitudes can also react: the diffusive term $-Kz_j$ acts as extra damping, and when both $K$ and $\Delta\omega$ are large the oscillators pull each other off their limit cycles entirely and collapse into the origin.
+      This <em>amplitude death</em> is a genuinely amplitude-driven effect &mdash; the origin, unstable for every isolated oscillator, is stabilized by the coupling (for two oscillators, when $K > 1$ and $\Delta\omega > 2\sqrt{2K - 1}$).
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/landau_stuart_coupled.html"
+        title="Coupled Stuart-Landau oscillators — interactive" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Demo:</strong> $N$ mean-field coupled Stuart&ndash;Landau oscillators with frequencies spread over $\Delta\omega$. Each dot is one oscillator in the complex plane; the orange arrow is $\langle z \rangle$. Raise $K$ to synchronize the ensemble, or raise both $K$ and $\Delta\omega$ to trigger amplitude death.</figcaption>
+    </figure>
+  </div>
+</div>
