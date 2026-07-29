@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Landau-Stuart Model — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
 <style>
   :root {
     --bg: transparent;
@@ -33,7 +34,6 @@
     background: var(--bg);
     color: var(--text);
   }
-  h1 { font-size: 20px; margin: 0 0 8px 0; font-weight: 600; }
   p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; }
 
   .panel {
@@ -89,15 +89,7 @@
 </head>
 <body>
 
-<h1>Landau&ndash;Stuart oscillator</h1>
-<p class="lead">
-  &#380; = (&mu; + i&omega;)z &minus; |z|&sup2;z &mdash; the normal form of the supercritical Hopf
-  bifurcation. Orange arrows show the vector field; streaks are short trajectory
-  segments, crimson inside the attractor and green outside. For &mu; &gt; 0 the
-  attractor is the limit cycle at r = &radic;&mu; (orange ring); for &mu; &le; 0 it
-  collapses to a point attractor at the origin (orange dot).
-</p>
-
+<h1>Single Landau&ndash;Stuart oscillator</h1>
 <div class="panel">
   <div class="controls">
     <div class="row">

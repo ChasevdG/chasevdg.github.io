@@ -1,0 +1,12 @@
+/* Shared styles for standalone demo pages (embedded via iframe.demo-embed from blog posts). */
+h1 {
+  display: table;
+  font-size: 20px;
+  margin: 0 auto 8px;
+  font-weight: bold;
+  color: #ffffff;
+  padding: 6px 12px;
+  background: rgba(255, 140, 0, 0.12);
+  border: 4px solid #cc7000;
+  border-radius: 8px;
+}

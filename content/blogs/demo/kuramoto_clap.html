@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kuramoto clapping hands</title>
+<link rel="stylesheet" href="demo-shared.css">
 <style>
   :root {
     --surface-1: #f5f4ee;
@@ -77,30 +78,56 @@
   }
   .demo-grid {
     display: grid;
-    grid-template-columns: minmax(120px,190px) minmax(0,1fr) minmax(130px,200px);
+    grid-template-columns: minmax(120px,190px) minmax(0,1fr);
+    grid-template-areas: "list monitor" "phase phase";
     gap: 12px;
     align-items: stretch;
     padding: 1rem 0;
   }
+  .demo-grid > #leftCol    { grid-area: list; }
+  .demo-grid > #monPanel   { grid-area: monitor; }
+  .demo-grid > #phasePanel { grid-area: phase; }
   #circ { max-width: 100%; height: auto; }
+  /* Phase display is a horizontal strip across the bottom for every mode */
+  #phasePanel {
+    flex-direction: row !important;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  /* Fireflies only: the field is rendered square */
+  #grid.ff #ekg {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    max-width: 300px;
+    aspect-ratio: 1 / 1;
+    align-self: center;
+  }
   @media (max-width: 480px) {
-    .demo-grid { grid-template-columns: 1fr; }
+    .demo-grid {
+      grid-template-columns: 1fr;
+      grid-template-areas: "list" "monitor" "phase";
+    }
+    #phasePanel { flex-direction: column !important; }
   }
 </style>
 </head>
 <body>
+<h1>Kuramoto Models</h1>
 <h2 class="sr-only">An adjustable number of Kuramoto-coupled oscillators, rendered as clapping hand pairs or firing neurons, with a spike monitor, a complex-plane phase circle, and a reset button.</h2>
 
-<div class="demo-grid">
-  <div style="display:flex;flex-direction:column;gap:8px;">
-    <div role="group" aria-label="Animation mode" style="display:flex;gap:6px;">
+<div class="demo-grid" id="grid">
+  <div id="leftCol" style="display:flex;flex-direction:column;gap:8px;">
+    <div role="group" aria-label="Animation mode" style="display:flex;gap:6px;flex-wrap:wrap;">
       <button id="modeHands" class="mode-btn active">Hands</button>
       <button id="modeNeurons" class="mode-btn">Neurons</button>
+      <button id="modeFireflies" class="mode-btn">Fireflies</button>
     </div>
     <div id="handsCol" style="display:flex;flex-direction:column;gap:8px;flex:1;"></div>
   </div>
 
-  <div style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;min-height:180px;">
+  <div id="monPanel" style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;min-height:180px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <span id="monLabel" style="font-size:13px;color:var(--text-secondary);">Clap monitor</span>
       <span style="font-size:12px;font-family:var(--font-mono);color:var(--text-secondary);">r=<span id="rOut" style="color:var(--text-primary);">0.00</span></span>
@@ -108,7 +135,7 @@
     <canvas id="ekg" style="width:100%;flex:1;"></canvas>
   </div>
 
-  <div style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;">
+  <div id="phasePanel" style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;">
     <span style="font-size:13px;color:var(--text-secondary);align-self:flex-start;margin-bottom:2px;">Phase e<sup>i&theta;</sup></span>
     <svg id="circ" viewBox="-110 -110 220 220" width="170" height="170" aria-hidden="true">
       <line x1="-100" y1="0" x2="100" y2="0" stroke="var(--border)" stroke-width="1"/>
@@ -138,6 +165,9 @@
   <label style="font-size:14px;color:var(--text-secondary);">Reset every</label>
   <input type="range" id="sweep" min="1" max="12" step="0.5" value="5" style="flex:1;min-width:70px;max-width:110px;">
   <span id="sweepOut" style="font-size:14px;font-weight:500;min-width:32px;">5 s</span>
+  <label style="font-size:14px;color:var(--text-secondary);">Speed</label>
+  <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1" style="flex:1;min-width:70px;max-width:110px;">
+  <span id="speedOut" style="font-size:14px;font-weight:500;min-width:34px;">1.0&times;</span>
   <span id="syncBadge" style="font-size:12px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-warning);color:var(--text-warning);">not locked</span>
 </div>
 
@@ -151,6 +181,7 @@ const COLORS = ['#EF9F27','#1D9E75','#7F77DD','#D4537E','#D85A30','#378ADD'];
 const DARK   = ['#BA7517','#0F6E56','#534AB7','#993556','#993C1D','#185FA5'];
 
 let N = 3, K = 0, running = true;
+let animSpeed = 1;
 let mode = 'hands';
 let sweepT = 5, sweepClock = 0;
 let lastT = performance.now();
@@ -181,6 +212,28 @@ function neuronSVG(color, h){
     '</svg>';
 }
 
+function fireflySVG(color, h){
+  return '<svg viewBox="0 0 360 200" width="' + Math.round(h*1.8) + '" height="' + h + '" aria-hidden="true">' +
+    '<circle class="flash" cx="238" cy="108" r="52" fill="' + color + '" opacity="0"/>' +
+    '<g fill="' + color + '" opacity="0.16">' +
+      '<ellipse cx="150" cy="80" rx="60" ry="26" transform="rotate(-20 150 80)"/>' +
+      '<ellipse cx="150" cy="122" rx="60" ry="26" transform="rotate(20 150 122)"/>' +
+    '</g>' +
+    '<path d="M150,90 C136,76 128,70 116,68 M150,110 C136,124 128,130 116,132" stroke="#3a3a34" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="176" cy="100" rx="34" ry="21" fill="#3a3a34"/>' +
+    '<ellipse class="lantern" cx="238" cy="108" rx="32" ry="20" fill="' + color + '" opacity="0.35"/>' +
+    '</svg>';
+}
+
+function hexA(hex, a){
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + ((n>>16)&255) + ',' + ((n>>8)&255) + ',' + (n&255) + ',' + a + ')';
+}
+
+function svgFor(m, c, h){
+  return m === 'neurons' ? neuronSVG(c, h) : (m === 'fireflies' ? fireflySVG(c, h) : handSVG(c, h));
+}
+
 function build(){
   osc = []; hands = []; freqEls = []; dotEls = []; rayEls = [];
   const col = el('handsCol');
@@ -194,7 +247,7 @@ function build(){
     const c = COLORS[i], dc = DARK[i];
     const panel = document.createElement('div');
     panel.style.cssText = 'background:var(--surface-1);border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;flex:1;min-height:' + (h+8) + 'px;';
-    panel.innerHTML = (mode === 'neurons' ? neuronSVG(c, h) : handSVG(c, h)) +
+    panel.innerHTML = svgFor(mode, c, h) +
       '<span style="position:absolute;top:3px;left:8px;font-size:11px;color:' + dc + ';font-weight:500;">' + (i+1) + '</span>' +
       '<span class="fq" style="position:absolute;bottom:2px;right:8px;font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);">' + f.toFixed(2) + ' Hz</span>';
     col.appendChild(panel);
@@ -203,11 +256,16 @@ function build(){
       let axLen = 200;
       try { axLen = ax.getTotalLength(); } catch(e){}
       hands.push({flash: panel.querySelector('.flash'), pulse: panel.querySelector('.pulse'), axon: ax, axonLen: axLen});
+    } else if (mode === 'fireflies'){
+      hands.push({flash: panel.querySelector('.flash'), lantern: panel.querySelector('.lantern')});
     } else {
       hands.push({L: panel.querySelector('.hl'), R: panel.querySelector('.hr')});
     }
     freqEls.push(panel.querySelector('.fq'));
-    osc.push({theta: Math.random() * 2 * Math.PI, w: 2*Math.PI*f, prevCycle: null, spikes: [], trace: [], color: c, fireT: -1});
+    const fx = Math.min(0.9, Math.max(0.1, (i + 0.5)/N + (Math.random()-0.5)*0.14));
+    const fy = 0.2 + Math.random()*0.6;
+    osc.push({theta: Math.random() * 2 * Math.PI, w: 2*Math.PI*f, prevCycle: null, spikes: [], trace: [], color: c, fireT: -1,
+              fx: fx, fy: fy, tx: fx, ty: fy, speed: 0, state: 'wait', waitLeft: Math.random()*1.5});
 
     const ray = document.createElementNS(NS,'line');
     ray.setAttribute('x1',0); ray.setAttribute('y1',0);
@@ -218,6 +276,7 @@ function build(){
     el('dots').appendChild(dot); dotEls.push(dot);
   }
   sweepClock = 0;
+  requestAnimationFrame(resize);
 }
 
 function resize(){
@@ -242,7 +301,7 @@ const spikeDur = 0.3;
 const R = 85;
 
 function frame(now){
-  const dt = Math.min((now - lastT)/1000, 0.05);
+  const dt = Math.min((now - lastT)/1000, 0.05) * animSpeed;
   lastT = now;
   const W = canvas.width, H = canvas.height;
 
@@ -308,6 +367,33 @@ function frame(now){
         } else {
           hd.pulse.setAttribute('opacity', '0');
         }
+      } else if (mode === 'fireflies'){
+        const hd = hands[i];
+        const glow = o.fireT < 0 ? 0 : Math.exp(-(now - o.fireT)/350);
+        hd.flash.setAttribute('opacity', (0.6 * glow).toFixed(3));
+        hd.lantern.setAttribute('opacity', (0.35 + 0.6 * glow).toFixed(3));
+        // Random wander: wait, then drift to a fresh target at a fresh speed, repeat.
+        if (o.state === 'wait'){
+          o.waitLeft -= dt;
+          if (o.waitLeft <= 0){
+            o.tx = 0.08 + Math.random() * 0.84;
+            o.ty = 0.10 + Math.random() * 0.80;
+            o.speed = 0.05 + Math.random() * 0.22;
+            o.state = 'move';
+          }
+        } else {
+          const dx = o.tx - o.fx, dy = o.ty - o.fy;
+          const dist = Math.hypot(dx, dy);
+          const step = o.speed * dt;
+          if (dist <= step || dist < 1e-4){
+            o.fx = o.tx; o.fy = o.ty;
+            o.state = 'wait';
+            o.waitLeft = 0.3 + Math.random() * 2.5;
+          } else {
+            o.fx += dx / dist * step;
+            o.fy += dy / dist * step;
+          }
+        }
       } else {
         const closed = Math.pow((1 - Math.cos(o.theta)) / 2, 0.6);
         const d = TRAVEL * closed;
@@ -331,6 +417,31 @@ function frame(now){
   }
 
   ctx.clearRect(0,0,W,H);
+
+  if (mode === 'fireflies'){
+    ctx.fillStyle = '#0a0c16';
+    ctx.fillRect(0,0,W,H);
+    for (const o of osc){
+      const px = o.fx * W, py = o.fy * H;
+      const glow = o.fireT < 0 ? 0 : Math.exp(-(now - o.fireT)/350);
+      if (glow > 0.01){
+        const rad = (9 + 46*glow) * devicePixelRatio;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, rad);
+        g.addColorStop(0, hexA(o.color, 0.95*glow));
+        g.addColorStop(0.4, hexA(o.color, 0.4*glow));
+        g.addColorStop(1, hexA(o.color, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(px, py, rad, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 0.22 + 0.78*glow;
+      ctx.fillStyle = o.color;
+      ctx.beginPath(); ctx.arc(px, py, (2.4 + 2.2*glow) * devicePixelRatio, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    requestAnimationFrame(frame);
+    return;
+  }
+
   ctx.strokeStyle = css('--border');
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -371,11 +482,14 @@ function setMode(m){
   mode = m;
   el('modeHands').classList.toggle('active', m === 'hands');
   el('modeNeurons').classList.toggle('active', m === 'neurons');
-  el('monLabel').textContent = m === 'neurons' ? 'Spike monitor' : 'Clap monitor';
+  el('modeFireflies').classList.toggle('active', m === 'fireflies');
+  el('grid').classList.toggle('ff', m === 'fireflies');
+  el('monLabel').textContent = m === 'neurons' ? 'Spike monitor' : (m === 'fireflies' ? 'Firefly field' : 'Clap monitor');
   build();
 }
 el('modeHands').addEventListener('click', () => setMode('hands'));
 el('modeNeurons').addEventListener('click', () => setMode('neurons'));
+el('modeFireflies').addEventListener('click', () => setMode('fireflies'));
 el('nsel').addEventListener('change', () => {
   N = parseInt(el('nsel').value, 10);
   build();
@@ -391,6 +505,10 @@ el('reset').addEventListener('click', () => {
 el('k').addEventListener('input', () => {
   K = parseFloat(el('k').value);
   el('kOut').textContent = K.toFixed(1) + ' rad/s';
+});
+el('speed').addEventListener('input', () => {
+  animSpeed = parseFloat(el('speed').value);
+  el('speedOut').textContent = animSpeed.toFixed(1) + '×';
 });
 el('sweep').addEventListener('input', () => {
   sweepT = parseFloat(el('sweep').value);

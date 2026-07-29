@@ -437,6 +437,73 @@ summary {
     height: 400px; /* fallback until the iframe reports its real content height */
     overflow: hidden;
 }
+
+/* YouTube video support.
+   Full embed (hover to play, click to toggle sound; see js/youtube-embed.js):
+     <div class="subtab-about-image youtube-embed" style="--image-padding: 12px;">
+       <figure>
+         <div class="youtube-embed-wrapper">
+           <div class="youtube-embed-mount" data-video-id="VIDEO_ID" data-start="40" data-end="60"></div>
+           <div class="youtube-embed-hitbox" title="Hover to play, click to toggle sound"></div>
+         </div>
+         <figcaption>...</figcaption>
+       </figure>
+     </div>
+     <script src="js/youtube-embed.js"></script>
+   data-start/data-end are optional. Plain hyperlink instead of an embed:
+     <a class="youtube-link" href="https://www.youtube.com/watch?v=VIDEO_ID" target="_blank" rel="noopener">
+       <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Watch on YouTube
+     </a> */
+.youtube-embed-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 aspect ratio */
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+}
+.subtab-about-image .youtube-embed-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: transparent;
+    pointer-events: none; /* hover/click are handled by .youtube-embed-hitbox instead — clicks inside a cross-origin iframe never bubble to us */
+}
+.youtube-embed-wrapper .youtube-embed-hitbox {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    cursor: pointer;
+}
+
+.youtube-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    color: #ff0000;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1.5px solid #ff0000;
+    border-radius: 999px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.youtube-link:hover {
+    background-color: #ff0000;
+    color: #fff;
+}
+.youtube-link svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    fill: currentColor;
+}
+
     .subtab-about-image-logo img{
     max-width: 100%;
     max-height: 300px;
@@ -482,6 +549,51 @@ summary {
     height: auto;
     border-radius: 12px;
     display: block;
+}
+
+/* ── Post part navigation ──────────────────────────────────────────────── */
+.post-part-nav {
+    margin: 10px 0 24px;
+    padding: 12px 16px 16px;
+    border: 1.5px solid rgba(255, 140, 0, 0.35);
+    border-radius: 14px;
+    background: rgba(255, 140, 0, 0.06);
+    text-align: center;
+}
+
+.post-part-nav-label {
+    display: block;
+    font-size: 1.05em;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #ff8c00;
+    margin-bottom: 10px;
+}
+
+.post-part-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.post-part-link {
+    display: inline-block;
+    padding: 5px 14px;
+    border: 1.5px solid #ff8c00;
+    border-radius: 14px;
+    background: #fff;
+    color: #ff8c00;
+    font-size: 0.82em;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.post-part-link:hover {
+    background: #ff8c00;
+    color: #fff;
 }
 
 /* ── Bibliography ──────────────────────────────────────────────────────── */

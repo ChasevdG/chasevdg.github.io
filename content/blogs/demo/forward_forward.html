@@ -4,11 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Forward-Forward Algorithm — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
 <style>
-  :root{
-    --bg:transparent; --panel:#ffffff; --panel2:#fbfaf6;
-    --line:rgba(0,0,0,0.14); --text:#1a1a18; --muted:#5f5e5a; --surface:#f0efe9;
-    --pos:#1f9d57; --neg:#d83a3f; --thresh:#c98a00; --accent:#2f6df0;
+  :root {
+    --bg: transparent;
+    --panel: #ffffff;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --surface-1: #f5f4ee;
+    --text: #1a1a18;
+    --muted: #5f5e5a;
+    /* semantic palette used by the SVG scene */
+    --line: rgba(0,0,0,0.14); --surface: #f0efe9;
+    --pos:#1f9d57; --neg:#d83a3f; --thresh:#c98a00;
     --node-idle:#e9e7de; --node-stroke:#c7c5bb;
     --edge-idle:rgba(0,0,0,0.16); --edge-pos:rgba(31,157,87,0.6); --edge-neg:rgba(216,58,63,0.6);
     --track-bg:#ecebe3; --cell-bg:#f0efe9;
@@ -17,69 +25,119 @@
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:transparent; --panel:#262624; --panel2:#201f1d;
-      --line:rgba(255,255,255,0.14); --text:#f0efea; --muted:#b4b2a9; --surface:#2f2f2c;
-      --pos:#31d07d; --neg:#ff5d73; --thresh:#f7c948; --accent:#63b3ff;
+      --bg:#1a1a18;
+      --panel:#262624;
+      --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3);
+      --surface-1:#262624;
+      --text:#f0efea;
+      --muted:#b4b2a9;
+      --line:rgba(255,255,255,0.14); --surface:#2f2f2c;
+      --pos:#31d07d; --neg:#ff5d73; --thresh:#f7c948;
       --node-idle:#34342f; --node-stroke:#55554f;
       --edge-idle:rgba(255,255,255,0.16); --edge-pos:rgba(49,208,125,0.55); --edge-neg:rgba(255,93,115,0.55);
       --track-bg:#201f1d; --cell-bg:#2b2b28;
       --digit-bg:#05070d; --digit-frame:#4a4a45; --face-ink:#0b0d14;
     }
   }
-  *{box-sizing:border-box}
-  body{
-    margin:0;padding:16px 20px;background:var(--bg);color:var(--text);
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    -webkit-font-smoothing:antialiased;
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 16px 20px;
+    background: var(--bg);
+    color: var(--text);
   }
-  h1{font-size:20px;margin:0 0 4px;font-weight:600}
-  h1 .ff{color:var(--accent)}
-  p.lead{color:var(--muted);margin:0 0 14px;font-size:13px;line-height:1.5}
+  p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; line-height: 1.5; }
 
-  .stage{
-    background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:16px 16px 10px;box-shadow:0 1px 3px rgba(0,0,0,.06);
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
   }
-  .modebar{display:flex;gap:10px;align-items:stretch;margin-bottom:10px}
-  .pill{
-    flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    padding:10px 14px;border-radius:12px;font-size:13px;font-weight:600;
-    border:1px solid var(--line);background:var(--surface);color:var(--muted);
-    transition:all .3s ease;
+  .modebar { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
+  .pill {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 9px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--muted);
+    transition: all .3s ease;
   }
-  .pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
-  .pill.pos.active{color:var(--pos-ink);background:var(--pos);border-color:var(--pos)}
-  .pill.neg.active{color:var(--neg-ink);background:var(--neg);border-color:var(--neg)}
-  .phase-note{text-align:center;font-size:13px;color:var(--muted);min-height:18px}
+  .pill .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .pill.pos.active { color: var(--pos-ink); background: var(--pos); border-color: var(--pos); }
+  .pill.neg.active { color: var(--neg-ink); background: var(--neg); border-color: var(--neg); }
 
-  svg{width:100%;height:auto;display:block;overflow:visible}
-  .layerlabel{fill:var(--muted);font-size:12px;font-weight:600}
-  .goodlabel{fill:var(--text);font-size:11px;font-weight:700}
-  .caption{fill:var(--muted);font-size:11px}
-  .lblnum{fill:var(--muted);font-size:9px;font-weight:700;font-family:monospace}
+  .canvas-wrap {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel);
+    padding: 6px;
+  }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .layerlabel { fill: var(--muted); font-size: 12px; font-weight: 600; }
+  .goodlabel { fill: var(--text); font-size: 11px; font-weight: 700; }
+  .caption { fill: var(--muted); font-size: 11px; }
+  .lblnum { fill: var(--muted); font-size: 9px; font-weight: 700; font-family: monospace; }
 
-  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
-  .speed{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
-  input[type=range]{accent-color:var(--accent)}
+  .controls { margin-top: 14px; }
+  .row {
+    display: grid;
+    grid-template-columns: 70px 1fr 56px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .row label { font-size: 13px; }
+  .row .val { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .statusbar {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .statusbar .spacer { margin-left: auto; }
+  .statusbar button {
+    font-size: 12px;
+    padding: 4px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .statusbar button:hover { background: var(--surface-1); }
+  .statusbar button:active { transform: scale(0.98); }
 </style>
 </head>
 <body>
-  <h1>The <span class="ff">Forward-Forward</span> Algorithm</h1>
-  <p class="lead">An MNIST digit flows through the net twice: with the correct label baked into its first pixels (positive), then with a wrong label (negative). Each layer learns locally to raise its <b>goodness</b> above threshold θ on positive data and drop it below on negative data.</p>
+  <h1>The Forward-Forward Algorithm</h1>
+  <!-- <p class="lead">An MNIST digit flows through the net twice: with the correct label baked into its first pixels (positive), then with a wrong label (negative). Each layer learns locally to raise its <b>goodness</b> above threshold θ on positive data and drop it below on negative data.</p> -->
 
-  <div class="stage">
+  <div class="panel">
     <div class="modebar">
       <span class="pill pos" id="pill-pos"><span class="dot"></span>Positive · digit + correct label</span>
       <span class="pill neg" id="pill-neg"><span class="dot"></span>Negative · digit + wrong label</span>
     </div>
-    <div class="phase-note" id="phase-note"></div>
 
-    <svg id="scene" viewBox="0 0 1000 440" role="img" aria-label="Forward-Forward network with MNIST input"></svg>
+    <div class="canvas-wrap">
+      <svg id="scene" viewBox="0 0 1000 440" role="img" aria-label="Forward-Forward network with MNIST input"></svg>
+    </div>
 
     <div class="controls">
-      <span class="speed">Speed
+      <div class="row">
+        <label for="speed">Speed</label>
         <input type="range" id="speed" min="0.4" max="2.2" step="0.1" value="1">
-      </span>
+        <span class="val" id="speed-out">1.0&times;</span>
+      </div>
+      <div class="statusbar">
+        <span id="phase-note"></span>
+        <span class="spacer"></span>
+        <button id="pause">Pause</button>
+      </div>
     </div>
   </div>
 
@@ -358,7 +416,10 @@
     requestAnimationFrame(loop);
   }
 
-  document.getElementById('speed').oninput=e=>{ speed=parseFloat(e.target.value); };
+  const speedOut=document.getElementById('speed-out');
+  document.getElementById('speed').oninput=e=>{ speed=parseFloat(e.target.value); speedOut.textContent=speed.toFixed(1)+'×'; };
+  const pauseBtn=document.getElementById('pause');
+  pauseBtn.onclick=()=>{ playing=!playing; pauseBtn.textContent=playing?'Pause':'Play'; if(playing) tPrev=0; };
   render();
   requestAnimationFrame(loop);
 

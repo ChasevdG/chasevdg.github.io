@@ -1,0 +1,436 @@
+  <script src="js/youtube-embed.js"></script>
+  
+<!-- status: published -->
+<div class="subtab-about-header" style="text-align: center;">
+  <h1>Synchronization</h1>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        The famous phrase from Donald Hebb's 1949 book <i>The Organization of Behavior</i> is "neurons that fire together, wire together."
+        Hebbian learning became the framework where, if a pair of neurons repeatedly spike together, their synaptic connection strengthens and they become more likely to spike together in the future.
+        This can be phrased as a <strong>synchronization</strong> problem where neurons will synchronize their activities for real data.
+        </p>
+      <p>
+        The goal of this blog post is as a pedagogical introduction to both Kuramoto models and Forward-Forward. 
+        However, as a destination, I will introduce Synchronizing Forward-Forward (the name still needs workshopping, canvasing, and focus groups) local learning model I did over a weekend.
+        Using Kuramoto dynamics drastically reduces the number of nodes needed to get comparable performance to Hinton's model on MNIST and CIFAR100.
+        That being said -- holding constistent with Hinton and forward-forward history -- it is not fully explored and ... gets slightly better results with the same number of nodes.
+      </p>
+      <p>
+        In the first part of this post, we will parouse through the theory of <strong>Kuramoto model</strong>-- the popular mathematical framework for understanding synchronization phenomena in interacting systems-- and it's generalizations.
+        In the second part, I will go over Hinton's Forward-Forward algorithm and combine it with Kuramoto dynamics.
+        In a later post, I will use the concepts introduced here to create a more general theory of local learning and connect information theoretic local learning to ECHO learning... but it may be a while before I have the freetime.
+      </p>
+    </div>
+  </div>
+  <h2>Why do we care?</h2>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        Synchronization is an elegant way to express some of the intuitive phenomena we observe in the brain.
+        If two neurons have similar spike trains, we assume that they are being used in the same computation.
+        If one fires before the other, then the former is likely causing the later to fire.
+      </p>
+      <p>
+        From a neuroscience perspective, Kuramoto models specifically create an oscillatory behavior and -- when the network topology is restricted -- creates traveling waves akin to brainwaves.
+        Moreover, the phase-locking behavior produces consistent offsets creating a phase precession phenomenon.
+        By incorporating synchronization phenomena into artificial neural networks, we can make the network more "brain-like".
+      </p>
+      <p>
+        Similarly, the brain almost certainly does not learn through backprop; there is little evidence <i>for</i> backprop and plenty of evidence <i>against</i>.
+        While backprop has worked well so far, it truly runs into problems when working with temporal data when one uses backprop through time (BPTT).
+        For BPTT, the neurons have to store their activations for later use, and as the length scale increases, more and more activations need to be stored.
+        It is much more biologically plausible for update steps to be localized.
+      </p>
+      <p>
+        <i>But why do we even want a model to be more brain-like?</i> 
+        Well, for a variety of reasons. 
+        For one, if the model is more brain-like we can start to reason about what the biological mechanisms of computation modes and what the effect of their failure are.
+        For example, if synchronization and traveling waves are important for computation, then the biological mechanism acting as a conductor -- e.g. the medial septum -- would be crucial for maintaining synchronization.
+        If the conductor begins to ware down, then the synchronization/coherence will be disrupted resulting in a degredation of that process.
+        In the context of the medial septum and hippocampus, this effect is a degredation of spatial and temporal memory; making disrupted synchronization a candidate for inducing Alzheimer's.
+      </p>
+      <p>
+        Another reason to make it more biological is that the brain does things for a reason.
+        While one can argue that image recognition is solved, handling streams of data has only gather focus in the last 5 years.
+        However, we can look to the brain for insight.
+        Local learning might be an important way to resolve data streams.
+      </p>
+      <p>
+        We can also find links that we were not looking for.
+        For example, by making networks oscillatory and incorporating synchronization mechanics, one can eliviate some of the <i>oversmoothing</i> problem in graph neural networks.
+        The same oversmoothing theory is being applied to length generalization, suggesting if one could incorporate synchronization methods, one may lead to better length generalization.
+      </p>
+    </div>
+  </div>
+  
+  
+  <div class="post-part-nav">
+    <span class="post-part-nav-label">Part Navigator</span>
+    <div class="post-part-links">
+      <a class="post-part-link" href="#kuramoto-models">Part I: Kuramoto Models</a>
+      <a class="post-part-link" href="#forward-forward">Part II: Forward-Forward</a>
+    </div>
+  </div>
+  <h2>What is Synchronization?</h2>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        Colloquially, synchronization is when things begin to coordinate their behavior in time.
+        Think of a parade of marching soldiers, a flock of birds, or a school of fish: each individual is moving in its own way, but the group as a whole exhibits coordinated behavior.
+        In the context of <strong>dynamical systems</strong>, synchronization refers to the process by which two or more systems adjust their rhythms due to interaction, leading to a common frequency or phase relationship.
+        Take for example the applause of the audience in the Budapest Opera House (<strong>Fig 1a</strong>), where initially the clapping is random and uncoordinated, but after a while, the audience begins to clap in unison, creating a synchronized rhythm.
+        This phenomenon is observed in a wide range of natural and engineered systems, from the flashing of fireflies (<strong>Fig 1b</strong>) to the operation of power grids and --most relevant for us-- can be used to model the <strong>firing of neurons in the brain</strong>.
+      </p>
+    </div>
+    <div class="subtab-about-image youtube-embed" style="--image-padding: 12px;">
+      <div class="img-tabs">
+        <button class="img-tab-btn sync-video-btn active" onclick="switchImgTab(this, 'sync-video', 'sync-video-tab1')">Budapest Opera House</button>
+        <button class="img-tab-btn sync-video-btn" onclick="switchImgTab(this, 'sync-video', 'sync-video-tab2')">Fireflies</button>
+      </div>
+      <div id="sync-video-tab1" class="img-tab-panel sync-video-panel">
+        <figure>
+          <div class="youtube-embed-wrapper">
+            <div class="youtube-embed-mount" data-video-id="Au5tGPPcPus" data-start="40" data-end="60"></div>
+            <div class="youtube-embed-hitbox" title="Hover to play, click to toggle sound"></div>
+          </div>
+          <figcaption><strong>Fig 1a:</strong> The audience at the Budapest Opera House falls from scattered applause into a synchronized clapping rhythm. Hover to play, click to toggle sound.</figcaption>
+        </figure>
+      </div>
+      <div id="sync-video-tab2" class="img-tab-panel sync-video-panel" style="display:none;">
+        <figure>
+          <div class="youtube-embed-wrapper">
+            <div class="youtube-embed-mount" data-video-id="ZGvtnE1Wy6U"></div>
+            <div class="youtube-embed-hitbox" title="Hover to play, click to toggle sound"></div>
+          </div>
+          <figcaption><strong>Fig 1b:</strong> Thousands of fireflies flashing on a tree fall into a single synchronized pulse -- the same Kuramoto phase-locking mechanism, seen in nature. Hover to play, click to toggle sound.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+
+<h2>Oscillators</h2>
+<div class="subtab-about-content">
+   <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/kuramoto_pendulums.html"
+        title="Kuramoto pendulums — Huygens synchronization on a shared beam" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 2:</strong> $N$ pendulums on a shared beam with natural frequencies spread over $\Delta\omega$, coupled through the Kuramoto mean field. Raise $K$ above $\Delta\omega$ and watch the swings align and the beam's blue displacement dot pull away from the fixed orange equilibrium dot; the inset circle shows the phases and the mean-field arrow $r e^{i\psi}$.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <p>
+      Synchronization was first observed in <i>Huygens pendulum clocks</i> in 1665.
+      Christiaan Huygens believed that two pendula would intuitively swing independently of each other at their own natural frequencies.
+      However, he observed that two pendulums on a <i>shared beam</i> would eventually fall into step with each other, which was described as a sort of <i>clock synchronization</i>.
+    </p>
+    <p>
+      The physics of these pendulums can be nicely modeled by the same physics as spring block systems.
+      Physicists call the general class of these systems as <strong>oscillators</strong>.
+      Because the pendulums oscillate back and forth, the system or <strong>state</strong>, must be described by its location and direction of motion -- is it traveling toward or away from equalibrium (the center).
+      This state is nicely captured by a complex circle; every position has a position (real value) and momentum (complex value).
+      The coordinate on the circle can be uniquely described by an angle $\theta$ which is known as the <strong>phase</strong>.
+      The speed at which the oscillator travels around this complex circle is known as the <strong>frequency</strong> -- which is controlled by the forces acting on the oscillator which, in the uncoupled case, is determined by the <i>spring constant</i>.
+      The spring constant is often denoted $k$, however we will reserve $k$ for the coupling constants.
+    </p>
+    <p>
+      As the pendulums move back and forth they carry momentum. 
+      This momentum will be transfered into the beam and cause it to sway with the movement of the pendulums.
+      This swaying of the beam affects the motion of the pendulums, creating a <strong>coupling</strong> between them.
+      From the box-spring perspective with two oscillators coupling introduces a spring between two boxes with a <strong>coupling constant</strong> -- which is what we will mean when we use $K$.
+      The frequencies of the oscillators while uncoupled is known as their <strong>natural frequency</strong>, $\omega$.
+      The coupling disturbs the oscillators from their natural frequencies and eventually leads to the pendulums synchronizing.
+      Synchronizing implies that the oscillators begin to have the same <i>frequency</i>, however they often have <strong>different phases</strong>.
+    </p>
+    <p>
+      The idea of oscillators extends past just pendulums and box-springs.
+      A wide variety of periodic problems can be well modeled with oscillators.
+      Most obviously, this is what made them so useful for clocks, but even the lighting up of fireflies and the dispersion of sound can be approximated with the same models.
+      Though the mathematical modeling of coupling and synchronization itself was not formalized mathematically until Yoshiki <strong>Kuramoto</strong> in 1975, who proposed a simple model of coupled oscillators to capture the essence of synchronization.
+    </p>
+  </div>
+</div>
+<h2 id="kuramoto-models">Kuramoto Models</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The <strong>Kuramoto model</strong> is an ordinary differential equation whose dynamics are one of the simplest models of coupled oscillators and phase synchronization.
+      Importantly, the Kuramoto dynamics model <i>only</i> the phase of the oscillators and not the amplitudes.
+      The core idea is that each oscillator increases its frequency to try to match its phase the other oscillators.
+      As an example, when you are clapping after a concert, you may look to your neighbor and try to clap at the same time as them.
+    </p>
+    <p>
+      The update rule -- i.e. derivative -- for the <state>phase</state>, denoted by $\theta$, is given by, 
+      $$
+        \dot{\theta}_i = \omega_i + K\sum_{j=1}^{N} \sin(\theta_j - \theta_i)
+      $$
+      where $\dot{\theta}_i$ is the time derivative of the phase of the $i$-th oscillator, $K$ denotes the coupling constant. 
+      The first term captures the oscillatation of an oscillator when there is no coupling and the second captures the interaction of oscillators.
+    </p>
+    <p>
+      Note that this describes the rate of change of the <i>phase</i>, but one could also describe it through the rate of change of the <strong>state</strong>.
+      $$
+      \dot{z}_i = i\,\omega_i\, z_i + \frac{K}{2N}\sum_{j=1}^{N}\left(z_j - \bar{z}_j\, z_i^{2}\right),
+      \qquad z_i = e^{i\theta_i},\ \ |z_i| = 1
+      $$
+      where $z$ is the complex number representing the state, $z_i = e^{i\theta_i}$, and $\bar{z}$ is the complex conjugate of the state -- $z = z_{re} + z_{im}i \implies \bar{z} = z_{re} - z_{im}i$.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/kuramoto_clap.html"
+        title="Kuramoto clapping hands demo" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 3:</strong> $N$ pairs of hands with natural frequencies spread from 2.0 Hz to 0.7 Hz, coupled through the Kuramoto mean field. Raise $K$ and watch the spike trains align, the phase dots clump on the circle, and the mean-field arrow stretch to the rim.</figcaption>
+    </figure>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Rather than calculating the distance to every other oscillator, one can instead use the <strong>mean field</strong>.
+      The mean field $Z$ is given by,
+      $$
+        Z  = \frac{1}{N}\sum_{j=1}^{N} e^{i\theta_j},
+      $$
+      which can be used to define the mean phase, $\psi$, and <strong>order parameter</strong> $r$:
+      $$ Z = r e^{i\psi}.$$
+      The order parameter $r \in [0,1]$ measures <i>coherence</i> -- $r \approx 0$ for scattered phases, $r = 1$ for perfect sync -- and $\psi$ indicated the mean phase.
+      With these, one can formulate phase updates as,
+      $$\dot{\theta}_i = \omega_i + K r \sin(\psi - \theta_i),$$
+      or the state update rule,
+      $$\dot{z}_i = i\,\omega_i\, z_i + \frac{K}{2}\left(Z - \bar{Z}\, z_i^{2}\right).$$
+      where $\bar{Z}$ is the complex conjugate of the mean field parameter. Note that this reparameterization can happen <i>only</i> if the coupling constant is the same across oscillators.
+    </p>
+  </div>
+</div>
+<h2>Synchronization and Phase Locking</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      As time progresses, the oscillators can begin to <strong>phase-lock</strong> -- which is what is meant by synchronization.
+      In Kuramoto models, synchronization does not mean the oscillators have the same <i>phase</i>.
+      Rather, they end up rotating at the <i>same frequency</i>; holding a fixed offset from one another, thus being called <strong>phase-locking</strong>.
+      Once locked, every oscillator advances in step with the mean field; its phase relative to the group stops changing.
+    </p>
+    <p>
+      Formally, a locked oscillator satisfies $\dot\theta_i = \dot\psi$ -- it rotates at exactly the mean-field frequency.
+      Substituting this into the phase update rule and writing $\phi_i = \theta_i - \psi$ for the relative phase gives the fixed-point condition,
+      $$
+        \sin\phi_i = \frac{\dot\psi - \omega_i}{K r}.
+      $$
+      A real solution $\phi_i$ exists only when $|\dot\psi - \omega_i| \le K r$: oscillators inside this band settle at a constant offset and stay phase-locked forever, while oscillators whose natural frequency strays further away can never catch up -- $\phi_i$ perpetually drifts, sliding in and out of phase with the group.
+      This is exactly the two-oscillator threshold $K > |\omega_1 - \omega_2| / 2$ seen earlier, generalized to the full population: as $K$ or $r$ grows, the locking band widens and pulls in oscillators that were drifting a moment before.
+    </p>
+    <p>
+      Increasing the coupling constant past this <i>critical coupling</i> induces a <strong>phase change</strong> where the system goes from random oscillations to coupling.
+    </p>
+  </div>
+</div>
+
+<h2>Minor Alterations</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/kuramoto.html"
+        title="Kuramoto model on networks — interactive simulator" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 4:</strong> Kuramoto dynamics on a 2D grid, Erd&#337;s&ndash;R&eacute;nyi, hyperbolic, or 1D line graph, with seeded reproducible runs. Compare how fast $r(t)$ climbs on a grid versus a random graph at the same $K$.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+  <h3>Changing Topology</h3>
+    <p>
+      So far we have assumed that all oscillators are fully connected with a shared coupling constant.
+      One can instead make the oscillators interact only within their neighborhood.
+      For example, one could connect box springs in a line where the boxes interact only with their neighborhood.
+      We can reframe the phase update rule as,
+      $$
+        \dot{\theta}_i = \omega_i + K\sum_{{\color{orange}j \in \Omega_i}} \sin(\theta_j - \theta_i),
+      $$
+      where $\Omega_i$ is the neighborhood of the $i$-th node -- i.e. its connections.
+      These neighborhoods can now be defined as a graph structure and we can abstract oscillators to <i>nodes</i>. Note that this can be scene as a complex-weighted graph with a particular form of convolution/message passing.
+      Because nodes are only connected locally, one cannot use a mean field, but has to use the local average.
+    </p>
+    <p>
+      We can define a zoo of network topologies -- i.e. graph structures. For example, one can assume a 1D cyclic topology, a 2D grid/torus, a hyperbolic graph, etc.
+      The rate of convergence and patterns created are affected by the network topology; for example, if the topology is a line, synchronization results in a traveling wave.
+    </p>
+    <h3>Weighted coupling</h3>
+    <p>
+      As the topology changes, one can allow two nodes having more than one spring between each other.
+      This results in some nodes being more coupled then others; for example, nodes with two springs between them will have twice the coupling.
+      This naturally generalizes to an abstraction with one spring between nodes, but with different coupling constants.
+      $$
+        \dot{\theta}_i = \omega_i + \sum_{j=1}^{N} {\color{orange}k_{ij}} \sin(\theta_j - \theta_i)
+      $$
+      In this formulation, one does not need to restrict to neighborhoods because the coupling constant is zero for unconnected nodes.
+      Note, that coupling tends to be assumed positive by construction, so $k_{ij}$ is typically non-negative. 
+      One can extend this to negative numbers which would try to align two oscillators anti-phase.
+    </p>
+    <h3>Stochastic Form</h3>
+    <p>
+      Kuramoto models are a part of the field known as Interacting Particle Systems and statistical mechanics. 
+      To make it more "realistic" a noise parameter is sometimes included into the dynamics,
+      $$
+        \dot{\theta}_i =  {\color{orange}\mathcal{N} (\omega_i, \sigma)} + K \sum_{j=1}^{N}\sin(\theta_j - \theta_i).
+      $$
+      While I have used a normal distribution in this equation (white noise), this noise can be from any distribution and has been studied in fractional diffusion/rough noise settings.
+    </p>
+  </div>
+</div>
+
+<h2>The Lohe Generalization</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      While we have seen that we can generalize to different network topologies, we can also generalize from unit complex numbers to N-D unit vectors.
+      That is, instead of oscillators traveling around a circle, we can let them travel around a sphere.
+      This generalization is known as a <i>swarm sphere</i> or a <i>Lohe sphere</i>. The more general form generalizing to unitary matrices is known as the <strong>Lohe model</strong>.
+    </p>
+    <p>
+      Rather than using the $\sin$ between 2D vectors, we can generalize to $N$-dimensions by projecting vectors onto eachother.
+      The projection gives the similarity between the two vectors, given by the cosine; the difference between the vectors will be the sine.
+      This allows us to generalize the Kuramoto update rule as,
+      $$
+        \dot{x}_i = \Omega_i x_i + \frac{K}{N}\sum_{j=1}^{N} \Big(x_j - (x_i\cdot x_j)\,x_i\Big), \qquad x_i \in \mathbb{R}^d,\ \|x_i\| = 1
+      $$
+      where $\Omega_i$ is a skew-symmetric generator -- i.e. $\Omega \in \mathfrak{so}(N)$ -- generalizing the (2D) $i\omega$ natural rotation to $N$-dimensional rotations -- i.e. N-dimensional special orthogonal matrices, $SO(N)$.
+      </p>
+      <p>
+      Within the sum is a projection: $x_j - (x_i\cdot x_j)\,x_i$ which computes the component of $x_j$ perpendicular to $x_i$, i.e. the tangential pull of $x_j$ on the sphere at $x_i$.
+      This is exactly the generalization of $\sin(\theta_j-\theta_i)$, which is the perpendicular component of $z_j$ relative to $z_i$ on the unit circle.
+      </p>
+      <p>
+      Projection formulas of this kind are ubiquitous and in later posts I will connect this to Barlow theory of efficient coding and <strong>Oja's rule</strong> -- which marks the precursor to independent component analysis.
+      This equation also has deep connections to equivariant/group commutator and if written in Clifford algebra is quite clean 👌 (though this will take some time to work towards)
+    </p>
+    <p>
+      This equation also can be connected to <strong>Transformers</strong>.
+      Since we have an inner-product $x_i\cdot x_j$, we can apply the kernel trick and replace it with $k(q_j, k_i)$ making the coupling part of the equation strikingly familiar to attention.
+      Though once again, I will elaborate more in a later post, but you can see ... for the connections.  
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/spherical_swarm.html"
+        title="Lohe oscillators demo" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 5:</strong> A swarm on $S^2$ under three models. For the Lohe oscillators, switch natural frequencies between uniform and normal and raise $K$ (now up to 10) to watch the order parameter $r$ climb as the swarm collapses to a single precessing cluster.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Stuart-Landau Oscillators</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/landau_stuart.html"
+        title="Stuart-Landau oscillator — interactive vector field and trajectories" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 6:</strong> Vector field and trajectory streaks of $\dot{z} = (\mu + i\omega)z - |z|^2 z$. The orange ring marks the limit cycle at $r = \sqrt{\mu}$; for $\mu \le 0$ it collapses to a point attractor at the origin.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <p>
+      Kuramoto and Lohe both fix the oscillator's <i>amplitude</i> by construction -- $z_i$ is confined to the unit circle (or $x_i$ to the unit hypersphere) and only the phase is allowed to move.
+      Coupling, as a result, can only ever push phases around; it has nothing to say about how "strongly" an oscillator is oscillating.
+      In terms of box-springs, we are describing how <i>fast</i> the box oscillates back and forth, but not how <i>far</i> it is allowed to deviate from equalibrium.
+      The natural next generalization is to couple the oscillators in both phase <i>and</i> space (amplitude).
+    </p>
+    <p>
+      This generalization leads directly to <strong>Stuart-Landau</strong> oscillators. The dynamics of a single oscillator uncoupled oscillator evolves as
+      $$
+        \dot{z} = (\mu + i\omega)z - |z|^2 z, \qquad z \in \mathbb{C},
+      $$
+      where $\mu$ is a growth/decay rate controlling the convergence behavior of the amplitude, and $\omega$ is the natural frequency controlling the rotation speed.
+      If the cubic term, $|z|^2 z$ is greater than $\mu$, then the amplitude will shrink, but if it smaller than the amplitude will grow.
+      When $\mu \le 0$ the only stable state is the origin, however when $\mu > 0$ the stable state forms a ring at the radius $\mu$ which all states converge to known as a (stable) <strong>ring attractor</strong> or <strong>limit cycle</strong>.
+      The value $\mu=0$ where solutions (attractors) go from stable points complex rings is known as the <strong>Hopf bifurcation</strong>. 
+    </p>
+    <p>
+      If an oscillator moves off of the limit cycle in the amplitude direction, then it will be pushed back on.
+      However, it is free to move along the cycle itself. 
+      This free direction of motion, to my understanding, is what <strong>Max Welling</strong> refers to as the <strong>Goldstone Mode</strong> in his ICLR 2026 Keynote.
+    </p>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Coupling a population of these oscillators through the mean field,
+      $$
+        \dot{z}_i = (\mu + i\omega_i)z_i - |z_i|^2 z_i + K\bigl(\langle z \rangle - z_i\bigr), \qquad \langle z \rangle = \frac{1}{N}\sum_{j=1}^N z_j,
+      $$
+      now pulls oscillators toward each other's <i>positions</i> in the plane, not just their phases. Just as with Kuramoto, this mean-field is shorthand for an explicit all-to-all pairwise coupling,
+      $$
+        \dot{z}_i = (\mu + i\omega_i)z_i - |z_i|^2 z_i + \frac{K}{N}\sum_{j=1}^{N} \bigl(z_j - z_i\bigr),
+      $$
+      which expands to the same equation once you pull the sum apart -- $\frac{1}{N}\sum_j (z_j - z_i) = \langle z\rangle - z_i$. Written this way it is clear the mean-field is just the special case where every oscillator is coupled to every other with the same weight $K/N$; restricting the sum to a neighborhood $\Omega_i$, as we did for Kuramoto, gives the same graph-coupled generalization here.
+      This buys a genuinely new phenomenon that phase-only Kuramoto cannot produce: <strong>amplitude death</strong>. When the coupling $K$ is strong and the natural frequencies are spread widely enough, the coupling term can overpower each oscillator's own tendency to orbit, dragging the whole ensemble into the now-stable fixed point at the origin -- the population stops oscillating altogether rather than merely failing to phase-lock.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/landau_stuart_coupled.html"
+        title="Coupled Stuart-Landau oscillators — interactive" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 7:</strong> $N$ mean-field coupled Stuart&ndash;Landau oscillators with frequencies spread over $\Delta\omega$. Each dot is one oscillator in the complex plane; the orange arrow is $\langle z \rangle$. Raise $K$ to synchronize the ensemble, or raise both $K$ and $\Delta\omega$ to trigger amplitude death.</figcaption>
+    </figure>
+  </div>
+</div>
+<h2>Synchronization In Deep Learning (Needs Work)</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/landau_stuart_coupled.html"
+        title="Coupled Stuart-Landau oscillators — interactive" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 8:</strong> $N$ mean-field coupled Stuart&ndash;Landau oscillators with frequencies spread over $\Delta\omega$. Each dot is one oscillator in the complex plane; the orange arrow is $\langle z \rangle$. Raise $K$ to synchronize the ensemble, or raise both $K$ and $\Delta\omega$ to trigger amplitude death.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <h3>Object Discovery</h3>
+    <p>
+      Synchronization models are widely recognized to be revived by Max Welling's group in Löwe et al. ... 's work on complex autoencoders.
+      Löwe's work was then extended in their "Rotating vectors" work which is analogous to lifting from the Kuramoto model to the Lohe generalization.
+      Ultimately, this led to the AKoRN model of Miyato et al. where they directly use (Lohe) Kuramoto dynamics for object discovery.
+    </p>
+    <h3>Generative Modeling</h3>
+    <p>
+      Recent work by ..., used synchronization as an alternative to diffusion models.
+      The idea is that, by reversing the direction of the Kuramoto dynamics, one can force desynchronization pushing the distribution toward a von Mises (wrapped Gaussian) distribution.
+      This desynchronization (essentially diffusing over the circle) is analogous to adding noise in diffusion models.
+    </p>
+    <h3>Graph Neural Networks</h3>
+    <p>
+      In a parallel vein of research, oscillatory graph neural networks were proposed by Constantin Rusch and Michael Bronstein ... with the motivation of fixing the oversmoothing.
+      This has since been extended to Kuramoto models ... and more recently to Stuart-Landau models ... .
+    </p>
+    <h3>State-Space Models</h3>
+    <p>
+    Recently, Constantin Rusch has also extended state-space models with oscillatory dynamics as we read in the journal club in the past. 
+    One could probably extend it with either Kuramoto or Stuart-Landau dynamics, but I have not checked follow ups of that work.
+    </p>
+    <!-- <h3></h3>
+    <p>
+      Stanić from Schmidthuber's group extended this by training complex-autoencoders in an unsupervised manner, though to my knowle
+    </p> -->
+  </div>
+</div>
+
+<h1 id="forward-forward">Hinton's Forward-Forward</h1>
+
+<h2 id="forward-forward">Local Learning</h2>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      A different kind of local, self-organizing dynamics: Hinton's <strong>Forward-Forward</strong> algorithm replaces backprop's forward + backward pass with two forward passes.
+      An MNIST digit is fed through the network twice — once with the correct label written into its first pixels (<em>positive</em> data), once with a wrong label (<em>negative</em> data).
+      Each layer optimizes only its own objective $p = \sigma\bigl(\sum_j y_j^2 - \theta\bigr)$, raising its <strong>goodness</strong> (the sum of squared activations) above the threshold $\theta$ on positive data and pushing it below on negative data.
+      No gradients travel between layers; each learns locally.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/forward_forward.html"
+        title="Forward-Forward algorithm — MNIST digit passing through the network" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 9:</strong> An MNIST &ldquo;7&rdquo; flows through the net on the positive pass (correct label, goodness climbs above $\theta$) and the negative pass (wrong label, goodness drops below). Each neuron smiles when its layer&rsquo;s goodness is high, frowns when it is low.</figcaption>
+    </figure>
+  </div>
+</div>

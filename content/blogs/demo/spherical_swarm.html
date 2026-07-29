@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spherical Swarm — Interactive</title>
+<title>Lohe Oscillators — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
 <style>
   :root{
     --bg:transparent; --panel:#ffffff; --line:rgba(0,0,0,0.14);
@@ -27,20 +28,11 @@
     font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  h1{font-size:20px;margin:0 0 4px;font-weight:600}
   p.lead{color:var(--muted);margin:0 0 14px;font-size:13px;line-height:1.5}
 
   .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;
     padding:14px 14px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-  .modebar{display:flex;gap:10px;align-items:stretch;margin-bottom:12px}
-  .pill{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
-    border:1px solid var(--line);background:var(--surface);color:var(--muted);transition:all .25s ease}
-  .pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
-  .pill.active{color:var(--a-ink)}
-  .pill.lohe.active{background:var(--a-lohe);border-color:var(--a-lohe)}
-  .pill.swarm.active{background:var(--a-swarm);border-color:var(--a-swarm)}
-  .pill.boid.active{background:var(--a-boid);border-color:var(--a-boid)}
+  .stage h1{margin:0 auto 12px}
 
   canvas{display:block;width:100%;height:440px;border-radius:10px}
   .readout{text-align:center;font-size:12px;color:var(--muted);margin-top:6px;min-height:16px;font-variant-numeric:tabular-nums}
@@ -68,15 +60,8 @@
 </style>
 </head>
 <body>
-  <h1>The Spherical Swarm</h1>
-  <p class="lead">Three ways a crowd of agents can self-organize on the surface of a sphere. Pick a model, then tune the coupling and watch order emerge. All three live on the same 2-sphere but differ in <em>what</em> each agent carries and <em>what</em> it agrees on.</p>
-
   <div class="stage">
-    <div class="modebar">
-      <span class="pill lohe active" data-model="lohe"><span class="dot"></span>Lohe oscillators</span>
-      <span class="pill swarm" data-model="swarm"><span class="dot"></span>Swarmalators</span>
-      <span class="pill boid" data-model="boid"><span class="dot"></span>Flocking (Vicsek)</span>
-    </div>
+    <h1>Lohe Oscillators</h1>
 
     <canvas id="cv"></canvas>
     <div class="readout" id="readout"></div>
@@ -100,13 +85,6 @@
         <button id="pause">Pause</button>
       </div>
     </div>
-  </div>
-
-  <div class="diff">
-    <h2>What's the difference?</h2>
-    <p><span class="tag lohe">Lohe oscillators</span> generalize the Kuramoto model to the sphere: each agent <em>is</em> a unit vector that spins about the vertical axis at its own natural frequency $\omega_i$, while coupling $K$ pulls every vector toward the mean field. With <b>uniform</b> $\omega_i=1$ (a shared axis and rate) the whole swarm co-rotates and locks into a single precessing cluster at any $K$; with <b>normal</b>-distributed frequencies each vector precesses about its own random axis, so the coupling must fight the spread — exactly the Kuramoto competition — and only large $K$ pulls them into one cluster. Order parameter $r=\lvert\frac1N\sum_i \mathbf{x}_i\rvert$ runs from 0 (scattered) to 1 (one cluster).</p>
-    <p><span class="tag swarm">Swarmalators</span> add an <em>internal phase</em> $\theta_i$ (shown as colour) that co-evolves with position. Space coupling makes agents aggregate; the term $J\cos(\theta_j-\theta_i)$ makes that attraction depend on phase similarity, while phase coupling $K$ syncs colours of nearby agents. Positive $J$ gives a synced ball of one colour; negative $J$ splits space by phase into coloured patches — behaviour Lohe sync cannot produce.</p>
-    <p><span class="tag boid">Flocking (Vicsek)</span> agents instead carry a <em>velocity</em> and move along geodesics, steering each step toward the average heading of their neighbours (plus noise). They agree on a <em>direction of motion</em>, not a location, so order shows up as migrating flocks and rotating polar vortices. The order parameter here is the polarization $\lvert\frac1N\sum_i \mathbf{v}_i\rvert$.</p>
   </div>
 
 <script>
@@ -150,7 +128,7 @@
 
   // ---------- state ----------
   let model='lohe', paused=false, phi=0, tilt=-0.42;
-  let X=[], TH=[], V=[], WVEC=[];
+  let X=[], TH=[], V=[], WVEC=[], OM=[];
   let freqMode='uniform';           // Lohe natural-frequency distribution
   const FREQ_SIGMA=0.6;             // per-component std for the normal option
   const CAP={lohe:320, swarm:110, boid:150};
@@ -169,10 +147,11 @@
 
   function initState(){
     N=CAP[model];
-    X=[]; TH=[]; V=[]; WVEC=[];
+    X=[]; TH=[]; V=[]; WVEC=[]; OM=[];
     for(let i=0;i<N;i++){
       const x=randUnit(); X.push(x);
       TH.push(Math.random()*2*Math.PI);
+      OM.push((Math.random()*2-1)*0.5);   // swarmalator natural phase frequency, small spread
       // random tangent velocity
       let v=norm(tangent([Math.random()-0.5,Math.random()-0.5,Math.random()-0.5],x));
       V.push(v);
@@ -343,14 +322,13 @@
   }
   function setModel(m){
     model=m;
-    document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.model===m));
     // sensible defaults per model
+    K.min = (m==='swarm') ? -10 : 0;   // swarm: negative K anti-syncs phases instead of only syncing
     if(m==='lohe'){ K.value=1.0; noise.value=0.10; }
     if(m==='swarm'){ K.value=0.6; J.value=0.8; noise.value=0.05; }
     if(m==='boid'){ K.value=0.35; noise.value=0.12; }
     syncLabels(); initState();
   }
-  document.querySelectorAll('.pill').forEach(p=>p.addEventListener('click',()=>setModel(p.dataset.model)));
   document.querySelectorAll('.segbtn').forEach(b=>b.addEventListener('click',()=>{
     freqMode=b.dataset.freq;
     document.querySelectorAll('.segbtn').forEach(x=>x.classList.toggle('active',x.dataset.freq===freqMode));

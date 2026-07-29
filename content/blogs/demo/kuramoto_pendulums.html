@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kuramoto Pendulums — Huygens Synchronization</title>
+<link rel="stylesheet" href="demo-shared.css">
 <style>
   :root {
     --bg: transparent;
@@ -33,7 +34,6 @@
     background: var(--bg);
     color: var(--text);
   }
-  h1 { font-size: 20px; margin: 0 0 8px 0; font-weight: 600; }
   p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; }
 
   .panel {
@@ -78,6 +78,25 @@
   .statusbar .spacer { margin-left: auto; }
   .statusbar button:hover { background: var(--surface-1); }
   .statusbar button:active { transform: scale(0.98); }
+  .mode-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .mode-btn:hover { background: var(--surface-1); }
+  .mode-btn.active {
+    background: #F5A800;
+    color: #1a1a18;
+    border-color: #F5A800;
+    font-weight: 500;
+  }
+  .mode-btn.active:hover { background: #F5A800; }
+  .mode-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .canvas-wrap {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -88,18 +107,20 @@
 </style>
 </head>
 <body>
-
-<h1>Kuramoto pendulums</h1>
-<p class="lead">
-  Huygens' clocks, Kuramoto style: N pendulums hang from a shared beam, and each phase follows
-  &theta;&#775;&#7522; = &omega;&#7522; + K r sin(&psi; &minus; &theta;&#7522;). The beam sways with the
-  mean field r e<sup>i&psi;</sup>, so it sits still while the pendulums disagree and rocks visibly once
-  they lock. Raise K to watch them fall into step; the inset circle shows the phases and the mean-field arrow.
-</p>
-
+<div class="subtab-about-header" style="text-align: center;">
+<h1>Huygen Pendulums</h1>
+</div>
 <div class="panel">
   <div class="controls">
     <div class="row">
+      <label>View</label>
+      <div style="display:flex;gap:6px;">
+        <button id="viewPend" class="mode-btn active">Pendulums</button>
+        <button id="viewSpring" class="mode-btn">Block Springs</button>
+      </div>
+      <span class="val"></span>
+    </div>
+    <div class="row" id="nnRow">
       <label for="nn">Pendulums</label>
       <input type="range" id="nn" min="2" max="12" step="1" value="2">
       <span class="val" id="nn-out">2</span>
@@ -143,12 +164,13 @@ let N = 2, K = 0, dOm = 0.5, speed = 1, paused = false;
 
 const mq = window.matchMedia('(prefers-color-scheme: dark)');
 let dark = mq.matches;
-let beamCol, tickCol, axisCol;
+let beamCol, tickCol, axisCol, dispCol;
 function setColors(){
   dark = mq.matches;
   beamCol = dark ? '#cfd4dc' : '#2b3442';
   tickCol = dark ? 'rgba(207,212,220,0.75)' : 'rgba(43,52,66,0.75)';
   axisCol = dark ? 'rgba(160,160,155,0.4)' : 'rgba(95,94,90,0.35)';
+  dispCol = dark ? '#63b3ff' : '#2f6df0';
 }
 setColors();
 if (mq.addEventListener) mq.addEventListener('change', setColors);
@@ -196,42 +218,19 @@ const BEAM_Y = 46, ROD_L = 300, AMP = 0.42;
 function draw(){
   ctx.clearRect(0, 0, W, H);
 
+  const [r, psi] = meanField(TH);
+
   let msin = 0;
   for (let j = 0; j < N; j++) msin += Math.sin(TH[j]);
   msin /= N;
-  const bx = 20 * msin;
-
-  const [r, psi] = meanField(TH);
+  const kFrac = Math.min(1, K / 3);
+  const bx = 20 * kFrac * msin;
 
   const m = 110;
   const anchors = [];
   for (let j = 0; j < N; j++){
     const t = N === 1 ? 0.5 : j / (N - 1);
     anchors.push(m + t * (W - 2*m) + bx);
-  }
-
-  const mid = [];
-  for (let j = 0; j < N; j++){
-    const phi = AMP * Math.sin(TH[j]);
-    mid.push([anchors[j] + 0.45 * ROD_L * Math.sin(phi), BEAM_Y + 0.45 * ROD_L * Math.cos(phi)]);
-  }
-  if (K > 0){
-    const kFrac = Math.min(1, K / 3);
-    const base = dark ? [207,212,220] : [43,52,66];
-    const hot  = dark ? [242,106,106] : [206,44,43];
-    ctx.globalAlpha = 0.25 + 0.75 * kFrac;
-    ctx.lineWidth = 1.5 + 5.5 * kFrac;
-    ctx.lineCap = 'round';
-    for (let j = 0; j < N - 1; j++){
-      const tension = Math.abs(Math.sin((TH[j+1] - TH[j]) / 2));
-      const c = base.map((b, i) => Math.round(b + (hot[i] - b) * tension));
-      ctx.strokeStyle = 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
-      ctx.beginPath();
-      ctx.moveTo(mid[j][0], mid[j][1]);
-      ctx.lineTo(mid[j+1][0], mid[j+1][1]);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
   }
 
   for (let j = 0; j < N; j++){
@@ -253,13 +252,29 @@ function draw(){
     ctx.fill();
   }
 
+  const boardWidth = K === 0 ? 6 : 18 - 14 * kFrac;
+
   ctx.strokeStyle = beamCol;
-  ctx.lineWidth = 9;
+  ctx.lineWidth = boardWidth;
   ctx.lineCap = 'round';
+  if (K === 0) ctx.setLineDash([1, 16]);
   ctx.beginPath();
   ctx.moveTo(m - 40 + bx, BEAM_Y);
   ctx.lineTo(W - m + 40 + bx, BEAM_Y);
   ctx.stroke();
+  ctx.setLineDash([]);
+
+  const centerX = W / 2;
+
+  ctx.fillStyle = meanCol;
+  ctx.beginPath();
+  ctx.arc(centerX, BEAM_Y, 7, 0, 6.2832);
+  ctx.fill();
+
+  ctx.fillStyle = dispCol;
+  ctx.beginPath();
+  ctx.arc(centerX + bx, BEAM_Y, 7, 0, 6.2832);
+  ctx.fill();
 
   const ir = 44, icx = W - 64, icy = H - 64;
   ctx.strokeStyle = axisCol;
@@ -283,12 +298,142 @@ function draw(){
   return r;
 }
 
+// =========================================================================
+// Alternate view: two spring-coupled blocks (N is forced to 2 for this view)
+// =========================================================================
+let mode = 'pendulum';
+const SPRING_Y = 220, BLOCK = 48, WALL_W = 14, WALL_MARGIN = 90, GAP = 160, DISP_AMP = 70;
+
+function zigzag(x1, x2, y, coils, amp, color, lw){
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y);
+  const n = Math.max(1, Math.round(coils)) * 2;
+  const dx = (x2 - x1) / n;
+  for (let i = 1; i < n; i++){
+    ctx.lineTo(x1 + dx * i, y + (i % 2 === 1 ? -amp : amp));
+  }
+  ctx.lineTo(x2, y);
+  ctx.stroke();
+}
+
+function drawSprings(){
+  ctx.clearRect(0, 0, W, H);
+
+  const [r, psi] = meanField(TH);
+  const centerX = W / 2;
+  const leftWallX = WALL_MARGIN, rightWallX = W - WALL_MARGIN;
+  const xA_eq = centerX - GAP, xB_eq = centerX + GAP;
+  const xA = xA_eq + DISP_AMP * Math.cos(TH[0]);
+  const xB = xB_eq + DISP_AMP * Math.cos(TH[1]);
+
+  const kFrac = Math.min(1, K / 3);
+  const bx = (xA + xB) / 2 - centerX; // actual midpoint of the two blocks, vs. fixed equilibrium
+
+  // equilibrium ticks
+  ctx.strokeStyle = axisCol;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(xA_eq, SPRING_Y - BLOCK/2 - 10); ctx.lineTo(xA_eq, SPRING_Y + BLOCK/2 + 10);
+  ctx.moveTo(xB_eq, SPRING_Y - BLOCK/2 - 10); ctx.lineTo(xB_eq, SPRING_Y + BLOCK/2 + 10);
+  ctx.stroke();
+
+  // walls
+  ctx.fillStyle = tickCol;
+  ctx.fillRect(leftWallX - WALL_W, SPRING_Y - 70, WALL_W, 140);
+  ctx.fillRect(rightWallX, SPRING_Y - 70, WALL_W, 140);
+
+  // wall springs (fixed, always visible)
+  zigzag(leftWallX, xA - BLOCK/2, SPRING_Y, 8, 10, beamCol, 3);
+  zigzag(xB + BLOCK/2, rightWallX, SPRING_Y, 8, 10, beamCol, 3);
+
+  // coupling spring: fades in and thickens as K rises from 0
+  if (K > 0){
+    const base = dark ? [207,212,220] : [43,52,66];
+    const hot  = dark ? [242,106,106] : [206,44,43];
+    const c = base.map((b, i) => Math.round(b + (hot[i] - b) * kFrac));
+    ctx.globalAlpha = kFrac;
+    zigzag(xA + BLOCK/2, xB - BLOCK/2, SPRING_Y, 5 + 5 * kFrac, 8 + 6 * kFrac,
+      'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')', 2 + 3 * kFrac);
+    ctx.globalAlpha = 1;
+  }
+
+  // equilibrium (orange) and displacement (blue) dots, on the coupling spring's line
+  ctx.fillStyle = meanCol;
+  ctx.beginPath();
+  ctx.arc(centerX, SPRING_Y, 7, 0, 6.2832);
+  ctx.fill();
+
+  ctx.fillStyle = dispCol;
+  ctx.beginPath();
+  ctx.arc(centerX + bx, SPRING_Y, 7, 0, 6.2832);
+  ctx.fill();
+
+  // blocks
+  ctx.fillStyle = bobCol;
+  ctx.fillRect(xA - BLOCK/2, SPRING_Y - BLOCK/2, BLOCK, BLOCK);
+  ctx.fillRect(xB - BLOCK/2, SPRING_Y - BLOCK/2, BLOCK, BLOCK);
+  ctx.strokeStyle = rodCol;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(xA - BLOCK/2, SPRING_Y - BLOCK/2, BLOCK, BLOCK);
+  ctx.strokeRect(xB - BLOCK/2, SPRING_Y - BLOCK/2, BLOCK, BLOCK);
+
+  const ir = 44, icx = W - 64, icy = H - 64;
+  ctx.strokeStyle = axisCol;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(icx, icy, ir, 0, 6.2832);
+  ctx.stroke();
+  ctx.strokeStyle = meanCol;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(icx, icy);
+  ctx.lineTo(icx + ir * r * Math.cos(psi), icy - ir * r * Math.sin(psi));
+  ctx.stroke();
+  for (let j = 0; j < N; j++){
+    ctx.fillStyle = rodCol;
+    ctx.beginPath();
+    ctx.arc(icx + ir * Math.cos(TH[j]), icy - ir * Math.sin(TH[j]), 4, 0, 6.2832);
+    ctx.fill();
+  }
+
+  return r;
+}
+
+function setMode(m){
+  if (mode === m) return;
+  mode = m;
+  document.getElementById('viewPend').classList.toggle('active', m === 'pendulum');
+  document.getElementById('viewSpring').classList.toggle('active', m === 'spring');
+  const nn = document.getElementById('nn');
+  const nnRow = document.getElementById('nnRow');
+  if (m === 'spring'){
+    nn.dataset.savedN = N;
+    N = 2;
+    nn.value = 2;
+    nn.disabled = true;
+    nnRow.style.opacity = '0.5';
+  } else {
+    N = nn.dataset.savedN ? +nn.dataset.savedN : N;
+    nn.value = N;
+    nn.disabled = false;
+    nnRow.style.opacity = '';
+  }
+  init();
+  updateLabels();
+}
+document.getElementById('viewPend').addEventListener('click', () => setMode('pendulum'));
+document.getElementById('viewSpring').addEventListener('click', () => setMode('spring'));
+
 function step(){
   if (!paused){
     const sub = 2, dt = 0.016 * speed / sub;
     for (let s = 0; s < sub; s++) integrate(dt);
   }
-  const r = draw();
+  const r = mode === 'spring' ? drawSprings() : draw();
   document.getElementById('order').textContent = 'r = ' + r.toFixed(2);
   requestAnimationFrame(step);
 }
@@ -296,7 +441,7 @@ function step(){
 function updateRegime(){
   const reg = document.getElementById('regime');
   if (K < 0.05) reg.textContent = 'Uncoupled: each pendulum keeps its own beat';
-  else if (K > dOm) reg.textContent = 'Coupling beats the frequency spread: pendulums lock and the beam rocks';
+  else if (K > dOm) reg.textContent = 'Coupling beats the frequency spread: pendulums lock into a shared rhythm';
   else reg.textContent = 'Weak coupling: partial locking, phases drift past each other';
 }
 function updateLabels(){

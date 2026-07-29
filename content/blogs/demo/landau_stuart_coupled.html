@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coupled Stuart-Landau Oscillators — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
 <style>
   :root {
     --bg: transparent;
@@ -33,7 +34,6 @@
     background: var(--bg);
     color: var(--text);
   }
-  h1 { font-size: 20px; margin: 0 0 8px 0; font-weight: 600; }
   p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; }
 
   .panel {
@@ -96,13 +96,6 @@
 <body>
 
 <h1>Coupled Stuart&ndash;Landau oscillators</h1>
-<p class="lead">
-  N oscillators &#380;&#11388; = (&mu; + i&omega;&#11388;)z&#11388; &minus; |z&#11388;|&sup2;z&#11388; + K(&#9001;z&#9002; &minus; z&#11388;)
-  with mean-field diffusive coupling and spread natural frequencies. Each dot is one oscillator in the
-  complex plane; the orange arrow is the mean field &#9001;z&#9002;. Raise K to synchronize the ensemble
-  &mdash; or raise both K and the frequency spread &Delta;&omega; to kill the oscillations entirely
-  (amplitude death).
-</p>
 
 <div class="panel">
   <div class="controls">
