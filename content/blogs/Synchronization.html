@@ -434,3 +434,67 @@
     </figure>
   </div>
 </div>
+
+<h1 id="spherical-swarm-models">Spherical Swarm Models</h1>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The Lohe demo earlier (Fig 5) is only one of three ways a swarm can self-organize on the sphere $S^2$.
+      Below, each model runs as its own diagram so they can be compared directly &mdash; they differ in <em>what</em> the agents come to agree on: a shared orientation, a location coloured by phase, or a common heading.
+    </p>
+  </div>
+</div>
+
+<h2>Lohe oscillators</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Each agent <em>is</em> a unit vector that spins about the vertical axis at its own natural frequency $\omega_i$, while coupling $K$ pulls every vector toward the mean field.
+      With <b>uniform</b> frequencies the whole swarm co-rotates and locks into a single precessing cluster at any $K$; with <b>normal</b>-distributed frequencies each vector precesses about its own axis, so the coupling must fight the spread &mdash; the Kuramoto competition &mdash; and only large $K$ collapses them into one cluster.
+      The order parameter $r=\lvert\frac1N\sum_i \mathbf{x}_i\rvert$ runs from 0 (scattered) to 1 (one cluster).
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/spherical_swarm.html"
+        title="Lohe oscillators on the sphere" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 10:</strong> Lohe oscillators on $S^2$. Switch $\omega$ between uniform and normal and raise $K$ to watch $r$ climb as the swarm collapses to a single precessing cluster.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Swarmalators</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Swarmalators add an <em>internal phase</em> $\theta_i$ (shown as colour) that co-evolves with position.
+      Space coupling makes agents aggregate; the term $J\cos(\theta_j-\theta_i)$ makes that attraction depend on phase similarity, while phase coupling $K$ syncs the colours of nearby agents.
+      Positive $J$ gives a synced ball of one colour; negative $J$ splits space by phase into coloured patches &mdash; behaviour Lohe sync cannot produce.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/spherical_swarm_swarmalators.html"
+        title="Swarmalators on the sphere" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 11:</strong> Swarmalators. Sweep the space&ndash;phase coupling $J$: positive $J$ fuses the swarm into one colour, negative $J$ fractures the sphere into phase-coloured patches.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Flocking (Vicsek)</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Vicsek agents instead carry a <em>velocity</em> and move along geodesics, steering each step toward the average heading of their neighbours (plus noise).
+      They agree on a <em>direction of motion</em>, not a location, so order shows up as migrating flocks and rotating polar vortices.
+      The order parameter here is the polarization $\lvert\frac1N\sum_i \mathbf{v}_i\rvert$.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/spherical_swarm_flocking.html"
+        title="Vicsek flocking on the sphere" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 12:</strong> Flocking (Vicsek). Agents align their headings and migrate as polar vortices; the polarization measures how aligned the collective motion is.</figcaption>
+    </figure>
+  </div>
+</div>
