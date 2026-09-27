@@ -1,3 +1,26 @@
+/* ==========================================================================
+   Fluid typography  [FLUID-TYPE-v1]
+   --------------------------------------------------------------------------
+   Every font size on the site is rem or em, so the page keys off this one
+   declaration. The root is pinned at the browser default (16px) up to ~1437px
+   -- phones and laptops render exactly as before -- then grows linearly to
+   19px at 2560px and holds.
+
+       viewport:  <=1440   1920     2240    >=2560
+       root:        16px   17.3px   18.2px    19px
+
+   Bounds are rem, not px, so a reader who raised their browser's default font
+   size keeps that increase, and the rem term carries ~76% of the value so
+   text-only zoom still works. A pure-vw formula defeats both.
+
+   The reading column is capped in rem as well, so it widens with the type and
+   holds ~66-70 characters at every width. Scaling type without capping the
+   column only makes long lines bigger.
+   ========================================================================== */
+html {
+    font-size: clamp(1rem, 0.76rem + 0.27vw, 1.19rem);
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -26,7 +49,7 @@ details {
       border: none;
       text-align: left;
       outline: none;
-      font-size: 18px;
+      font-size: 1.125rem;
       border-radius: 8px;
     }
 
@@ -40,7 +63,7 @@ summary {
 .header h1 {
     text-align: center;
     margin: 0 auto;
-    font-size: 48px;
+    font-size: 3rem;
     /* font-weight: 600; */
     line-height: 1.6;
     color: #fff;
@@ -56,7 +79,7 @@ summary {
     height: 30px;
     padding: 10px 10px;
     margin: 0 auto;
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 600;
     line-height: 1.6;
     color: #fff;
@@ -86,7 +109,7 @@ summary {
     color: #fff;
     text-decoration: none;
     margin: 0 10px;
-    font-size: 20px;
+    font-size: 1.25rem;
 }
 
 .header-icons a:hover {
@@ -135,8 +158,14 @@ summary {
     display: none;
     padding: 20px;
     background-color: #fff;
-    border: 1px solid #ff8c00;
-    border-top: none;}
+    /* No frame: the pane is inset from the full-width tab bar, so a three-sided
+       border read as an unfinished box. The footer's rule closes the page
+       instead. (This also removed a doubled border -- a .tab-content pane
+       contains .tab-content.sub-tab-content panes, so posts sat in two.) */
+    /* In rem, so the column widens with the type and the measure stays put. */
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;}
 
     .about-content {
     display: flex;
@@ -154,11 +183,13 @@ summary {
     scrollbar-width: thin; /* Firefox */
     scrollbar-color: #ff8c00 #f5f5f5; /* Firefox */
     width: 60%; /* Adjust the width as needed */
-    max-height: 350px; /* Set the maximum height of the text box */
+    /* No fixed max-height: it could not grow with the fluid type, so wider
+       screens cut headings mid-word. The panel sizes to its content now; the
+       scrollbar colours above still apply if a height is ever put back. */
 }
 
 .about-text p {
-    font-size: 18px;
+    font-size: 1.125rem;
     line-height: 1.6;
     margin-bottom: 20px;
     text-align: justify;
@@ -166,21 +197,21 @@ summary {
 }
 
 .subtab-about-text p {
-    font-size: 18px;
+    font-size: 1.125rem;
     line-height: 1.6;
     margin-bottom: 20px;
     text-align: justify;
     color: #333;
 }
 .subtab-about-text ul {
-    font-size: 18px;
+    font-size: 1.125rem;
     line-height: 1.6;
     margin-bottom: 20px;
     text-align: justify;
     color: #333;
 }
 .subtab-about-text li {
-    font-size: 18px;
+    font-size: 1.125rem;
     line-height: 1.6;
     margin-bottom: 20px;
     text-align: justify;
@@ -188,7 +219,7 @@ summary {
 }
 
 .about-text h3 {
-    font-size: 24px;
+    font-size: 1.5rem;
     margin-bottom: 15px;
     color: #ff8c00;
 }
@@ -265,7 +296,7 @@ summary {
     color: #fff;
     text-shadow: 0px 0px 4px #d07a00;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 0.75rem;
     text-transform: uppercase;
     background-color: #fbba6b;
     border-radius: 20px;
@@ -1272,18 +1303,307 @@ body {
 .cm-popup-cancel:hover { background: #ddd; }
 
 /* Shrunken Screen Settings */
+
+/* ==========================================================================
+   Site footer
+   Bookends the page against the .header-icons bar at the top: same #ffc782
+   band, same orange accent family. Nav links mirror the .tabs entries and are
+   gated by the same draft logic (see applyDraftVisibility in index.html).
+   ========================================================================== */
+.site-footer {
+    margin-top: 56px;
+    background-color: #fdf6ec;
+    border-top: 3px solid #ff8c00;
+    color: #555;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.site-footer-inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 32px 24px 26px;
+    display: grid;
+    grid-template-columns: 1.6fr 1.3fr 0.9fr;
+    gap: 30px;
+}
+
+.footer-head {
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #ff8c00;
+    margin: 0 0 12px;
+    font-weight: bold;
+}
+
+.footer-brand-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.footer-mark {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+}
+
+.footer-name {
+    font-size: 1.0625rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.footer-role {
+    margin: 0;
+    color: #ff8c00;
+    font-weight: bold;
+}
+
+.footer-affil {
+    margin: 2px 0 10px;
+    color: #666;
+}
+
+.footer-blurb {
+    margin: 0;
+    color: #777;
+    max-width: 38ch;
+}
+
+.footer-nav ul,
+.footer-contact ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Two sub-columns so the seven entries sit in four rows and the three
+   footer columns end up roughly the same height. */
+.footer-nav ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 2px;
+}
+
+.footer-nav li,
+.footer-contact li {
+    margin-bottom: 6px;
+}
+
+.site-footer a {
+    color: #555;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.site-footer a:hover {
+    color: #ff8c00;
+    text-decoration: underline;
+}
+
+.footer-contact a {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.footer-contact i {
+    color: #ff8c00;
+    width: 17px;
+    text-align: center;
+    font-size: 1rem;
+}
+
+/* Drafts, when Commentor Mode is on, flag the same way the tab labels do. */
+.footer-link.is-draft {
+    color: #b03a2e;
+    font-style: italic;
+}
+
+.footer-link.is-draft::after {
+    content: " (draft)";
+    opacity: 0.8;
+}
+
+.site-footer-bottom {
+    background-color: #ffc782;
+    color: #fff;
+    text-align: center;
+    padding: 9px 16px;
+    font-size: 0.8125rem;
+    text-shadow: 0px 0px 2px #000000;
+}
+
+.site-footer-bottom a {
+    color: #fff;
+    text-shadow: 0px 0px 2px #000000;
+}
+
+.site-footer-bottom a:hover {
+    color: #fff;
+    text-shadow: 0px 0px 4px #000000;
+    font-weight: bold;
+}
+
+.footer-sep {
+    opacity: 0.75;
+    margin: 0 8px;
+}
+
+
+/* ==========================================================================
+   Optional / collapsible content blocks
+   --------------------------------------------------------------------------
+   Native <details>, so it needs no JavaScript to open, works the moment a
+   content file is fetched into a sub-tab, and is keyboard accessible. MathJax
+   typesets correctly inside a closed block (v3 lays out from font metrics, not
+   from the DOM), so collapsed derivations come out right on first open.
+
+     <details class="dropdown">
+       <summary data-tag="Optional">Deriving the filter factor in full</summary>
+       <p>...</p>
+     </details>
+
+   data-tag on the <summary> is optional and renders the pill; omit it for a
+   plain heading. Add class "quiet" for a borderless aside inside running prose.
+   ========================================================================== */
+details.dropdown {
+    margin: 20px 0;
+    padding: 0 16px;
+    background-color: #fdf6ec;
+    border: 1px solid #f0e0cc;
+    border-left: 3px solid #ff8c00;
+    border-radius: 6px;
+}
+
+details.dropdown > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 -16px;
+    padding: 11px 16px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #333;
+    list-style: none;
+    transition: color 0.18s;
+}
+
+details.dropdown > summary::-webkit-details-marker { display: none; }
+
+details.dropdown > summary:hover,
+details.dropdown > summary:focus-visible {
+    color: #ff8c00;
+}
+
+/* Disclosure triangle, drawn rather than a glyph so it is identical everywhere. */
+details.dropdown > summary::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 0;
+    height: 0;
+    border-left: 6px solid #ff8c00;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    transition: transform 0.18s ease;
+}
+
+details.dropdown[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+/* Optional pill, e.g. <summary data-tag="Optional"> or data-tag="Proof". */
+details.dropdown > summary[data-tag]::after {
+    content: attr(data-tag);
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-size: 0.6875rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #fff;
+    background-color: #ff8c00;
+    padding: 2px 9px;
+    border-radius: 10px;
+}
+
+details.dropdown[open] > summary {
+    border-bottom: 1px solid #f0e0cc;
+}
+
+details.dropdown > summary + * { margin-top: 13px; }
+details.dropdown > *:last-child { margin-bottom: 14px; }
+
+/* No fill-mode: outside the animation's own run the content sits at its normal
+   opacity. With "both" it holds the 0% keyframe (opacity 0) before the animation
+   starts, which makes the body invisible whenever it is rendered without the
+   animation having run -- printing being the case that actually bites. */
+details.dropdown > *:not(summary) {
+    animation: dropdown-reveal 0.22s ease;
+}
+
+@keyframes dropdown-reveal {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Borderless variant, for a short aside that should not interrupt the column. */
+details.dropdown.quiet {
+    background: none;
+    border: none;
+    border-left: none;
+    padding: 0;
+    margin: 14px 0;
+}
+
+details.dropdown.quiet > summary {
+    margin: 0;
+    padding: 4px 0;
+    font-weight: normal;
+    font-style: italic;
+    color: #666;
+}
+
+details.dropdown.quiet[open] > summary { border-bottom: none; }
+details.dropdown.quiet > summary + * { margin-top: 8px; }
+
+/* Nested blocks step in and lose the fill, so the nesting stays readable. */
+details.dropdown details.dropdown {
+    background: none;
+    margin: 14px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    details.dropdown > *:not(summary) { animation: none; }
+    details.dropdown > summary::before { transition: none; }
+}
+
+/* Collapsed content should still be on the page when it is printed. */
+@media print {
+    details.dropdown {
+        background: none;
+        border-left: 3px solid #999;
+    }
+    details.dropdown > summary::after { display: none; }
+    details.dropdown > *:not(summary) { animation: none !important; opacity: 1 !important; }
+}
+
 @media screen and (max-width: 768px) {
     .header h1 {
-        font-size: 32px;
+        font-size: 2rem;
     }
 
     .header p {
-        font-size: 16px;
+        font-size: 1rem;
     }
 
     .tab-label {
         padding: 8px 12px;
-        font-size: 14px;
+        font-size: 0.875rem;
     }
 
     .about-content {
@@ -1318,7 +1638,7 @@ body {
     }
 
     .sub-tab-label {
-        font-size: 10px;
+        font-size: 0.625rem;
         padding: 8px 12px;
         margin: 3px;
         min-width: unset;
@@ -1381,5 +1701,73 @@ body {
     .subtab-about-text li,
     .about-text p {
         text-align: left;
+    }
+
+    /* --- Site footer --------------------------------------------------- */
+    .site-footer-inner {
+        grid-template-columns: 1fr;
+        gap: 26px;
+        padding: 26px 20px 22px;
+        text-align: center;
+    }
+
+    .footer-brand-head {
+        justify-content: center;
+    }
+
+    .footer-blurb {
+        max-width: none;
+        margin: 0 auto;
+    }
+
+    /* Keep the nav in two columns on a phone too, otherwise the footer
+       becomes taller than the content above it. */
+    .footer-nav ul {
+        max-width: 300px;
+        margin: 0 auto;
+        column-gap: 14px;
+        text-align: left;
+    }
+
+    /* Social links collapse into one row, mirroring .header-icons. */
+    .footer-contact ul {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px 22px;
+    }
+
+    .footer-contact li {
+        margin-bottom: 0;
+    }
+
+    .footer-contact a {
+        justify-content: center;
+    }
+
+    .site-footer-bottom {
+        line-height: 1.9;
+    }
+
+    /* --- Collapsible blocks -------------------------------------------- */
+    details.dropdown {
+        padding: 0 12px;
+        margin: 16px 0;
+    }
+
+    details.dropdown > summary {
+        margin: 0 -12px;
+        padding: 10px 12px;
+        text-align: left;
+    }
+
+    /* The pill would crowd a long heading on a narrow screen, so it wraps
+       under it rather than being squeezed against the edge. */
+    details.dropdown > summary[data-tag] {
+        flex-wrap: wrap;
+    }
+
+    details.dropdown > summary[data-tag]::after {
+        margin-left: 16px;
     }
 }

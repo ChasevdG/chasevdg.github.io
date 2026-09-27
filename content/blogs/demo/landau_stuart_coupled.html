@@ -34,7 +34,7 @@
     background: var(--bg);
     color: var(--text);
   }
-  p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; }
+  p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 0.8125rem; }
 
   .panel {
     background: var(--panel);
@@ -45,14 +45,14 @@
   .controls { margin-bottom: 14px; }
   .row {
     display: grid;
-    grid-template-columns: 70px 1fr 56px;
+    grid-template-columns: 4.375rem 1fr 3.5rem;
     gap: 10px;
     align-items: center;
     margin-bottom: 8px;
   }
-  .row label { font-size: 13px; }
+  .row label { font-size: 0.8125rem; }
   .row .val {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--muted);
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -62,13 +62,13 @@
     display: flex;
     align-items: baseline;
     gap: 12px;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--muted);
     margin-top: 4px;
   }
   .statusbar button {
     margin-left: auto;
-    font-size: 12px;
+    font-size: 0.75rem;
     padding: 4px 12px;
     border: 1px solid var(--border-strong);
     border-radius: 4px;
@@ -87,7 +87,7 @@
   .canvas-wrap + .canvas-wrap { margin-top: 10px; }
   canvas { display: block; width: 100%; }
   .strip-label {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--muted);
     padding: 6px 10px 0 10px;
   }
@@ -391,6 +391,23 @@ function postHeight() {
 window.addEventListener('load', postHeight);
 window.addEventListener('resize', postHeight);
 if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
 
 init();
 updateLabels();

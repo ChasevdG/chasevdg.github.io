@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linear dependence and the singular direction — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
+<style>
+  :root {
+    --bg: transparent; --panel: #ffffff; --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25); --surface-1: #f5f4ee;
+    --text: #1a1a18; --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --panel: #262624; --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3); --surface-1: #262624;
+      --text: #f0efea; --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 1rem 1.25rem;
+         background: var(--bg); color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.875rem; }
+  .controls { margin-bottom: 0.875rem; }
+  .row { display: grid; grid-template-columns: 7.5rem 1fr 4rem; gap: 0.625rem; align-items: center; margin-bottom: 0.5rem; }
+  .row label { font-size: 0.8125rem; }
+  .row .val { font-size: 0.75rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .statusbar { display: flex; align-items: baseline; gap: 0.75rem; font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+  .statusbar button { font-size: 0.75rem; padding: 0.25rem 0.75rem; border: 1px solid var(--border-strong);
+                      border-radius: 0.25rem; background: transparent; color: var(--text); cursor: pointer; }
+  .statusbar button:first-of-type { margin-left: auto; }
+  .statusbar button:hover { background: var(--surface-1); }
+  .canvas-wrap { border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden; background: var(--panel); }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>Linear dependence and the singular direction</h1>
+<div class="panel">
+  <div class="controls">
+    <div class="row">
+      <label for="rho">collinearity &rho;</label>
+      <input type="range" id="rho" min="0" max="1" step="0.005" value="0.9">
+      <span class="val" id="rho-out">0.900</span>
+    </div>
+    <div class="row">
+      <label for="lam">ridge &lambda;</label>
+      <input type="range" id="lam" min="0" max="1.5" step="0.005" value="0">
+      <span class="val" id="lam-out">0.000</span>
+    </div>
+    <div class="row">
+      <label for="sig">noise &sigma;</label>
+      <input type="range" id="sig" min="0" max="0.6" step="0.01" value="0.15">
+      <span class="val" id="sig-out">0.15</span>
+    </div>
+    <div class="statusbar">
+      <span id="verdict">&nbsp;</span>
+      <button id="resample">Resample</button>
+      <button id="sweep">Sweep &lambda;</button>
+    </div>
+  </div>
+  <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = 900, H = 560, DPR = window.devicePixelRatio || 1;
+cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let contourCol, valleyCol, lsCol, ridgeCol, traceCol, gridCol, axisCol, textCol, goodCol, badCol, featA, featB;
+function setColors(){
+  const d = mq.matches;
+  contourCol = d ? 'rgba(160,160,155,0.40)' : 'rgba(95,94,90,0.34)';
+  valleyCol  = d ? 'rgba(255,64,150,0.95)'  : 'rgba(214,0,98,0.95)';
+  lsCol      = d ? 'rgba(99,179,255,1)'     : 'rgba(47,109,240,1)';
+  ridgeCol   = 'rgba(255,140,0,1)';
+  traceCol   = d ? 'rgba(255,140,0,0.45)'   : 'rgba(255,140,0,0.55)';
+  gridCol    = d ? 'rgba(160,160,155,0.12)' : 'rgba(95,94,90,0.10)';
+  axisCol    = d ? 'rgba(160,160,155,0.36)' : 'rgba(95,94,90,0.32)';
+  textCol    = d ? 'rgba(240,239,234,0.88)' : 'rgba(26,26,24,0.82)';
+  goodCol    = d ? 'rgba(93,202,165,1)'     : 'rgba(29,158,117,0.95)';
+  badCol     = d ? 'rgba(255,64,150,0.95)'  : 'rgba(214,0,98,0.95)';
+  featA      = d ? 'rgba(99,179,255,1)'     : 'rgba(47,109,240,1)';
+  featB      = d ? 'rgba(93,202,165,1)'     : 'rgba(29,158,117,0.95)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', setColors);
+
+// ---- model ----------------------------------------------------------------
+let rho = 0.9, lam = 0, sigma = 0.15, sweeping = false, sweepT = 0;
+const N = 60;
+const WSTAR = [1.0, 0.7];
+let raw = [];                 // [x1, z, eps] per point, fixed until Resample
+function gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185307*v); }
+function resample(){ raw = []; for (let i=0;i<N;i++) raw.push([gauss(), gauss(), gauss()]); }
+resample();
+
+// A = X^T X / N ,  b = X^T y / N  -- normalised so the scale does not chase rho
+let A = [0,0,0], bvec = [0,0], ev = null, cols = null;
+function build(){
+  const s = Math.sqrt(Math.max(0, 1 - rho*rho));
+  let a11=0,a12=0,a22=0, b1=0, b2=0, c1=[0,0], c2=[0,0];
+  for (const [x1, z, e] of raw){
+    const x2 = rho*x1 + s*z;
+    const y = WSTAR[0]*x1 + WSTAR[1]*x2 + sigma*e;
+    a11 += x1*x1; a12 += x1*x2; a22 += x2*x2;
+    b1 += x1*y;  b2 += x2*y;
+    c1[0] += x1*x1; c1[1] += x1*x2; c2[0] += x2*x1; c2[1] += x2*x2;
+  }
+  A = [a11/N, a12/N, a22/N]; bvec = [b1/N, b2/N];
+  // unit vectors summarising the two feature columns, for the inset
+  const n1 = Math.sqrt(c1[0]/N), n2 = Math.sqrt(c2[1]/N);
+  const cosang = (a12/N) / Math.max(1e-12, n1*n2);
+  cols = { cos: Math.max(-1, Math.min(1, cosang)) };
+  ev = eig2(A);
+}
+// symmetric 2x2 eigendecomposition, descending
+function eig2(M){
+  const [a,b,c] = M;
+  const tr = a + c, det = a*c - b*b;
+  const disc = Math.sqrt(Math.max(0, tr*tr/4 - det));
+  const m1 = tr/2 + disc, m2 = tr/2 - disc;
+  const vec = m => {
+    let vx, vy;
+    if (Math.abs(b) > 1e-12){ vx = b; vy = m - a; }
+    else { vx = (Math.abs(a - m) < Math.abs(c - m)) ? 1 : 0; vy = 1 - vx; }
+    const n = Math.hypot(vx, vy) || 1;
+    return [vx/n, vy/n];
+  };
+  return { m: [m1, Math.max(0, m2)], v: [vec(m1), vec(m2)] };
+}
+// w = sum_i  (v_i . b) / (mu_i + lambda)  v_i     (lambda = 0 gives the minimum-norm LS solution)
+function solve(l){
+  const out = [0,0];
+  for (let i=0;i<2;i++){
+    const d = ev.m[i] + l;
+    if (d < 1e-9) continue;                        // singular direction, no data to speak of
+    const p = (ev.v[i][0]*bvec[0] + ev.v[i][1]*bvec[1]) / d;
+    out[0] += p*ev.v[i][0]; out[1] += p*ev.v[i][1];
+  }
+  return out;
+}
+build();
+
+// ---- geometry -------------------------------------------------------------
+const CX = 248, CY = 292, SC = 88, RANGE = 2.45;
+// Above this the singular direction is drawn AND named in the status line, so the
+// picture and the words cannot disagree.
+const KAPPA_SHOW = 12;
+const px = x => CX + x*SC, py = y => CY - y*SC;
+
+function arrow(x0,y0,x1,y1,col,wid){
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wid;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const a = Math.atan2(y1-y0, x1-x0), hl = 7 + wid;
+  ctx.beginPath(); ctx.moveTo(x1,y1);
+  ctx.lineTo(x1 - hl*Math.cos(a-0.4), y1 - hl*Math.sin(a-0.4));
+  ctx.lineTo(x1 - hl*Math.cos(a+0.4), y1 - hl*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function drawWeightSpace(){
+  ctx.save();
+  ctx.beginPath(); ctx.rect(14, 48, 468, 500); ctx.clip();
+
+  ctx.strokeStyle = gridCol; ctx.lineWidth = 1;
+  for (let i=-2;i<=2;i++){
+    if (!i) continue;
+    ctx.beginPath(); ctx.moveTo(px(i), py(-RANGE)); ctx.lineTo(px(i), py(RANGE)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(-RANGE), py(i)); ctx.lineTo(px(RANGE), py(i)); ctx.stroke();
+  }
+  ctx.strokeStyle = axisCol;
+  ctx.beginPath(); ctx.moveTo(px(-RANGE), py(0)); ctx.lineTo(px(RANGE), py(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px(0), py(-RANGE)); ctx.lineTo(px(0), py(RANGE)); ctx.stroke();
+
+  const wls = solve(0);
+  // level sets of (w - w_ls)^T A (w - w_ls): ellipses whose long axis is 1/sqrt(mu_min).
+  // As mu_min -> 0 they stretch without bound and the bowl becomes a trough.
+  const m1 = Math.max(ev.m[0], 1e-7), m2 = Math.max(ev.m[1], 1e-7);
+  ctx.strokeStyle = contourCol; ctx.lineWidth = 1.2;
+  for (const L of [0.04, 0.16, 0.36, 0.64, 1.0, 1.6]){
+    const r1 = Math.sqrt(L/m1), r2 = Math.sqrt(L/m2);
+    if (!isFinite(r1) || !isFinite(r2)) continue;
+    ctx.beginPath();
+    for (let k=0;k<=120;k++){
+      const t = 6.2832*k/120;
+      const x = wls[0] + r1*Math.cos(t)*ev.v[0][0] + r2*Math.sin(t)*ev.v[1][0];
+      const y = wls[1] + r1*Math.cos(t)*ev.v[0][1] + r2*Math.sin(t)*ev.v[1][1];
+      k ? ctx.lineTo(px(x), py(y)) : ctx.moveTo(px(x), py(y));
+    }
+    ctx.closePath(); ctx.stroke();
+  }
+
+  // the singular / near-singular direction: every w along it makes the same predictions
+  const kappa = ev.m[0] / Math.max(ev.m[1], 1e-12);
+  if (kappa > KAPPA_SHOW){
+    const v = ev.v[1], T = 6;
+    ctx.strokeStyle = valleyCol; ctx.lineWidth = 2.4; ctx.setLineDash([9,6]);
+    ctx.beginPath();
+    ctx.moveTo(px(wls[0]-v[0]*T), py(wls[1]-v[1]*T));
+    ctx.lineTo(px(wls[0]+v[0]*T), py(wls[1]+v[1]*T));
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // ridge trace: the solution as lambda runs from 0 upward, ending at the origin
+  ctx.strokeStyle = traceCol; ctx.lineWidth = 2; ctx.beginPath();
+  for (let k=0;k<=160;k++){
+    const l = Math.pow(10, -4 + 5*k/160);
+    const w = solve(l);
+    k ? ctx.lineTo(px(w[0]), py(w[1])) : ctx.moveTo(px(w[0]), py(w[1]));
+  }
+  ctx.stroke();
+
+  // least-squares solution (undefined when exactly singular)
+  if (ev.m[1] > 1e-7){
+    // a ring, so it stays visible when the ridge dot sits on top of it at lambda = 0
+    ctx.strokeStyle = lsCol; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.arc(px(wls[0]), py(wls[1]), 9, 0, 6.2832); ctx.stroke();
+  }
+  // the ridge solution actually in force
+  const wr = solve(lam);
+  ctx.fillStyle = ridgeCol;
+  ctx.beginPath(); ctx.arc(px(wr[0]), py(wr[1]), 6.5, 0, 6.2832); ctx.fill();
+  ctx.strokeStyle = ridgeCol; ctx.globalAlpha = 0.45; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(wr[0]), py(wr[1])); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = textCol; ctx.beginPath(); ctx.arc(px(0), py(0), 2.5, 0, 6.2832); ctx.fill();
+
+  ctx.restore();
+
+  ctx.fillStyle = textCol; ctx.font = '600 0.8125rem system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('weight space', 16, 28);
+  ctx.font = '0.6875rem system-ui, sans-serif'; ctx.globalAlpha = 0.75;
+  ctx.fillText('w₁', px(RANGE) - 22, py(0) - 8);
+  ctx.fillText('w₂', px(0) + 8, py(RANGE) + 14);
+  ctx.globalAlpha = 1;
+}
+
+function drawSpectrum(){
+  const X0 = 528, Y0 = 92, BW = 150, GAP = 22;
+  ctx.fillStyle = textCol; ctx.font = '600 0.8125rem system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('eigenvalues of XᵀX', X0, 28);
+  ctx.font = '0.6875rem system-ui, sans-serif'; ctx.globalAlpha = 0.72;
+  ctx.fillText('ridge adds λ to every one, so none can be zero', X0, 46);
+  ctx.globalAlpha = 1;
+
+  const mx = Math.max(ev.m[0] + lam, 1e-6);
+  for (let i=0;i<2;i++){
+    const y = Y0 + i*(2*GAP + 26);
+    const wRaw = Math.max(1, ev.m[i]/mx*BW);
+    const wAdd = Math.max(0, lam/mx*BW);
+    ctx.fillStyle = ev.m[i] < 0.02 ? badCol : lsCol;
+    ctx.globalAlpha = 0.9; ctx.fillRect(X0, y, wRaw, 16); ctx.globalAlpha = 1;
+    if (wAdd > 0.5){
+      ctx.fillStyle = ridgeCol; ctx.globalAlpha = 0.85;
+      ctx.fillRect(X0 + wRaw, y, wAdd, 16); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = textCol; ctx.font = '0.6875rem system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('μ' + (i===0?'₁':'₂') + ' = ' + ev.m[i].toFixed(4) +
+                 (lam > 0 ? '   →  ' + (ev.m[i]+lam).toFixed(4) : ''), X0, y - 6);
+    const inv = ev.m[i] + lam;
+    ctx.fillStyle = inv < 1e-6 ? badCol : (ev.m[i] < 0.02 ? goodCol : textCol);
+    ctx.textAlign = 'right';
+    ctx.fillText('1/μ = ' + (inv < 1e-9 ? '∞' : (1/inv).toFixed(1)), X0 + BW + 74, y + 12);
+  }
+}
+
+function drawFeatures(){
+  const cx = 600, cy = 356, R = 52;
+  ctx.fillStyle = textCol; ctx.font = '600 0.8125rem system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('the two feature columns', 528, 300);
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.2832); ctx.stroke(); ctx.globalAlpha = 1;
+  const ang = Math.acos(Math.max(-1, Math.min(1, cols.cos)));
+  arrow(cx, cy, cx + R*Math.cos(-ang/2), cy + R*Math.sin(-ang/2), featA, 2.4);
+  arrow(cx, cy, cx + R*Math.cos(ang/2),  cy + R*Math.sin(ang/2),  featB, 2.4);
+  ctx.fillStyle = textCol; ctx.font = '0.6875rem system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.globalAlpha = 0.8;
+  ctx.fillText('angle ' + (ang*57.2958).toFixed(1) + '°', cx + R + 14, cy - 4);
+  ctx.fillText(ang*57.2958 < 6 ? 'effectively the same feature' : 'independent enough to separate',
+               cx + R + 14, cy + 12);
+  ctx.globalAlpha = 1;
+}
+
+function drawLegend(){
+  const items = [['least-squares solution', lsCol], ['ridge solution at this λ', ridgeCol],
+                 ['ridge trace, λ: 0 → ∞', traceCol], ['singular direction', valleyCol]];
+  ctx.font = '0.6875rem system-ui, sans-serif'; ctx.textAlign = 'left';
+  items.forEach(([t,c],i) => {
+    const y = 452 + i*18;
+    ctx.strokeStyle = c; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(528, y-4); ctx.lineTo(552, y-4); ctx.stroke();
+    ctx.fillStyle = textCol; ctx.globalAlpha = 0.8; ctx.fillText(t, 560, y); ctx.globalAlpha = 1;
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawWeightSpace(); drawSpectrum(); drawFeatures(); drawLegend();
+  const kappa = ev.m[0] / Math.max(ev.m[1], 1e-12);
+  const wr = solve(lam), nrm = Math.hypot(wr[0], wr[1]);
+  let msg;
+  if (ev.m[1] < 1e-6 && lam === 0)
+    msg = '<strong>singular</strong> — μ₂ = 0, so (XᵀX)⁻¹ does not exist and every w on the dashed line fits the data identically';
+  else if (kappa > 300 && lam === 0)
+    msg = '<strong>badly ill-conditioned</strong> — κ = ' + kappa.toExponential(1) + ', the solution is barely pinned down along the dashed direction';
+  else if (kappa > KAPPA_SHOW && lam === 0)
+    msg = '<strong>ill-conditioned</strong> — κ = ' + kappa.toFixed(1) + ', the dashed direction is only weakly determined by the data';
+  else if (lam > 0)
+    msg = 'κ = ' + (( ev.m[0]+lam )/( ev.m[1]+lam )).toFixed(1) + ' with λ — ‖w‖ = ' + nrm.toFixed(3) +
+          ', and the singular direction is now pinned at the origin';
+  else
+    msg = 'κ = ' + kappa.toFixed(1) + ' — well conditioned, ‖w‖ = ' + nrm.toFixed(3);
+  document.getElementById('verdict').innerHTML = msg;
+}
+
+// ---- controls --------------------------------------------------------------
+function bind(id, fn, fmt){
+  const el = document.getElementById(id), out = document.getElementById(id+'-out');
+  el.addEventListener('input', e => { fn(+e.target.value); out.textContent = fmt(+e.target.value); });
+  out.textContent = fmt(+el.value);
+}
+bind('rho', v => { rho = v; build(); }, v => v.toFixed(3));
+bind('lam', v => { lam = v; sweeping = false;
+  document.getElementById('sweep').textContent = 'Sweep λ'; }, v => v.toFixed(3));
+bind('sig', v => { sigma = v; build(); }, v => v.toFixed(2));
+document.getElementById('resample').addEventListener('click', () => { resample(); build(); });
+document.getElementById('sweep').addEventListener('click', e => {
+  sweeping = !sweeping; sweepT = 0;
+  e.currentTarget.textContent = sweeping ? 'Stop' : 'Sweep λ';
+});
+
+function loop(){
+  if (sweeping){
+    sweepT += 0.006;
+    if (sweepT > 1) sweepT = 0;
+    lam = 1.5 * sweepT * sweepT;
+    const el = document.getElementById('lam');
+    el.value = lam; document.getElementById('lam-out').textContent = lam.toFixed(3);
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function postHeight() {
+  if (window.parent === window) return;
+  window.parent.postMessage({ type: 'demo-embed-height', height: document.documentElement.scrollHeight }, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>

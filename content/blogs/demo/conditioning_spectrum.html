@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gradient conditioning with depth — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
+<style>
+  :root {
+    --bg: transparent; --panel: #ffffff; --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25); --surface-1: #f5f4ee;
+    --text: #1a1a18; --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --panel: #262624; --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3); --surface-1: #262624;
+      --text: #f0efea; --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px 20px;
+         background: var(--bg); color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .controls { margin-bottom: 14px; }
+  .row { display: grid; grid-template-columns: 6.5rem 1fr 3.875rem; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 0.8125rem; }
+  .row .val { font-size: 0.75rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .statusbar { display: flex; align-items: baseline; gap: 12px; font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .statusbar button { margin-left: auto; font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--border-strong);
+                      border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+  .statusbar button:hover { background: var(--surface-1); }
+  .statusbar button:active { transform: scale(0.98); }
+  .canvas-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel); }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>Gradient conditioning with depth</h1>
+<div class="panel">
+  <div class="controls">
+    <div class="row">
+      <label for="sig">mean ||W||</label>
+      <input type="range" id="sig" min="0.60" max="1.40" step="0.01" value="1.00">
+      <span class="val" id="sig-out">1.00</span>
+    </div>
+    <div class="row">
+      <label for="spread">spectrum spread</label>
+      <input type="range" id="spread" min="0" max="0.9" step="0.02" value="0.20">
+      <span class="val" id="spread-out">0.20</span>
+    </div>
+    <div class="row">
+      <label for="depth">depth L</label>
+      <input type="range" id="depth" min="4" max="60" step="1" value="30">
+      <span class="val" id="depth-out">30</span>
+    </div>
+    <div class="row">
+      <label for="spd">speed</label>
+      <input type="range" id="spd" min="0.25" max="3" step="0.25" value="1">
+      <span class="val" id="spd-out">1.0&times;</span>
+    </div>
+    <div class="statusbar">
+      <span id="regime">&nbsp;</span>
+      <button id="reroll">Resample</button>
+      <button id="pause">Pause</button>
+    </div>
+  </div>
+  <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = 900, H = 560, DPR = window.devicePixelRatio || 1;
+cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let fwdCol, bwdCol, gridCol, axisCol, refCol, bandF, bandB, textCol;
+function setColors(){
+  const d = mq.matches;
+  fwdCol  = d ? 'rgba(99,179,255,0.95)'  : 'rgba(47,109,240,0.95)';
+  bandF   = d ? 'rgba(99,179,255,0.20)'  : 'rgba(47,109,240,0.15)';
+  bwdCol  = d ? 'rgba(255,64,150,0.95)'  : 'rgba(214,0,98,0.95)';
+  bandB   = d ? 'rgba(255,64,150,0.18)'  : 'rgba(214,0,98,0.13)';
+  gridCol = d ? 'rgba(160,160,155,0.14)' : 'rgba(95,94,90,0.12)';
+  axisCol = d ? 'rgba(160,160,155,0.45)' : 'rgba(95,94,90,0.4)';
+  refCol  = 'rgba(255,140,0,0.9)';
+  textCol = d ? 'rgba(240,239,234,0.85)' : 'rgba(26,26,24,0.8)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', setColors);
+
+let sigBar = 1.00, spread = 0.20, L = 30, speed = 1, paused = false;
+const N = 20;   // layer width
+const K = 8;    // size of the propagated orthonormal frame
+
+function gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185307*v); }
+
+function randOrtho(){
+  const Q = [];
+  for (let i=0;i<N;i++){
+    const v = new Float64Array(N);
+    for (let j=0;j<N;j++) v[j] = gauss();
+    for (const q of Q){ let d=0; for (let j=0;j<N;j++) d += q[j]*v[j];
+      for (let j=0;j<N;j++) v[j] -= d*q[j]; }
+    let n=0; for (let j=0;j<N;j++) n += v[j]*v[j];
+    n = Math.sqrt(n);
+    if (n < 1e-9){ i--; continue; }
+    for (let j=0;j<N;j++) v[j] /= n;
+    Q.push(v);
+  }
+  return Q;
+}
+
+let layers = [];
+function buildLayers(){
+  layers = [];
+  for (let l=0;l<L;l++){
+    const U = randOrtho(), V = randOrtho(), s = new Float64Array(N);
+    for (let i=0;i<N;i++) s[i] = Math.max(1e-4, sigBar * (1 + (Math.random()*2 - 1)*spread));
+    layers.push({U, V, s});
+  }
+}
+function matvec(Lr, x){
+  const t = new Float64Array(N);
+  for (let i=0;i<N;i++){ let d=0; const v=Lr.V[i]; for (let j=0;j<N;j++) d += v[j]*x[j]; t[i] = d*Lr.s[i]; }
+  const y = new Float64Array(N);
+  for (let i=0;i<N;i++){ const u=Lr.U[i]; for (let j=0;j<N;j++) y[j] += t[i]*u[j]; }
+  return y;
+}
+function matvecT(Lr, x){
+  const t = new Float64Array(N);
+  for (let i=0;i<N;i++){ let d=0; const u=Lr.U[i]; for (let j=0;j<N;j++) d += u[j]*x[j]; t[i] = d*Lr.s[i]; }
+  const y = new Float64Array(N);
+  for (let i=0;i<N;i++){ const v=Lr.V[i]; for (let j=0;j<N;j++) y[j] += t[i]*v[j]; }
+  return y;
+}
+
+// Propagate an orthonormal K-frame through a sequence of maps, re-orthonormalising
+// at every step and accumulating log10 of the diagonal of R. This is the Lyapunov
+// spectrum of the product: the spread between its largest and smallest entry is
+// exactly the per-direction spread that a single norm cannot see.
+function propagate(apply, order){
+  let F = [];
+  for (let j=0;j<K;j++){
+    const v = new Float64Array(N);
+    for (let i=0;i<N;i++) v[i] = gauss();
+    for (const q of F){ let d=0; for (let i=0;i<N;i++) d += q[i]*v[i];
+      for (let i=0;i<N;i++) v[i] -= d*q[i]; }
+    let n=0; for (let i=0;i<N;i++) n += v[i]*v[i]; n = Math.sqrt(n);
+    for (let i=0;i<N;i++) v[i] /= n;
+    F.push(v);
+  }
+  const logs = new Float64Array(K);
+  const out = [{mn:0, mx:0, mean:0}];
+  for (const l of order){
+    const A = F.map(v => apply(l, v));
+    for (let j=0;j<K;j++){                        // modified Gram-Schmidt
+      for (let i=0;i<j;i++){
+        let d=0; for (let t=0;t<N;t++) d += A[i][t]*A[j][t];
+        for (let t=0;t<N;t++) A[j][t] -= d*A[i][t];
+      }
+      let n=0; for (let t=0;t<N;t++) n += A[j][t]*A[j][t]; n = Math.sqrt(n);
+      logs[j] += Math.log10(Math.max(n, 1e-300));
+      const inv = n > 1e-300 ? 1/n : 0;
+      for (let t=0;t<N;t++) A[j][t] *= inv;
+    }
+    F = A;
+    let mn=Infinity, mx=-Infinity, s=0;
+    for (let j=0;j<K;j++){ mn=Math.min(mn,logs[j]); mx=Math.max(mx,logs[j]); s+=logs[j]; }
+    out.push({mn, mx, mean: s/K});
+  }
+  return out;
+}
+
+// fwd[l]  = log10 ||h_(l-1)||, the signal arriving at layer l   (length L+1)
+// bwd[l]  = log10 ||delta_l||, the signal arriving back at layer l  (length L)
+// grad[l] = fwd[l] + bwd[l]  =  log10 ||grad W_l||
+let fwd = [], bwd = [], grad = [];
+function run(){
+  const fo = []; for (let l=0;l<L;l++) fo.push(l);
+  fwd = propagate((l,v) => matvec(layers[l], v), fo);
+
+  const bo = []; for (let l=L-1;l>=1;l--) bo.push(l);   // delta_l = W_(l+1)^T ... W_(L-1)^T g
+  const braw = propagate((l,v) => matvecT(layers[l], v), bo);
+  bwd = []; for (let l=0;l<L;l++) bwd.push(braw[L-1-l]);
+
+  grad = [];
+  for (let l=0;l<L;l++) grad.push({
+    mn: fwd[l].mn + bwd[l].mn, mx: fwd[l].mx + bwd[l].mx, mean: fwd[l].mean + bwd[l].mean });
+}
+function rebuild(){ buildLayers(); run(); updateStatus(); }
+
+const M = {l: 70, r: 130, t: 30, b: 34};
+const PH = (H - 24) / 2;
+function plotRect(k){ return {x: M.l, y: 8 + k*(PH+8) + M.t, w: W - M.l - M.r, h: PH - M.t - M.b}; }
+
+function yRange(series){
+  let mn=0, mx=0;
+  for (const p of series){ mn=Math.min(mn,p.mn); mx=Math.max(mx,p.mx); }
+  const pad = Math.max(0.5, (mx-mn)*0.14);
+  return [mn-pad, mx+pad];
+}
+
+const SUP = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴',
+             '5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function sup(n){ return String(Math.round(n)).split('').map(c => SUP[c] || c).join(''); }
+
+function drawPlot(k, series, col, band, title, marker, rev){
+  const R = plotRect(k);
+  const [y0, y1] = yRange(series);
+  const X = i => R.x + (series.length<2 ? 0 : i/(series.length-1))*R.w;
+  const Y = v => R.y + R.h - (v - y0)/(y1 - y0)*R.h;
+
+  ctx.lineWidth = 1; ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const stepDec = Math.max(1, Math.ceil((y1-y0)/6));
+  for (let e = Math.ceil(y0/stepDec)*stepDec; e <= y1; e += stepDec){
+    ctx.strokeStyle = (e === 0) ? refCol : gridCol;
+    ctx.setLineDash(e === 0 ? [5,4] : []);
+    ctx.beginPath(); ctx.moveTo(R.x, Y(e)); ctx.lineTo(R.x+R.w, Y(e)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = (e === 0) ? refCol : textCol;
+    ctx.fillText(e === 0 ? '1' : '10' + sup(e), R.x - 8, Y(e));
+  }
+  ctx.strokeStyle = axisCol;
+  ctx.beginPath(); ctx.moveTo(R.x, R.y); ctx.lineTo(R.x, R.y+R.h); ctx.lineTo(R.x+R.w, R.y+R.h); ctx.stroke();
+
+  ctx.fillStyle = band; ctx.beginPath();
+  for (let i=0;i<series.length;i++){ const x=X(i), y=Y(series[i].mx); i? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
+  for (let i=series.length-1;i>=0;i--) ctx.lineTo(X(i), Y(series[i].mn));
+  ctx.closePath(); ctx.fill();
+
+  ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.beginPath();
+  for (let i=0;i<series.length;i++){ const x=X(i), y=Y(series[i].mean); i? ctx.lineTo(x,y) : ctx.moveTo(x,y); }
+  ctx.stroke();
+
+  if (marker !== null){
+    const i = Math.max(0, Math.min(series.length-1, marker));
+    const i0 = Math.floor(i), i1 = Math.min(series.length-1, i0+1), f = i - i0;
+    const vy = series[i0].mean*(1-f) + series[i1].mean*f;
+    const mx2 = X(i0)*(1-f) + X(i1)*f, my = Y(vy);
+    ctx.strokeStyle = col; ctx.globalAlpha = 0.3; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(mx2, R.y); ctx.lineTo(mx2, R.y+R.h); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(mx2, my, 5.5, 0, 6.2832); ctx.fill();
+  }
+
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = '600 13px system-ui, sans-serif';
+  ctx.fillText(title, R.x, R.y - 10);
+  ctx.fillStyle = textCol; ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.globalAlpha = 0.75;
+  ctx.fillText(rev ? 'layer index  ℓ   ← backward pass' : 'layer index  ℓ   forward pass →',
+               R.x + R.w/2, R.y + R.h + 26);
+  ctx.textAlign = 'left';  ctx.fillText('0', R.x, R.y + R.h + 16);
+  ctx.textAlign = 'right'; ctx.fillText(String(series.length-1), R.x + R.w, R.y + R.h + 16);
+  ctx.globalAlpha = 1;
+
+  // spread annotation at the far end
+  const last = series[series.length-1], sp = last.mx - last.mn;
+  if (sp > 0.25){
+    ctx.strokeStyle = col; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.4;
+    const xe = R.x + R.w + 8;
+    ctx.beginPath(); ctx.moveTo(xe, Y(last.mx)); ctx.lineTo(xe, Y(last.mn)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xe-3, Y(last.mx)); ctx.lineTo(xe+3, Y(last.mx)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xe-3, Y(last.mn)); ctx.lineTo(xe+3, Y(last.mn)); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = col; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('spread', xe + 7, (Y(last.mx)+Y(last.mn))/2 - 6);
+    ctx.fillText('10' + sup(sp), xe + 7, (Y(last.mx)+Y(last.mn))/2 + 8);
+  }
+}
+
+let phase = 0;
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const fMark = phase <= L ? phase : null;
+  const bMark = phase > L ? (2*L - phase) : null;
+  drawPlot(0, fwd, fwdCol, bandF, '‖hℓ‖   signal arriving at layer ℓ', fMark, false);
+  drawPlot(1, bwd, bwdCol, bandB, '‖δℓ‖   gradient signal arriving back at layer ℓ', bMark, true);
+}
+
+function updateStatus(){
+  const g = grad[0].mean;                       // log10 of the per-layer gradient magnitude
+  const sp = fwd[L].mx - fwd[L].mn;             // per-direction spread after the full stack
+  let verdict;
+  if (Math.abs(g) < 1.0) verdict = 'well conditioned — the gradient survives the depth';
+  else if (g < 0) verdict = 'vanishing — every layer gets a gradient of order 10' + sup(g);
+  else verdict = 'exploding — every layer gets a gradient of order 10' + sup(g);
+  document.getElementById('regime').innerHTML =
+    'σ &isin; [' + (sigBar*(1-spread)).toFixed(2) + ', ' + (sigBar*(1+spread)).toFixed(2) + '] &nbsp;·&nbsp; ' +
+    '‖∇Wℓ L‖ ≈ 10' + sup(g) + ' at every layer &nbsp;·&nbsp; ' +
+    'best/worst direction 10' + sup(sp) + ' &nbsp;·&nbsp; <strong>' + verdict + '</strong>';
+}
+
+function bind(id, fn, fmt){
+  const el = document.getElementById(id), out = document.getElementById(id+'-out');
+  el.addEventListener('input', e => { fn(+e.target.value); out.textContent = fmt(+e.target.value); });
+  out.textContent = fmt(+el.value);
+}
+bind('sig',    v => { sigBar = v; rebuild(); }, v => v.toFixed(2));
+bind('spread', v => { spread = v; rebuild(); }, v => v.toFixed(2));
+bind('depth',  v => { L = v; phase = 0; rebuild(); }, v => String(v));
+bind('spd',    v => { speed = v; }, v => v.toFixed(2).replace(/0$/,'') + '×');
+document.getElementById('reroll').addEventListener('click', rebuild);
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused; e.currentTarget.textContent = paused ? 'Play' : 'Pause';
+});
+
+function loop(){
+  if (!paused){ phase += 0.35 * speed; if (phase > 2*L) phase = 0; }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function postHeight(){
+  if (window.parent === window) return;
+  window.parent.postMessage({type:'demo-embed-height', height: document.documentElement.scrollHeight}, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
+
+rebuild();
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>

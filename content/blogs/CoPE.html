@@ -1,0 +1,69 @@
+<!-- status: draft -->
+<div class="subtab-about-header" style="text-align: center;">
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        In this blog post, I will introduce a slight generalization to RoPE. 
+        For relative positional encodings, it is often deemed necessary for the positional encoding to act on the query and key as an orthonormal matrix -- to which RoPE is the irreps.
+        However, this is only necessary when using the canonical Euclidean metric. 
+        More generally, one needs transformations which leave the signiture of the inner-product invariant.
+        This allows one to generalize to different Minkowski signatures.
+      </p>
+      <p>
+        The tangible implications of this generalization is that one represent query and key multiplication in pseudo-Euclidean spaces.
+        For example, one could preform the inner product in a Lorentzian, a projective or conformal geometry.
+        We will focus on the conformal geometry extension as this allows us to define a positional encoding which is both local and relative, something impossible for standard RoPE due to the Heisenberg uncertainty principle.
+        This method also allows the inner-product to naturally decay to infinity for unrelated tokens, hopefully solving the long context generalization issue covered in a previous post.
+      </p>
+    </div>
+  </div>
+</div>
+
+<h2>Background: RoPE Properties</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      A relative positional encoding is given by,
+      $$
+        Att(q_i, k_j, p_i, p_j) \neq Att(q_i, k_j, p_i - p_j)
+      $$
+      thus making
+      $$
+        Att(q_i, k_j, p_i+p_0, p_j+p_0).
+      $$
+
+      Rotary positional encodings create this effect by modifying the query and key using orthonormal matrices.
+      $$
+        \left| q\right\rangle = S^{p_q} \left|q_0\right\rangle \quad
+        \left| k\right\rangle = S^{p_k} \left|k_0\right\rangle
+      $$
+      Thus making the attention score -- i.e. the inner product of query and key -- a function of $p_k - p_q$
+      $$
+      \left\langle q, k \right\rangle = \left\langle q_0\right| S^{-p_q} S^{p_k}\left|q_0 \right\rangle = \left\langle q_0\right| S^{p_k - p_q}\left|q_0 \right\rangle.
+      $$
+      RoPE specifically parameterizes the orthogonal matrices using the analogue of the eigenvalues of these orthogonal matrices.
+      RoPE is quite general when it comes to this representing orthogonal matrices; though orthonormality is not strictly necessary.
+    </p>
+    <p>
+      We can rewrite the inner-product as,
+      $$
+      \left\langle q, k \right\rangle = \left\langle q_0\right| S^{-p_q} \eye S^{p_k}\left|q_0 \right\rangle,
+      $$
+      which we can then generalize to a Minkowski inner-product as
+      $$
+      \left\langle q, k \right\rangle_\mink = \left\langle q_0\right| S^{-p_q} \mink S^{p_k}\left|q_0 \right\rangle,
+      $$
+      where $\mink$ is known as the <strong>Minkowski signature</strong>.
+      By changing this signature, one can get Space-Time (Lorentzian) geometry, Projective Geometry (used in cameras), and Conformal Geometry.
+    </p>
+    <p>
+      If we generalize to Minkowski signature, then we get a new constraint for an operator to be relative.
+      The transformation must leave the signature invariant under conjugation,
+      $$
+        S^{-p_0} \mink S^{p_0} = \mink.
+      $$
+    </p>
+  </div>
+</div>
+
+<div data-bib="content/blogs/biblio.bib"></div>

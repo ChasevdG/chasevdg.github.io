@@ -28,32 +28,32 @@
     font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  p.lead{color:var(--muted);margin:0 0 14px;font-size:13px;line-height:1.5}
+  p.lead{color:var(--muted);margin:0 0 14px;font-size: 0.8125rem;line-height:1.5}
 
   .stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;
     padding:14px 14px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
   .stage h1{margin:0 auto 12px}
 
   canvas{display:block;width:100%;height:440px;border-radius:10px}
-  .readout{text-align:center;font-size:12px;color:var(--muted);margin-top:6px;min-height:16px;font-variant-numeric:tabular-nums}
+  .readout{text-align:center;font-size: 0.75rem;color:var(--muted);margin-top:6px;min-height:16px;font-variant-numeric:tabular-nums}
 
   .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;margin-top:12px;align-items:center}
-  .ctl{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+  .ctl{display:flex;flex-direction:column;gap:3px;font-size: 0.75rem;color:var(--muted)}
   .ctl .row{display:flex;justify-content:space-between}
   .ctl b{color:var(--text);font-weight:600}
   input[type=range]{width:100%;accent-color:var(--accent)}
   .btns{display:flex;gap:8px;align-items:end}
-  button{font:inherit;font-weight:600;font-size:13px;color:var(--text);background:var(--surface);
+  button{font:inherit;font-weight:600;font-size: 0.8125rem;color:var(--text);background:var(--surface);
     border:1px solid var(--line);padding:8px 14px;border-radius:9px;cursor:pointer}
   button:hover{border-color:var(--accent)}
   .seg{display:flex;gap:6px}
-  .segbtn{flex:1;padding:6px 8px;font-size:12px;font-weight:600;border:1px solid var(--line);
+  .segbtn{flex:1;padding:6px 8px;font-size: 0.75rem;font-weight:600;border:1px solid var(--line);
     background:var(--surface);color:var(--muted);border-radius:8px;cursor:pointer}
   .segbtn.active{background:var(--accent);color:var(--a-ink);border-color:var(--accent)}
   .hidden{display:none}
 
-  .diff{margin-top:16px;font-size:13px;line-height:1.55;color:var(--text)}
-  .diff h2{font-size:15px;margin:0 0 8px}
+  .diff{margin-top:16px;font-size: 0.8125rem;line-height:1.55;color:var(--text)}
+  .diff h2{font-size: 0.9375rem;margin:0 0 8px}
   .diff p{margin:0 0 8px;color:var(--muted)}
   .diff .tag{font-weight:600}
   .diff .tag.lohe{color:var(--a-lohe)} .diff .tag.swarm{color:var(--a-swarm)} .diff .tag.boid{color:var(--a-boid)}
@@ -364,6 +364,25 @@
   }
   window.addEventListener('load', postHeight);
   if(window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+// Changing the root size reflows but fires no window resize, so anything this
+// demo normally re-fits on resize has to be nudged by hand.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
 })();
 </script>
 </body>

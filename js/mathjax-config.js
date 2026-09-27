@@ -6,7 +6,9 @@ window.MathJax = {
         macros: {
             llbracket: "{\\mathopen{\\lbrack\\!\\lbrack}}",
             rrbracket: "{\\mathclose{\\rbrack\\!\\rbrack}}",
-            ostar: ["{\\bigcirc\\kern-0.73em\\star}", 0]
+            ostar: ["{\\bigcirc\\kern-0.73em\\star}", 0],
+            eye: "{\\mathbb{I}}",
+            mink: "{\\mathbb{M}}"
         }
     },
     svg: {

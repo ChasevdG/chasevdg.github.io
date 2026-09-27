@@ -150,7 +150,7 @@
     </p>
   </div>
 </div>
-<h2 id="kuramoto-models">Kuramoto Models</h2>
+<h1 id="kuramoto-models">I. Kuramoto Models</h1>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
     <p>
@@ -413,17 +413,39 @@
   </div>
 </div>
 
-<h1 id="forward-forward">Hinton's Forward-Forward</h1>
+<h1 id="forward-forward"> II. Hinton's Forward-Forward</h1>
 
-<h2 id="forward-forward">Local Learning</h2>
+<h2>History and Background</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      <strong>Geoffrey Hinton</strong> is largely credited with much of modern AI and in part due to the success of backprop.
+      However, Francis Crick -- the same one that won the nobel prize for discovering the structure of DNA -- and Hinton himself never believe in backprop as an algorithm in part because it should run into local minima, but mainly because it is not biologically plausible.
+      There is no decisive evidence that the brain does not use backprop, but the mechanism in the brain as we know them today, do not support backprop.
+      For example, the brain does not have a global error signal that is sent to all neurons, and the brain does not have a mechanism to store the activations of neurons for later use in the backward pass.
+      These are particularly important for backprop through time (BPTT) which is used in recurrent neural networks -- the more popular candidates for brain-like behavior among cognitive scientists.
+    </p>
+    <p>
+      One problem for BPTT is that it is not <strong>local</strong>. 
+      Computing the weight updates requires storing the forward activations at every time step and then propagating error signals backward — both across layers (using the downstream synaptic weights) and backward through time. 
+      Neuroscientists dislike this because they favor learning rules in which a synapse's update depends only on locally available signals, such as the pre- and post-synaptic activity (optionally gated by a global neuromodulatory signal). 
+      The backpropagated errors, the downstream weights, and the future-time-step states that BPTT needs are not available at the synapse, so they cannot drive biologically plausible plasticity.
+    </p>
+    <p>
+      In this part, I will introduce Hinton's <strong>Forward-Forward</strong> algorithm which is a biologically plausible alternative to backprop.
+      The core idea of the algorithm is to replace the forward + backward pass of backprop with two forward passes — one with positive data and one with negative data.
+      The model is trained to increase the "goodness" of the positive data and decrease the "goodness" of the negative data -- one can think of this as a form of contrastive learning.
+      After proposing Hinton's Forward-Forward algorithm, I will show that it can be improved using synchronization and Kuramoto dynamics, allowing for orders of magnitude fewer parameters to reach the same level of performance.
+    </p>
+  </div>
+</div>
+
+<h2>Local Learning</h2>
 
 <div class="subtab-about-content">
   <div class="subtab-about-text">
     <p>
-      A different kind of local, self-organizing dynamics: Hinton's <strong>Forward-Forward</strong> algorithm replaces backprop's forward + backward pass with two forward passes.
-      An MNIST digit is fed through the network twice — once with the correct label written into its first pixels (<em>positive</em> data), once with a wrong label (<em>negative</em> data).
-      Each layer optimizes only its own objective $p = \sigma\bigl(\sum_j y_j^2 - \theta\bigr)$, raising its <strong>goodness</strong> (the sum of squared activations) above the threshold $\theta$ on positive data and pushing it below on negative data.
-      No gradients travel between layers; each learns locally.
+      TODO
     </p>
   </div>
   <div class="subtab-about-image" style="--image-padding: 12px;">
@@ -435,7 +457,67 @@
   </div>
 </div>
 
-<h1 id="spherical-swarm-models">Spherical Swarm Models</h1>
+<h2>Forward-Forward</h2>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The (self-supervised) Forward-Forward algorithm is fairly simple.
+      Inspired by Boltzmann machines, for every input, the model will have a <i>goodness</i> or <i>happiness</i> score -- this is just Hinton's terminology for the "energy" value of a given input.
+      The ideas is that, if the input and output match -- i.e. it is <i>real data</i> -- then the goodness should be high.
+      However, for incorrect inputs and outputs -- or more generally <i>fake data</i> -- the goodness should be low.
+    </p>
+    <p>
+      For Hinton's specific experiments, the goodness function is determined by the square of the activations.
+      Reworded, the goodness is given by the square of the post-activations $\mathbb{L}_2$ norm.
+      This means that the goodness is determined entirely by the magnitude of the post activation vector.
+      Thus, one can remove information about the goodness already attributed by piping the layer normalized post-activation into the next layer.
+      Hinton uses this to prevent later layers from simply using the goodness of the previous layers to determine that of later layers in a multilayer FF algorithm.
+    </p>
+    <p>
+      To be honest, this is what he did, but the reasoning is wish-y wash-y and primarily gut/intuition driven.
+      I would take the design choices with a grain of salt since I am not fully convinced the layer norm necessarily factors out all of the info of previous :idk:
+    </p>
+    <h2> Training </h2>
+    <p>
+      Because Forward-Forward is local, one can train it one layer at a time.
+      Hinton freezes the <strong>TODO</strong>
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/forward_forward.html"
+        title="Forward-Forward algorithm — MNIST digit passing through the network" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 9:</strong> An MNIST &ldquo;7&rdquo; flows through the net on the positive pass (correct label, goodness climbs above $\theta$) and the negative pass (wrong label, goodness drops below). Each neuron smiles when its layer&rsquo;s goodness is high, frowns when it is low.</figcaption>
+    </figure>
+  </div>
+</div>
+
+
+<h2>Synchronizing Forward-Forward</h2>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      While Hinton uses the squared activations as the goodness function, one can choose this arbitrarily.
+      Instead of viewing the neurons of the model as real numbers, we can instead construct them to be <i>oscillators</i>.
+      The intuition is then: if the input is real data, then the neurons should synchronize; otherwise, they should remain (or become) decoherent.
+    </p>
+    <p>
+      The degree to which neurons are synchronized -- or how ordered the neurons are -- can be directly measured by the mean field statistics -- a.k.a. the order parameters.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/forward_forward.html"
+        title="Forward-Forward algorithm — MNIST digit passing through the network" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 9:</strong> An MNIST &ldquo;7&rdquo; flows through the net on the positive pass (correct label, goodness climbs above $\theta$) and the negative pass (wrong label, goodness drops below). Each neuron smiles when its layer&rsquo;s goodness is high, frowns when it is low.</figcaption>
+    </figure>
+  </div>
+</div>
+
+
+<!-- <h1 id="spherical-swarm-models">Spherical Swarm Models</h1>
 <div class="subtab-about-content">
   <div class="subtab-about-text">
     <p>
@@ -497,4 +579,4 @@
       <figcaption><strong>Fig 12:</strong> Flocking (Vicsek). Agents align their headings and migrate as polar vortices; the polarization measures how aligned the collective motion is.</figcaption>
     </figure>
   </div>
-</div>
+</div> -->

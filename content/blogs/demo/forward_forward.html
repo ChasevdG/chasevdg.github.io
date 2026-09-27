@@ -48,7 +48,7 @@
     background: var(--bg);
     color: var(--text);
   }
-  p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 13px; line-height: 1.5; }
+  p.lead { color: var(--muted); margin: 0 0 16px 0; font-size: 0.8125rem; line-height: 1.5; }
 
   .panel {
     background: var(--panel);
@@ -59,7 +59,7 @@
   .modebar { display: flex; gap: 10px; align-items: stretch; margin-bottom: 12px; }
   .pill {
     flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 9px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;
+    padding: 9px 14px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600;
     border: 1px solid var(--border); background: var(--surface-1); color: var(--muted);
     transition: all .3s ease;
   }
@@ -75,33 +75,33 @@
     padding: 6px;
   }
   svg { width: 100%; height: auto; display: block; overflow: visible; }
-  .layerlabel { fill: var(--muted); font-size: 12px; font-weight: 600; }
-  .goodlabel { fill: var(--text); font-size: 11px; font-weight: 700; }
-  .caption { fill: var(--muted); font-size: 11px; }
-  .lblnum { fill: var(--muted); font-size: 9px; font-weight: 700; font-family: monospace; }
+  .layerlabel { fill: var(--muted); font-size: 0.75rem; font-weight: 600; }
+  .goodlabel { fill: var(--text); font-size: 0.6875rem; font-weight: 700; }
+  .caption { fill: var(--muted); font-size: 0.6875rem; }
+  .lblnum { fill: var(--muted); font-size: 0.5625rem; font-weight: 700; font-family: monospace; }
 
   .controls { margin-top: 14px; }
   .row {
     display: grid;
-    grid-template-columns: 70px 1fr 56px;
+    grid-template-columns: 4.375rem 1fr 3.5rem;
     gap: 10px;
     align-items: center;
     margin-bottom: 8px;
   }
-  .row label { font-size: 13px; }
-  .row .val { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .row label { font-size: 0.8125rem; }
+  .row .val { font-size: 0.75rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
   input[type="range"] { width: 100%; accent-color: #F5A800; }
   .statusbar {
     display: flex;
     align-items: baseline;
     gap: 12px;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--muted);
     margin-top: 4px;
   }
   .statusbar .spacer { margin-left: auto; }
   .statusbar button {
-    font-size: 12px;
+    font-size: 0.75rem;
     padding: 4px 12px;
     border: 1px solid var(--border-strong);
     border-radius: 4px;
@@ -431,6 +431,25 @@
   window.addEventListener('load', postHeight);
   window.addEventListener('resize', postHeight);
   if(window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+// Changing the root size reflows but fires no window resize, so anything this
+// demo normally re-fits on resize has to be nudged by hand.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
 })();
 </script>
 </body>

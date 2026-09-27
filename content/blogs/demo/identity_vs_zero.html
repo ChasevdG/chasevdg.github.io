@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zero, identity and isometry — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
+<style>
+  :root {
+    --bg: transparent; --panel: #ffffff; --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25); --surface-1: #f5f4ee;
+    --text: #1a1a18; --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --panel: #262624; --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3); --surface-1: #262624;
+      --text: #f0efea; --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px 20px;
+         background: var(--bg); color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .controls { margin-bottom: 14px; }
+  .row { display: grid; grid-template-columns: 6.5rem 1fr 3.875rem; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 0.8125rem; }
+  .row .val { font-size: 0.75rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .modes { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .modes button { font-size: 0.75rem; padding: 5px 11px; border: 1px solid var(--border-strong);
+                  border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+  .modes button:hover { background: var(--surface-1); }
+  .modes button.active { background: rgba(255,140,0,0.16); border-color: #cc7000; font-weight: 600; }
+  .statusbar { display: flex; align-items: baseline; gap: 12px; font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .statusbar button { margin-left: auto; font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--border-strong);
+                      border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+  .statusbar button:hover { background: var(--surface-1); }
+  .statusbar button:active { transform: scale(0.98); }
+  .canvas-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel); }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>Where should a layer be regularized <i>to</i>?</h1>
+<div class="panel">
+  <div class="controls">
+    <div class="modes">
+      <button id="m-l2" class="active">L&sup2; &nbsp;&half;&Vert;W&Vert;&sup2; &rarr; 0</button>
+      <button id="m-id">identity &nbsp;&half;&Vert;W&minus;I&Vert;&sup2; &rarr; I</button>
+      <button id="m-iso">isometry &nbsp;&frac14;&Vert;W&#7488;W&minus;I&Vert;&sup2; &rarr; O(n)</button>
+    </div>
+    <div class="row">
+      <label for="tau">flow time &lambda;t</label>
+      <input type="range" id="tau" min="0" max="5" step="0.01" value="0">
+      <span class="val" id="tau-out">0.00</span>
+    </div>
+    <div class="statusbar">
+      <span id="verdict">&nbsp;</span>
+      <button id="reroll">Resample W&#8320;</button>
+      <button id="pause">Pause</button>
+    </div>
+  </div>
+  <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = 900, H = 560, DPR = window.devicePixelRatio || 1;
+cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let imgCol, refCol, axisCol, gridCol, textCol, goodCol, badCol, barCol;
+function setColors(){
+  const d = mq.matches;
+  imgCol  = 'rgba(255,140,0,0.95)';
+  refCol  = d ? 'rgba(160,160,155,0.45)' : 'rgba(95,94,90,0.4)';
+  axisCol = d ? 'rgba(160,160,155,0.3)'  : 'rgba(95,94,90,0.28)';
+  gridCol = d ? 'rgba(160,160,155,0.13)' : 'rgba(95,94,90,0.11)';
+  textCol = d ? 'rgba(240,239,234,0.88)' : 'rgba(26,26,24,0.82)';
+  goodCol = d ? 'rgba(93,202,165,0.95)'  : 'rgba(29,158,117,0.92)';
+  badCol  = d ? 'rgba(255,64,150,0.95)'  : 'rgba(214,0,98,0.95)';
+  barCol  = d ? 'rgba(99,179,255,0.9)'   : 'rgba(47,109,240,0.88)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', setColors);
+
+// ---- state -----------------------------------------------------------------
+let mode = 'l2', tau = 0, paused = false;
+let W0 = null;            // {phi, theta, s1, s2} generating factors
+const TMAX = 5;
+
+function rot(a){ return [Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a)]; }  // [a,b,c,d]
+function mul(A, B){ return [A[0]*B[0]+A[1]*B[2], A[0]*B[1]+A[1]*B[3],
+                            A[2]*B[0]+A[3]*B[2], A[2]*B[1]+A[3]*B[3]]; }
+function sample(){
+  W0 = { phi: (Math.random()*1.4 - 0.2),
+         theta: (Math.random()*1.4 - 0.7),
+         s1: 1.5 + Math.random()*0.75,
+         s2: 0.22 + Math.random()*0.33 };
+  tau = 0; document.getElementById('tau').value = 0;
+}
+sample();
+
+function matrix0(){
+  const U = rot(W0.phi), Vt = rot(-W0.theta);
+  return mul(mul(U, [W0.s1,0,0,W0.s2]), Vt);
+}
+
+// W(tau) under the selected regularization flow
+function matrixAt(t){
+  if (mode === 'l2'){
+    const k = Math.exp(-t), M0 = matrix0();
+    return [M0[0]*k, M0[1]*k, M0[2]*k, M0[3]*k];
+  }
+  if (mode === 'id'){
+    const k = Math.exp(-t), M0 = matrix0();
+    return [1 + k*(M0[0]-1), k*M0[1], k*M0[2], 1 + k*(M0[3]-1)];
+  }
+  // isometry: sigma^2 follows the logistic y' = 2y(1-y), U and V are fixed
+  const e = Math.exp(2*t);
+  const f = s0 => { const y0 = s0*s0; return Math.sqrt(y0*e / (1 + y0*(e - 1))); };
+  const U = rot(W0.phi), Vt = rot(-W0.theta);
+  return mul(mul(U, [f(W0.s1),0,0,f(W0.s2)]), Vt);
+}
+
+// analytic 2x2 SVD -> singular values only
+function svals(M){
+  const [a,b,c,d] = M;
+  const E=(a+d)/2, F=(a-d)/2, G=(c+b)/2, Hh=(c-b)/2;
+  const Q=Math.hypot(E,Hh), R=Math.hypot(F,G);
+  return [Q+R, Math.abs(Q-R)];
+}
+
+// ---- drawing ---------------------------------------------------------------
+const CX = 250, CY = 285, SC = 108;
+const px = x => CX + x*SC, py = y => CY - y*SC;
+
+function drawTransform(M){
+  // grid + axes
+  ctx.lineWidth = 1; ctx.strokeStyle = gridCol;
+  for (let i=-2;i<=2;i++){
+    if (!i) continue;
+    ctx.beginPath(); ctx.moveTo(px(i), py(-2.1)); ctx.lineTo(px(i), py(2.1)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(-2.1), py(i)); ctx.lineTo(px(2.1), py(i)); ctx.stroke();
+  }
+  ctx.strokeStyle = axisCol;
+  ctx.beginPath(); ctx.moveTo(px(-2.15), py(0)); ctx.lineTo(px(2.15), py(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px(0), py(-2.15)); ctx.lineTo(px(0), py(2.15)); ctx.stroke();
+
+  // reference unit circle (the input)
+  ctx.strokeStyle = refCol; ctx.setLineDash([4,4]); ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(px(0), py(0), SC, 0, 6.2832); ctx.stroke(); ctx.setLineDash([]);
+
+  // image of the unit circle under W
+  const NP = 180, pts = [];
+  for (let i=0;i<NP;i++){
+    const a = 6.2832*i/NP, x = Math.cos(a), y = Math.sin(a);
+    pts.push([M[0]*x + M[1]*y, M[2]*x + M[3]*y]);
+  }
+  ctx.fillStyle = mode === 'l2' ? 'rgba(255,140,0,0.10)' : 'rgba(255,140,0,0.13)';
+  ctx.beginPath();
+  pts.forEach((p,i) => i ? ctx.lineTo(px(p[0]), py(p[1])) : ctx.moveTo(px(p[0]), py(p[1])));
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = imgCol; ctx.lineWidth = 2.6; ctx.stroke();
+
+  // 12 marked points, so rotation is visible
+  for (let i=0;i<12;i++){
+    const a = 6.2832*i/12, x = Math.cos(a), y = Math.sin(a);
+    const u = M[0]*x + M[1]*y, v = M[2]*x + M[3]*y;
+    ctx.fillStyle = i === 0 ? goodCol : imgCol;
+    ctx.beginPath(); ctx.arc(px(u), py(v), i === 0 ? 5.5 : 3, 0, 6.2832); ctx.fill();
+    if (i === 0){
+      ctx.strokeStyle = goodCol; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(u), py(v)); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  ctx.fillStyle = textCol; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('image of the unit circle under W', CX, CY + 2.32*SC);
+  ctx.font = '600 13px system-ui, sans-serif';
+  ctx.fillText('what the layer does to its input', CX, 28);
+}
+
+function drawBars(s){
+  const X0 = 545, Y0 = 250, BW = 62, GAP = 46, SMAX = 2.6, PH = 176;
+  const bh = v => Math.min(PH, v/SMAX*PH);
+  ctx.fillStyle = textCol; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('singular values', X0, 28);
+
+  // reference line at sigma = 1
+  const y1 = Y0 - bh(1);
+  ctx.strokeStyle = imgCol; ctx.setLineDash([5,4]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(X0 - 12, y1); ctx.lineTo(X0 + 2*BW + GAP + 66, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = imgCol; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('σ = 1  (isometry)', X0 + 2*BW + GAP + 8, y1 - 5);
+
+  // baseline
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(X0 - 12, Y0); ctx.lineTo(X0 + 2*BW + GAP + 66, Y0); ctx.stroke();
+  ctx.fillStyle = textCol; ctx.textAlign = 'left';
+  ctx.fillText('0', X0 - 22, Y0 + 4);
+
+  for (let i=0;i<2;i++){
+    const x = X0 + i*(BW+GAP), v = s[i], h = bh(v);
+    const near = Math.abs(v - 1) < 0.08;
+    ctx.fillStyle = near ? goodCol : (v < 1 ? badCol : barCol);
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x, Y0 - h, BW, h);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = textCol; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(v.toFixed(3), x + BW/2, Y0 - h - 8);
+    ctx.fillText('σ' + (i===0 ? '₁' : '₂'), x + BW/2, Y0 + 18);
+  }
+}
+
+function drawReadout(M, s){
+  const det = Math.abs(M[0]*M[3] - M[1]*M[2]);
+  const dh  = Math.log(Math.max(det, 1e-300));           // entropy change in nats
+  // ||W^T W - I||_F  == sqrt( sum (s_i^2 - 1)^2 )
+  const iso = Math.hypot(s[0]*s[0]-1, s[1]*s[1]-1);
+  const g20 = 20*Math.log10(Math.max(s[0], 1e-300));
+  const g20b = 20*Math.log10(Math.max(s[1], 1e-300));
+
+  const X = 545; let Y = 322;
+  const line = (label, value, col) => {
+    ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = textCol; ctx.globalAlpha = 0.75; ctx.fillText(label, X, Y); ctx.globalAlpha = 1;
+    ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillStyle = col || textCol; ctx.fillText(value, X + 320, Y);
+    Y += 26;
+  };
+  ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = textCol;
+  ctx.fillText('what the layer costs', X, 300);
+
+  line('|det W|   (volume kept)', det < 1e-4 ? det.toExponential(1) : det.toFixed(4),
+       det < 0.2 ? badCol : (Math.abs(det-1) < 0.08 ? goodCol : textCol));
+  line('Δh = log|det W|   (entropy, nats)', (dh > -99 ? dh.toFixed(3) : '−∞'),
+       dh < -1.2 ? badCol : (Math.abs(dh) < 0.08 ? goodCol : textCol));
+  line('‖WᵀW − I‖_F   (departure from isometry)', iso.toFixed(4),
+       iso < 0.15 ? goodCol : (iso > 1.2 ? badCol : textCol));
+  line('gradient through 20 such layers', '10' + fmtSup(g20) + ' … 10' + fmtSup(g20b),
+       (Math.abs(g20) > 4 || Math.abs(g20b) > 4) ? badCol : goodCol);
+
+  ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillStyle = textCol; ctx.globalAlpha = 0.65;
+  const notes = {
+    l2:  ['The circle collapses toward a point. Every singular value',
+          'heads for 0, |det W| → 0, and the layer destroys the',
+          'information it was given. Zero is the identity of addition,',
+          'not of composition.'],
+    id:  ['The image becomes the reference circle exactly — the layer',
+          'converges to the do-nothing map. Note the marked point',
+          'returns to its original angle: the rotation is removed too,',
+          'which is stronger than conditioning requires.'],
+    iso: ['The image becomes a circle of radius 1, but the marked point',
+          'keeps its angle: the rotation survives. Only the departure',
+          'of the singular values from 1 is penalized — exactly what',
+          'conditioning cares about, and nothing more.']
+  }[mode];
+  notes.forEach((t,i) => ctx.fillText(t, X, 448 + i*16));
+  ctx.globalAlpha = 1;
+}
+
+const SUP = {'-':'⁻','−':'⁻','0':'⁰','1':'¹','2':'²','3':'³',
+             '4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function fmtSup(n){
+  const r = Math.abs(n) < 100 ? n.toFixed(1) : String(Math.round(n));
+  return r.replace('.', '·').split('').map(c => SUP[c] || (c === '·' ? '⋅' : c)).join('');
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const M = matrixAt(tau), s = svals(M);
+  drawTransform(M); drawBars(s); drawReadout(M, s);
+  const det = Math.abs(M[0]*M[3] - M[1]*M[2]);
+  document.getElementById('verdict').innerHTML = {
+    l2:  'flowing toward <strong>0</strong> — volume kept: ' + (det*100).toFixed(1) + '%',
+    id:  'flowing toward <strong>I</strong> — volume kept: ' + (det*100).toFixed(1) + '%',
+    iso: 'flowing toward <strong>O(n)</strong> — volume kept: ' + (det*100).toFixed(1) + '%'
+  }[mode];
+}
+
+// ---- controls --------------------------------------------------------------
+const tauEl = document.getElementById('tau'), tauOut = document.getElementById('tau-out');
+tauEl.addEventListener('input', e => { tau = +e.target.value; tauOut.textContent = tau.toFixed(2); });
+const btns = {l2: 'm-l2', id: 'm-id', iso: 'm-iso'};
+Object.keys(btns).forEach(k => {
+  document.getElementById(btns[k]).addEventListener('click', () => {
+    mode = k;
+    Object.keys(btns).forEach(j => document.getElementById(btns[j]).classList.toggle('active', j === k));
+  });
+});
+document.getElementById('reroll').addEventListener('click', () => { sample(); tauOut.textContent = '0.00'; });
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused; e.currentTarget.textContent = paused ? 'Play' : 'Pause';
+});
+
+function loop(){
+  if (!paused){
+    tau += 0.014;
+    if (tau > TMAX + 1.6) tau = 0;
+    const shown = Math.min(tau, TMAX);
+    tauEl.value = shown; tauOut.textContent = shown.toFixed(2);
+    tau = Math.min(tau, TMAX + 1.6);
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function postHeight(){
+  if (window.parent === window) return;
+  window.parent.postMessage({type:'demo-embed-height', height: document.documentElement.scrollHeight}, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
+
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>

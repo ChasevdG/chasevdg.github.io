@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hebbian divergence vs Oja's rule — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
+<style>
+  :root {
+    --bg: transparent; --panel: #ffffff; --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25); --surface-1: #f5f4ee;
+    --text: #1a1a18; --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --panel: #262624; --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3); --surface-1: #262624;
+      --text: #f0efea; --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px 20px;
+         background: var(--bg); color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .controls { margin-bottom: 14px; }
+  .row { display: grid; grid-template-columns: 6.5rem 1fr 3.875rem; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 0.8125rem; }
+  .row .val { font-size: 0.75rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .modes { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+  .modes button { font-size: 0.75rem; padding: 5px 11px; border: 1px solid var(--border-strong);
+                  border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+  .modes button:hover { background: var(--surface-1); }
+  .modes button.active { background: rgba(255,140,0,0.16); border-color: #cc7000; font-weight: 600; }
+  .modes label { font-size: 0.75rem; color: var(--muted); margin-left: 6px; }
+  .statusbar { display: flex; align-items: baseline; gap: 12px; font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .statusbar button { margin-left: auto; font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--border-strong);
+                      border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+  .statusbar button:hover { background: var(--surface-1); }
+  .canvas-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel); }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>Hebbian learning, and the brake Oja put on it</h1>
+<div class="panel">
+  <div class="controls">
+    <div class="modes">
+      <button id="m-hebb">Hebbian &nbsp;&Delta;w = &eta;yx</button>
+      <button id="m-oja" class="active">Oja &nbsp;&Delta;w = &eta;y(x &minus; yw)</button>
+      <label><input type="checkbox" id="showdec" checked> show the decomposition</label>
+    </div>
+    <div class="row">
+      <label for="aniso">anisotropy</label>
+      <input type="range" id="aniso" min="1.2" max="8" step="0.1" value="3.5">
+      <span class="val" id="aniso-out">3.5</span>
+    </div>
+    <div class="row">
+      <label for="eta">rate &eta;</label>
+      <input type="range" id="eta" min="0.002" max="0.06" step="0.002" value="0.02">
+      <span class="val" id="eta-out">0.020</span>
+    </div>
+    <div class="row">
+      <label for="spd">speed</label>
+      <input type="range" id="spd" min="1" max="20" step="1" value="6">
+      <span class="val" id="spd-out">6</span>
+    </div>
+    <div class="statusbar">
+      <span id="verdict">&nbsp;</span>
+      <button id="reset">Reset w</button>
+      <button id="pause">Pause</button>
+    </div>
+  </div>
+  <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = 900, H = 560, DPR = window.devicePixelRatio || 1;
+cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let dataCol, wCol, driveCol, radialCol, tangCol, pcCol, gridCol, axisCol, textCol, normCol, alignCol;
+function setColors(){
+  const d = mq.matches;
+  dataCol   = d ? 'rgba(160,160,155,0.34)' : 'rgba(95,94,90,0.30)';
+  wCol      = 'rgba(255,140,0,1)';
+  driveCol  = d ? 'rgba(99,179,255,0.95)'  : 'rgba(47,109,240,0.95)';
+  radialCol = d ? 'rgba(255,64,150,0.95)'  : 'rgba(214,0,98,0.95)';
+  tangCol   = d ? 'rgba(93,202,165,1)'     : 'rgba(29,158,117,0.95)';
+  pcCol     = d ? 'rgba(239,159,39,0.55)'  : 'rgba(239,159,39,0.7)';
+  gridCol   = d ? 'rgba(160,160,155,0.12)' : 'rgba(95,94,90,0.10)';
+  axisCol   = d ? 'rgba(160,160,155,0.34)' : 'rgba(95,94,90,0.30)';
+  textCol   = d ? 'rgba(240,239,234,0.88)' : 'rgba(26,26,24,0.82)';
+  normCol   = d ? 'rgba(99,179,255,0.95)'  : 'rgba(47,109,240,0.95)';
+  alignCol  = d ? 'rgba(93,202,165,1)'     : 'rgba(29,158,117,0.95)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', setColors);
+
+// ---- data ------------------------------------------------------------------
+let mode = 'oja', aniso = 3.5, eta = 0.02, stepsPerFrame = 6, paused = false, showDec = true;
+const THETA = 0.55;                               // principal axis angle, fixed
+let l1 = 1, l2 = 1;                               // covariance eigenvalues
+let cloud = [];
+function gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185307*v); }
+function setCov(){
+  l1 = aniso / Math.sqrt(aniso);                  // keep overall scale roughly fixed
+  l2 = 1 / Math.sqrt(aniso);
+  cloud = [];
+  for (let i=0;i<420;i++) cloud.push(sampleX());
+}
+function sampleX(){
+  const a = Math.sqrt(l1)*gauss(), b = Math.sqrt(l2)*gauss();
+  const c = Math.cos(THETA), s = Math.sin(THETA);
+  return [c*a - s*b, s*a + c*b];
+}
+// C w  for the exact covariance (no sampling noise), used for the decomposition arrows
+function Cmul(w){
+  const c = Math.cos(THETA), s = Math.sin(THETA);
+  const a =  c*w[0] + s*w[1], b = -s*w[0] + c*w[1];   // rotate into eigenbasis
+  const a2 = l1*a, b2 = l2*b;
+  return [c*a2 - s*b2, s*a2 + c*b2];
+}
+
+let w = [0,0], t = 0, diverged = false;
+const histN = [], histA = [];
+function reset(){
+  const a = Math.random()*6.2832;
+  w = [0.35*Math.cos(a), 0.35*Math.sin(a)];
+  t = 0; diverged = false; histN.length = 0; histA.length = 0;
+}
+setCov(); reset();
+
+function update(){
+  if (diverged) return;
+  for (let k=0;k<stepsPerFrame;k++){
+    const x = sampleX();
+    const y = w[0]*x[0] + w[1]*x[1];
+    if (mode === 'hebb'){ w[0] += eta*y*x[0]; w[1] += eta*y*x[1]; }
+    else { w[0] += eta*y*(x[0] - y*w[0]); w[1] += eta*y*(x[1] - y*w[1]); }
+    t++;
+    const n = Math.hypot(w[0], w[1]);
+    if (!isFinite(n) || n > 1e7){ diverged = true; break; }
+  }
+  const n = Math.hypot(w[0], w[1]);
+  const c = Math.cos(THETA), s = Math.sin(THETA);
+  const al = n > 1e-12 ? Math.abs((w[0]*c + w[1]*s)/n) : 0;
+  histN.push(Math.log10(Math.max(n,1e-12)));
+  histA.push(al);
+  if (histN.length > 600){ histN.shift(); histA.shift(); }
+}
+
+// ---- drawing ---------------------------------------------------------------
+const CX = 245, CY = 285, SC = 86;
+const px = x => CX + x*SC, py = y => CY - y*SC;
+
+function arrow(x0,y0,x1,y1,col,wid,dash){
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wid;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  ctx.setLineDash([]);
+  const a = Math.atan2(y1-y0, x1-x0), hl = 8 + wid;
+  ctx.beginPath(); ctx.moveTo(x1,y1);
+  ctx.lineTo(x1 - hl*Math.cos(a-0.4), y1 - hl*Math.sin(a-0.4));
+  ctx.lineTo(x1 - hl*Math.cos(a+0.4), y1 - hl*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function drawLeft(){
+  ctx.strokeStyle = gridCol; ctx.lineWidth = 1;
+  for (let i=-3;i<=3;i++){
+    if (!i) continue;
+    ctx.beginPath(); ctx.moveTo(px(i), py(-2.9)); ctx.lineTo(px(i), py(2.9)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(-2.6), py(i)); ctx.lineTo(px(2.6), py(i)); ctx.stroke();
+  }
+  ctx.strokeStyle = axisCol;
+  ctx.beginPath(); ctx.moveTo(px(-2.65), py(0)); ctx.lineTo(px(2.65), py(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px(0), py(-2.95)); ctx.lineTo(px(0), py(2.95)); ctx.stroke();
+
+  ctx.fillStyle = dataCol;
+  for (const p of cloud){ ctx.beginPath(); ctx.arc(px(p[0]), py(p[1]), 1.9, 0, 6.2832); ctx.fill(); }
+
+  // principal direction
+  const c = Math.cos(THETA), s = Math.sin(THETA);
+  ctx.strokeStyle = pcCol; ctx.lineWidth = 1.6; ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(px(-2.6*c), py(-2.6*s)); ctx.lineTo(px(2.6*c), py(2.6*s)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = pcCol; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('principal direction v₁', px(2.0*c) + 6, py(2.0*s) - 6);
+
+  // unit circle
+  ctx.strokeStyle = tangCol; ctx.globalAlpha = 0.45; ctx.setLineDash([4,4]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(px(0), py(0), SC, 0, 6.2832); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+  const n = Math.hypot(w[0], w[1]);
+  const vis = Math.min(n, 2.7), sc = n > 1e-9 ? vis/n : 0;
+  const wx = w[0]*sc, wy = w[1]*sc;
+
+  if (showDec && n > 1e-6){
+    const drive = Cmul(w);
+    const y2 = (w[0]*drive[0] + w[1]*drive[1]);        // w . Cw  = radial coefficient
+    const rad = [y2*w[0], y2*w[1]];
+    const tan = [drive[0]-rad[0], drive[1]-rad[1]];
+    const dm = Math.hypot(drive[0], drive[1]) || 1;
+    const k = 0.85 / dm * Math.min(1.6, 0.6 + n);      // display scale for the arrows
+    const bx = px(wx), by = py(wy);
+    // Hebbian drive Cw
+    arrow(bx, by, px(wx + drive[0]*k), py(wy + drive[1]*k), driveCol, 2.2);
+    // radial part, removed by Oja
+    arrow(bx, by, px(wx + rad[0]*k), py(wy + rad[1]*k), radialCol, 2.0, [5,4]);
+    // tangential part, what is left
+    arrow(bx, by, px(wx + tan[0]*k), py(wy + tan[1]*k), tangCol, 2.6);
+  }
+
+  arrow(px(0), py(0), px(wx), py(wy), wCol, 3.2);
+
+  ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = textCol;
+  ctx.fillText('data, weight vector, and the drive it feels', CX, 26);
+  if (showDec){
+    const key = [['Cw   Hebbian drive', driveCol],
+                 ['(wᵀCw)w   radial part, removed by the −y²w term', radialCol],
+                 ['(I − wwᵀ)Cw   tangential part, what Oja keeps', tangCol]];
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    key.forEach(([txt,col],i) => {
+      const yy = 498 + i*17;
+      ctx.strokeStyle = col; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(24, yy-4); ctx.lineTo(48, yy-4); ctx.stroke();
+      ctx.fillStyle = textCol; ctx.globalAlpha = 0.8; ctx.fillText(txt, 56, yy); ctx.globalAlpha = 1;
+    });
+  }
+}
+
+function drawSeries(rect, data, col, title, yLo, yHi, fmt, refAt){
+  const R = rect;
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(R.x, R.y); ctx.lineTo(R.x, R.y+R.h); ctx.lineTo(R.x+R.w, R.y+R.h); ctx.stroke();
+  const Y = v => R.y + R.h - (v - yLo)/(yHi - yLo)*R.h;
+
+  if (refAt !== null && refAt >= yLo && refAt <= yHi){
+    ctx.strokeStyle = wCol; ctx.setLineDash([5,4]); ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(R.x, Y(refAt)); ctx.lineTo(R.x+R.w, Y(refAt)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (data.length > 1){
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i=0;i<data.length;i++){
+      const x = R.x + i/(data.length-1)*R.w;
+      const y = Y(Math.max(yLo, Math.min(yHi, data[i])));
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+    }
+    ctx.stroke();
+  }
+  ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = col;
+  ctx.fillText(title, R.x, R.y - 9);
+  ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = textCol; ctx.globalAlpha = 0.7;
+  ctx.textAlign = 'right';
+  ctx.fillText(fmt(yHi), R.x - 7, R.y + 4);
+  ctx.fillText(fmt(yLo), R.x - 7, R.y + R.h + 4);
+  ctx.textAlign = 'center';
+  ctx.fillText('updates →', R.x + R.w/2, R.y + R.h + 18);
+  ctx.globalAlpha = 1;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawLeft();
+
+  let hi = 0.6, lo = -1.2;
+  for (const v of histN){ hi = Math.max(hi, v); lo = Math.min(lo, v); }
+  hi = Math.ceil(hi + 0.3); lo = Math.floor(lo - 0.2);
+  drawSeries({x: 545, y: 62, w: 320, h: 170}, histN, normCol,
+             '‖w‖   (log₁₀ scale)', lo, hi,
+             v => '10' + supstr(v), 0);
+  drawSeries({x: 545, y: 322, w: 320, h: 150}, histA, alignCol,
+             '|cos ∠(w, v₁)|   alignment with the principal direction', 0, 1.04,
+             v => v.toFixed(1), 1);
+
+  const n = Math.hypot(w[0], w[1]);
+  const iso = Math.abs(n*n - 1);
+  const el = document.getElementById('verdict');
+  if (diverged) el.innerHTML = '<strong>diverged</strong> — ‖w‖ exceeded 10⁷. Hebbian learning has no fixed point: the drive is always outward.';
+  else if (mode === 'hebb') el.innerHTML = '‖w‖ = ' + n.toExponential(2) + ' and climbing — the direction is right, the magnitude is unbounded';
+  else el.innerHTML = '‖w‖ = ' + n.toFixed(4) + ' &nbsp;·&nbsp; isometry residual |‖w‖² − 1| = ' + iso.toFixed(4) +
+                      ' &nbsp;·&nbsp; the decay term is a projection, not a pull toward 0';
+}
+
+const SUP = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴',
+             '5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function supstr(n){ return String(Math.round(n)).split('').map(c => SUP[c] || c).join(''); }
+
+// ---- controls --------------------------------------------------------------
+function bind(id, fn, fmt){
+  const el = document.getElementById(id), out = document.getElementById(id+'-out');
+  el.addEventListener('input', e => { fn(+e.target.value); out.textContent = fmt(+e.target.value); });
+  out.textContent = fmt(+el.value);
+}
+bind('aniso', v => { aniso = v; setCov(); reset(); }, v => v.toFixed(1));
+bind('eta',   v => { eta = v; }, v => v.toFixed(3));
+bind('spd',   v => { stepsPerFrame = v; }, v => String(v));
+const mb = {hebb: 'm-hebb', oja: 'm-oja'};
+Object.keys(mb).forEach(k => document.getElementById(mb[k]).addEventListener('click', () => {
+  mode = k; reset();
+  Object.keys(mb).forEach(j => document.getElementById(mb[j]).classList.toggle('active', j === k));
+}));
+document.getElementById('showdec').addEventListener('change', e => { showDec = e.target.checked; });
+document.getElementById('reset').addEventListener('click', reset);
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused; e.currentTarget.textContent = paused ? 'Play' : 'Pause';
+});
+
+function loop(){ if (!paused) update(); draw(); requestAnimationFrame(loop); }
+
+function postHeight(){
+  if (window.parent === window) return;
+  window.parent.postMessage({type:'demo-embed-height', height: document.documentElement.scrollHeight}, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
+
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>

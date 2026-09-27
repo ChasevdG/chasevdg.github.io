@@ -151,23 +151,32 @@
     return null;
   }
 
-  function buildCitationOrder() {
+  // A citation is either an untouched <cite data-ref> or one this module has
+  // already swapped for an <a class="bib-cite" data-ref>. Matching both is what
+  // makes init() repeatable: the first run consumes the <cite> elements, so
+  // without this a second run would find nothing and render an empty list.
+  function citationNodes(scope) {
+    return scope.querySelectorAll('cite[data-ref], a.bib-cite[data-ref]');
+  }
+
+  function buildCitationOrder(scope) {
     const order = new Map();
-    document.querySelectorAll('cite[data-ref]').forEach(el => {
+    citationNodes(scope).forEach(el => {
       const key = el.getAttribute('data-ref');
       if (!order.has(key)) order.set(key, order.size + 1);
     });
     return order;
   }
 
-  function renderInlineCitations(citationOrder, entryMap) {
-    document.querySelectorAll('cite[data-ref]').forEach(el => {
+  function renderInlineCitations(scope, citationOrder, entryMap) {
+    citationNodes(scope).forEach(el => {
       const key = el.getAttribute('data-ref');
       const num = citationOrder.get(key);
       const entry = entryMap[key];
       const url = entry ? getEntryUrl(entry) : null;
       const a = document.createElement('a');
       a.className = 'bib-cite';
+      a.setAttribute('data-ref', key);   // so a re-run can still find it
       a.textContent = num !== undefined ? `[${num}]` : '[?]';
       if (url) { a.href = url; a.target = '_blank'; }
       else     { a.href = `#bib-${key}`; }
@@ -257,14 +266,17 @@
       }
     }));
 
-    const entryMap = {};
-    results.forEach(({ entries }) => entries.forEach(e => { entryMap[e.key] = e; }));
-
-    const citationOrder = buildCitationOrder();
-    renderInlineCitations(citationOrder, entryMap);
-
+    // Scope each bibliography to the pane it lives in. index.html leaves other
+    // sub-tabs in the DOM when it switches, so a document-wide scan would let
+    // one post's citations renumber -- and blank -- another's.
     results.forEach(({ container, entries }) => {
-      if (entries.length) render(container, entries, citationOrder);
+      if (!entries.length) return;
+      const scope = container.closest('.sub-tab-content, .tab-content') || document;
+      const entryMap = {};
+      entries.forEach(e => { entryMap[e.key] = e; });
+      const citationOrder = buildCitationOrder(scope);
+      renderInlineCitations(scope, citationOrder, entryMap);
+      render(container, entries, citationOrder);
     });
   }
 

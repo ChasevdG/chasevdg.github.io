@@ -1,7 +1,14 @@
+/* Fluid type [FLUID-DEMO-v1]. Embedded, the parent page overrides this with its own root
+   size (see the demo-embed-rootsize message); this clamp is the standalone
+   fallback for opening a demo directly. */
+html {
+  font-size: clamp(1rem, 0.76rem + 0.27vw, 1.19rem);
+}
+
 /* Shared styles for standalone demo pages (embedded via iframe.demo-embed from blog posts). */
 h1 {
   display: table;
-  font-size: 20px;
+  font-size: 1.25rem;
   margin: 0 auto 8px;
   font-weight: bold;
   color: #ffffff;

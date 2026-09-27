@@ -25,9 +25,9 @@
   <!-- MathJax Configuration -->
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <script src="js/mathjax-config.js"></script>
-  <script src="js/bibliography.js"></script>
+  <script src="js/bibliography.js?v=2"></script>
 
-    <link rel="stylesheet" href="styles/style.css?v=13">
+    <link rel="stylesheet" href="styles/style.css?v=19">
   </head>
   
 
@@ -145,12 +145,16 @@
           <div class="sub-tab-label" onclick="showSubTab('RollPE', 'content/blogs/RollPE.html')">RollPE</div>
           <div class="sub-tab-label" onclick="showSubTab('Synchronization', 'content/blogs/Synchronization.html')">Synchronization</div>
           <div class="sub-tab-label" onclick="showSubTab('LandauStuart', 'content/blogs/LandauStuart.html')">Landau-Stuart</div>
+          <div class="sub-tab-label" onclick="showSubTab('CoPE', 'content/blogs/CoPE.html')">CoPE</div>
+          <div class="sub-tab-label" onclick="showSubTab('Regularization', 'content/blogs/Regularization.html')">Regularization</div>
       </div>
       <div class="tab-content sub-tab-content" id="RoPE"></div>
       <div class="tab-content sub-tab-content" id="PE"></div>
       <div class="tab-content sub-tab-content" id="RollPE"></div>
       <div class="tab-content sub-tab-content" id="Synchronization"></div>
       <div class="tab-content sub-tab-content" id="LandauStuart"></div>
+      <div class="tab-content sub-tab-content" id="CoPE"></div>
+      <div class="tab-content sub-tab-content" id="Regularization"></div>
 
   </div>
     <div class="tab-content" id="research">
@@ -253,6 +257,13 @@
         applyDraftFlagToLabel(label, match[3]);
       });
 
+      // Footer nav mirrors the tab bar, so it is gated the same way.
+      document.querySelectorAll('.site-footer .footer-link').forEach(label => {
+        const match = (label.getAttribute('onclick') || '').match(/showTab\('([^']+)'(?:,\s*'([^']+)',\s*'([^']+)')?\s*\)/);
+        if (!match || !match[3]) return;
+        applyDraftFlagToLabel(label, match[3]);
+      });
+
       // Sub-tabs within any section, e.g. showSubTab('courses', 'content/teaching/courses.html')
       document.querySelectorAll('.sub-tabs .sub-tab-label').forEach(label => {
         const match = (label.getAttribute('onclick') || '').match(/showSubTab\('([^']+)',\s*'([^']+)'\)/);
@@ -263,6 +274,9 @@
 
     document.addEventListener('commentor-mode-change', applyDraftVisibility);
     applyDraftVisibility();
+    // The footer is further down the document than this script, so gate it again
+    // once the whole page has parsed.
+    document.addEventListener('DOMContentLoaded', applyDraftVisibility);
 
     function showTab(tabId, defaultTab, defaultHTML) {
       const tabs = document.querySelectorAll('.tab-content');
@@ -334,13 +348,30 @@
     // height via postMessage({ type: 'demo-embed-height', height }).
     window.addEventListener('message', (event) => {
       const d = event.data;
-      if (!d || d.type !== 'demo-embed-height' || typeof d.height !== 'number') return;
+      if (!d) return;
+      // A demo has finished loading and is asking what root size to use. [FLUID-DEMO-v1]
+      if (d.type === 'demo-embed-ready') { pushDemoRootSize(event.source); return; }
+      if (d.type !== 'demo-embed-height' || typeof d.height !== 'number') return;
       document.querySelectorAll('iframe.demo-embed').forEach(frame => {
         if (frame.contentWindow === event.source) {
           frame.style.height = Math.ceil(d.height) + 'px';
         }
       });
     });
+
+    // Demos are separate documents inside an iframe, where `vw` measures the
+    // frame rather than the monitor -- so a clamp of their own barely moves.
+    // Hand them this page's fluid root size instead and they scale in step
+    // with the prose beside them.
+    function pushDemoRootSize(target) {
+      const msg = { type: 'demo-embed-rootsize',
+                    size: parseFloat(getComputedStyle(document.documentElement).fontSize) };
+      if (target) { target.postMessage(msg, '*'); return; }
+      document.querySelectorAll('iframe.demo-embed').forEach(f => {
+        if (f.contentWindow) f.contentWindow.postMessage(msg, '*');
+      });
+    }
+    window.addEventListener('resize', () => pushDemoRootSize());
 
     function routeFromHash() {
       const hash = window.location.hash.slice(1);
@@ -534,9 +565,98 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
   </script>
-  <footer>
-    <!-- <p>&copy; 2025 My Website. All rights reserved.</p> -->
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+
+      <div class="footer-col footer-brand">
+        <div class="footer-brand-head">
+          <img src="favicon.svg" alt="" class="footer-mark" aria-hidden="true">
+          <span class="footer-name">Chase van de Geijn</span>
+        </div>
+        <p class="footer-role">ML Physicist &middot; PhD Candidate</p>
+        <p class="footer-affil">Ecker Lab &mdash; Georg-August-Universit&auml;t G&ouml;ttingen</p>
+        <p class="footer-blurb">
+          Geometric deep learning, Clifford algebra, and foundation models for neuroscience.
+        </p>
+      </div>
+
+      <nav class="footer-col footer-nav" aria-label="Footer navigation">
+        <h2 class="footer-head">Explore</h2>
+        <ul>
+          <li><a class="footer-link" href="#" onclick="showTab('about'); return false;">About Me</a></li>
+          <li><a class="footer-link" href="#" onclick="showTab('interests', 'CA', 'content/CA.html'); return false;">Interests</a></li>
+          <li><a class="footer-link" href="#" onclick="showTab('blogs', 'PE', 'content/blogs/RoPE.html'); return false;">Blogs</a></li>
+          <li><a class="footer-link" href="#" onclick="showTab('research', 'CHASE', 'content/compositional.html'); return false;">Research</a></li>
+          <li><a class="footer-link" href="#" onclick="showTab('education', 'phd', 'content/education/PhD.html'); return false;">Education</a></li>
+          <li><a class="footer-link" href="#" onclick="showTab('teaching', 'courses', 'content/teaching/courses.html'); return false;">Teaching</a></li>
+          <li><a class="footer-link" href="#" onclick="showTab('supervision', 'supervisees', 'content/Supervision/supervision.html'); return false;">Supervision</a></li>
+        </ul>
+      </nav>
+
+      <div class="footer-col footer-contact">
+        <h2 class="footer-head">Elsewhere</h2>
+        <ul>
+          <li>
+            <a href="#" onclick="this.href='mai'+'lto:'+'chase.geijn'+'@'+'uni-goettingen.de';return true;">
+              <i class="far fa-envelope"></i><span>Email</span>
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/ChasevdG" target="_blank" rel="noopener">
+              <i class="fab fa-github"></i><span>GitHub</span>
+            </a>
+          </li>
+          <li>
+            <a href="https://www.linkedin.com/in/chase-van-de-geijn-517946196/" target="_blank" rel="noopener">
+              <i class="fab fa-linkedin"></i><span>LinkedIn</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="site-footer-bottom">
+      <span>&copy; <span id="footer-year">2026</span> Chase van de Geijn</span>
+      <span class="footer-sep">&middot;</span>
+      <a href="#" onclick="window.scrollTo({ top: 0, behavior: 'smooth' }); return false;">Back to top</a>
+    </div>
   </footer>
+
+  <script>
+    // Keep the copyright year current without a rebuild.
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // Footer nav scrolls back up to the tab bar, since the content it reveals
+    // is at the top of the page.
+    document.querySelectorAll('.site-footer .footer-link').forEach(function (a) {
+      a.addEventListener('click', function () {
+        const tabs = document.querySelector('.tabs');
+        if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+
+  <script>
+    // --- Optional / collapsible blocks -----------------------------------
+    // <details class="dropdown"> opens without JavaScript, works the instant a
+    // content file is fetched into a sub-tab, and MathJax lays out correctly
+    // inside a closed one. So the only thing worth wiring up is printing: a
+    // reader who prints a post should get the collapsed material too.
+    (function () {
+      var openedForPrint = [];
+      window.addEventListener('beforeprint', function () {
+        openedForPrint = Array.prototype.slice.call(
+          document.querySelectorAll('details.dropdown:not([open])'));
+        openedForPrint.forEach(function (d) { d.open = true; });
+      });
+      window.addEventListener('afterprint', function () {
+        openedForPrint.forEach(function (d) { d.open = false; });
+        openedForPrint = [];
+      });
+    })();
+  </script>
   <script src="js/commentor.js"></script>
+  <script src="js/shortcodes.js"></script>
 </body>
 </html>

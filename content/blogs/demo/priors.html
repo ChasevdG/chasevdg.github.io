@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Likelihood times prior equals posterior — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
+<style>
+  :root {
+    --bg: transparent; --panel: #ffffff; --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25); --surface-1: #f5f4ee;
+    --text: #1a1a18; --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --panel: #262624; --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3); --surface-1: #262624;
+      --text: #f0efea; --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 1rem 1.25rem;
+         background: var(--bg); color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.875rem; }
+  .controls { margin-bottom: 0.875rem; }
+  .row { display: grid; grid-template-columns: 8.5rem 1fr 4.5rem; gap: 0.625rem; align-items: center; margin-bottom: 0.5rem; }
+  .row label { font-size: 0.8125rem; }
+  .row .val { font-size: 0.75rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .modes { display: flex; gap: 0.5rem; margin-bottom: 0.625rem; flex-wrap: wrap; }
+  .modes button { font-size: 0.75rem; padding: 0.3125rem 0.6875rem; border: 1px solid var(--border-strong);
+                  border-radius: 0.25rem; background: transparent; color: var(--text); cursor: pointer; }
+  .modes button:hover { background: var(--surface-1); }
+  .modes button.active { background: rgba(255,140,0,0.16); border-color: #cc7000; font-weight: 600; }
+  .statusbar { display: flex; align-items: baseline; gap: 0.75rem; font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+  .canvas-wrap { border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden; background: var(--panel); }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>Likelihood &times; prior = posterior</h1>
+<div class="panel">
+  <div class="controls">
+    <div class="modes">
+      <button id="m-gauss" class="active">Gaussian prior &rarr; ridge</button>
+      <button id="m-lap">Laplace prior &rarr; LASSO</button>
+    </div>
+    <div class="row">
+      <label for="rho">collinearity &rho;</label>
+      <input type="range" id="rho" min="0" max="1" step="0.005" value="0.97">
+      <span class="val" id="rho-out">0.970</span>
+    </div>
+    <div class="row">
+      <label for="sig">noise &sigma;</label>
+      <input type="range" id="sig" min="0.2" max="3" step="0.02" value="1">
+      <span class="val" id="sig-out">1.00</span>
+    </div>
+    <div class="row">
+      <label for="tau">prior width &tau;</label>
+      <input type="range" id="tau" min="0.15" max="3" step="0.01" value="0.8">
+      <span class="val" id="tau-out">0.80</span>
+    </div>
+    <div class="statusbar"><span id="verdict">&nbsp;</span></div>
+  </div>
+  <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = 900, H = 560, DPR = window.devicePixelRatio || 1;
+cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let likRGB, priRGB, posRGB, textCol, axisCol, mleCol, mapCol, gridCol;
+function setColors(){
+  const d = mq.matches;
+  likRGB = d ? [99,179,255] : [47,109,240];
+  priRGB = [255,140,0];
+  posRGB = d ? [93,202,165] : [29,158,117];
+  textCol = d ? 'rgba(240,239,234,0.88)' : 'rgba(26,26,24,0.82)';
+  axisCol = d ? 'rgba(160,160,155,0.34)' : 'rgba(95,94,90,0.30)';
+  gridCol = d ? 'rgba(160,160,155,0.12)' : 'rgba(95,94,90,0.10)';
+  mleCol  = d ? 'rgba(99,179,255,1)'     : 'rgba(47,109,240,1)';
+  mapCol  = d ? 'rgba(93,202,165,1)'     : 'rgba(29,158,117,1)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', () => { setColors(); dirty = true; });
+
+// ---- model ----------------------------------------------------------------
+let rho = 0.97, sigma = 1.0, tau = 0.8, priorKind = 'gauss', dirty = true;
+const N = 20, WSTAR = [1.0, 0.7], RANGE = 2.5, G = 110;
+function gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185307*v); }
+const raw = []; for (let i=0;i<N;i++) raw.push([gauss(), gauss(), gauss()]);
+
+let S = [0,0,0], t = [0,0], ev = null;
+function build(){
+  const s = Math.sqrt(Math.max(0, 1 - rho*rho));
+  let s11=0,s12=0,s22=0,t1=0,t2=0;
+  for (const [x1, z, e] of raw){
+    const x2 = rho*x1 + s*z;
+    const y = WSTAR[0]*x1 + WSTAR[1]*x2 + 0.25*e;   // data noise is fixed; sigma is the model's belief
+    s11+=x1*x1; s12+=x1*x2; s22+=x2*x2; t1+=x1*y; t2+=x2*y;
+  }
+  S=[s11,s12,s22]; t=[t1,t2];
+  const tr=S[0]+S[2], det=S[0]*S[2]-S[1]*S[1];
+  const disc=Math.sqrt(Math.max(0,tr*tr/4-det));
+  const m1=tr/2+disc, m2=Math.max(0,tr/2-disc);
+  const vec=m=>{ let vx,vy;
+    if (Math.abs(S[1])>1e-12){ vx=S[1]; vy=m-S[0]; } else { vx=(Math.abs(S[0]-m)<Math.abs(S[2]-m))?1:0; vy=1-vx; }
+    const n=Math.hypot(vx,vy)||1; return [vx/n,vy/n]; };
+  ev={ m:[m1,m2], v:[vec(m1),vec(m2)] };
+}
+// -2 log likelihood, up to a constant:  (w^T S w - 2 t^T w) / sigma^2
+function negLogLik(w1,w2){
+  const q = S[0]*w1*w1 + 2*S[1]*w1*w2 + S[2]*w2*w2 - 2*(t[0]*w1 + t[1]*w2);
+  return q / (2*sigma*sigma);
+}
+function negLogPrior(w1,w2){
+  if (priorKind === 'gauss') return (w1*w1 + w2*w2) / (2*tau*tau);
+  const b = tau / Math.SQRT2;                       // Laplace(0,b) has variance 2b^2 = tau^2
+  return (Math.abs(w1) + Math.abs(w2)) / b;
+}
+// minimum-norm least squares, the ridge of the likelihood
+function mle(){
+  const out=[0,0];
+  for (let i=0;i<2;i++){
+    if (ev.m[i] < 1e-8) continue;
+    const p = (ev.v[i][0]*t[0] + ev.v[i][1]*t[1]) / ev.m[i];
+    out[0]+=p*ev.v[i][0]; out[1]+=p*ev.v[i][1];
+  }
+  return out;
+}
+
+// ---- grids ----------------------------------------------------------------
+const grids = { lik:null, pri:null, pos:null };
+let mapPt = [0,0], mlePt = [0,0];
+function computeGrids(){
+  const lik = new Float64Array(G*G), pri = new Float64Array(G*G), pos = new Float64Array(G*G);
+  let bestPos = Infinity, bi = 0;
+  for (let j=0;j<G;j++){
+    const w2 = RANGE * (1 - 2*(j+0.5)/G);
+    for (let i=0;i<G;i++){
+      const w1 = RANGE * (2*(i+0.5)/G - 1);
+      const nl = negLogLik(w1,w2), np = negLogPrior(w1,w2);
+      const k = j*G+i;
+      lik[k]=nl; pri[k]=np; pos[k]=nl+np;
+      if (nl+np < bestPos){ bestPos = nl+np; bi = k; }
+    }
+  }
+  const toDens = arr => {
+    let mn = Infinity; for (const v of arr) if (v < mn) mn = v;
+    const out = new Float64Array(arr.length);
+    for (let k=0;k<arr.length;k++) out[k] = Math.exp(-(arr[k]-mn));
+    return out;
+  };
+  grids.lik = toDens(lik); grids.pri = toDens(pri); grids.pos = toDens(pos);
+  mapPt = [ RANGE*(2*((bi%G)+0.5)/G - 1), RANGE*(1 - 2*(Math.floor(bi/G)+0.5)/G) ];
+  mlePt = mle();
+}
+
+function heat(dens, rgb){
+  const img = ctx.createImageData(G, G);
+  for (let k=0;k<G*G;k++){
+    const v = Math.max(0, Math.min(1, dens[k]));
+    const a = Math.pow(v, 0.55);
+    img.data[4*k]   = rgb[0];
+    img.data[4*k+1] = rgb[1];
+    img.data[4*k+2] = rgb[2];
+    img.data[4*k+3] = Math.round(232 * a);
+  }
+  const off = document.createElement('canvas');
+  off.width = G; off.height = G;
+  off.getContext('2d').putImageData(img, 0, 0);
+  return off;
+}
+
+// ---- drawing ---------------------------------------------------------------
+const PW = 224, PY = 62;
+const PX = [36, 330, 624];
+function panel(idx, dens, rgb, title, marks){
+  const x = PX[idx];
+  ctx.fillStyle = textCol; ctx.font = '600 0.8125rem system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText(title, x, PY - 12);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, PY, PW, PW); ctx.clip();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(heat(dens, rgb), x, PY, PW, PW);
+  const sx = w => x + (w/RANGE*0.5 + 0.5)*PW, sy = w => PY + (0.5 - w/RANGE*0.5)*PW;
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, sy(0)); ctx.lineTo(x+PW, sy(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx(0), PY); ctx.lineTo(sx(0), PY+PW); ctx.stroke();
+  for (const [pt, col, r] of marks){
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(sx(pt[0]), sy(pt[1]), r, 0, 6.2832); ctx.fill();
+  }
+  ctx.restore();
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1; ctx.strokeRect(x, PY, PW, PW);
+}
+
+function drawSlice(){
+  const R = { x: 56, y: 372, w: 788, h: 118 };
+  const v = ev.v[1], base = mlePt;              // the flat direction of the likelihood
+  const T = 2.4, M = 240;
+  const curves = [];
+  for (const f of [ (a,b)=>negLogLik(a,b), (a,b)=>negLogPrior(a,b), (a,b)=>negLogLik(a,b)+negLogPrior(a,b) ]){
+    const ys = [];
+    let mn = Infinity;
+    for (let k=0;k<=M;k++){
+      const s = -T + 2*T*k/M;
+      const val = f(base[0]+s*v[0], base[1]+s*v[1]);
+      ys.push(val); if (val < mn) mn = val;
+    }
+    let mx = 0; const dens = ys.map(u => { const d = Math.exp(-(u-mn)); if (d>mx) mx=d; return d; });
+    curves.push(dens.map(d => d/mx));
+  }
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(R.x, R.y); ctx.lineTo(R.x, R.y+R.h); ctx.lineTo(R.x+R.w, R.y+R.h); ctx.stroke();
+  const cols = ['rgb('+likRGB+')', 'rgb('+priRGB+')', 'rgb('+posRGB+')'];
+  const names = ['likelihood', 'prior', 'posterior'];
+  curves.forEach((c, i) => {
+    ctx.strokeStyle = cols[i]; ctx.lineWidth = i===2 ? 2.8 : 2; ctx.beginPath();
+    c.forEach((d, k) => { const X = R.x + k/M*R.w, Y = R.y + R.h - d*R.h*0.94;
+      k ? ctx.lineTo(X,Y) : ctx.moveTo(X,Y); });
+    ctx.stroke();
+    // peak markers: where the posterior peak sits against the other two is the point
+    let bk = 0; for (let k=1;k<c.length;k++) if (c[k] > c[bk]) bk = k;
+    ctx.fillStyle = cols[i];
+    ctx.beginPath(); ctx.arc(R.x + bk/M*R.w, R.y + R.h - c[bk]*R.h*0.94, i===2 ? 4.5 : 3.5, 0, 6.2832); ctx.fill();
+  });
+  ctx.font = '0.6875rem system-ui, sans-serif'; ctx.textAlign = 'left';
+  names.forEach((n,i) => {
+    const X = R.x + 8 + i*104;
+    ctx.strokeStyle = cols[i]; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(X, R.y-10); ctx.lineTo(X+20, R.y-10); ctx.stroke();
+    ctx.fillStyle = textCol; ctx.globalAlpha = 0.82; ctx.fillText(n, X+26, R.y-6); ctx.globalAlpha = 1;
+  });
+  ctx.fillStyle = textCol; ctx.font = '600 0.8125rem system-ui, sans-serif';
+  ctx.fillText('a slice along the direction the data cannot see', R.x, R.y - 28);
+  ctx.font = '0.6875rem system-ui, sans-serif'; ctx.globalAlpha = 0.72; ctx.textAlign = 'center';
+  ctx.fillText('← move w along the singular direction →', R.x + R.w/2, R.y + R.h + 16);
+  ctx.globalAlpha = 1;
+}
+
+// "Flat" is only true in the limit. Say which regime is actually on screen.
+function flatness(){
+  const r = ev.m[0] / Math.max(ev.m[1], 1e-12);
+  if (r > 2000) return 'the likelihood is <strong>flat</strong> along this direction — the prior alone decides where the peak sits';
+  if (r > 60)   return 'the likelihood is <strong>nearly flat</strong> along this direction (κ = ' + r.toFixed(0) + '), so the prior does most of the deciding';
+  return 'the data still pins down both directions (κ = ' + r.toFixed(1) + ') — raise ρ to flatten the likelihood';
+}
+
+function draw(){
+  if (dirty){ build(); computeGrids(); dirty = false; }
+  ctx.clearRect(0,0,W,H);
+  panel(0, grids.lik, likRGB, 'likelihood  p(y | X, w)', [[mlePt, mleCol, 4.5]]);
+  panel(1, grids.pri, priRGB, priorKind === 'gauss' ? 'prior  p(w) = N(0, τ²I)' : 'prior  p(w) ∝ exp(−‖w‖₁/b)', []);
+  panel(2, grids.pos, posRGB, 'posterior  ∝ likelihood × prior', [[mlePt, mleCol, 3.5],[mapPt, mapCol, 5.5]]);
+  ctx.fillStyle = textCol; ctx.font = '600 1.25rem system-ui, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('×', (PX[0]+PW + PX[1])/2, PY + PW/2 + 8);
+  ctx.fillText('=', (PX[1]+PW + PX[2])/2, PY + PW/2 + 8);
+  drawSlice();
+
+  const lam = sigma*sigma/(tau*tau);
+  const sparse = Math.min(Math.abs(mapPt[0]), Math.abs(mapPt[1])) < 0.06;
+  document.getElementById('verdict').innerHTML =
+    'λ = σ²/τ² = ' + lam.toFixed(2) +
+    ' &nbsp;·&nbsp; w<sub>MLE</sub> = (' + mlePt[0].toFixed(2) + ', ' + mlePt[1].toFixed(2) + ')' +
+    ' &nbsp;·&nbsp; w<sub>MAP</sub> = (' + mapPt[0].toFixed(2) + ', ' + mapPt[1].toFixed(2) + ')' +
+    (sparse ? ' &nbsp;·&nbsp; <strong>a coefficient has gone to zero</strong>' : '') +
+    ' &nbsp;·&nbsp; ' + flatness();
+}
+
+// ---- controls --------------------------------------------------------------
+function bind(id, fn, fmt){
+  const el = document.getElementById(id), out = document.getElementById(id+'-out');
+  el.addEventListener('input', e => { fn(+e.target.value); out.textContent = fmt(+e.target.value); dirty = true; });
+  out.textContent = fmt(+el.value);
+}
+bind('rho', v => { rho = v; }, v => v.toFixed(3));
+bind('sig', v => { sigma = v; }, v => v.toFixed(2));
+bind('tau', v => { tau = v; }, v => v.toFixed(2));
+const mb = { gauss:'m-gauss', lap:'m-lap' };
+Object.keys(mb).forEach(k => document.getElementById(mb[k]).addEventListener('click', () => {
+  priorKind = k; dirty = true;
+  Object.keys(mb).forEach(j => document.getElementById(mb[j]).classList.toggle('active', j === k));
+}));
+
+function loop(){ draw(); requestAnimationFrame(loop); }
+
+function postHeight() {
+  if (window.parent === window) return;
+  window.parent.postMessage({ type: 'demo-embed-height', height: document.documentElement.scrollHeight }, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>

@@ -50,7 +50,7 @@
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     padding: 6px 14px;
-    font-size: 14px;
+    font-size: 0.875rem;
     cursor: pointer;
   }
   button:hover { background: var(--surface-1); }
@@ -62,9 +62,9 @@
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     padding: 5px 8px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
-  .mode-btn { flex: 1; padding: 6px 8px; font-size: 13px; }
+  .mode-btn { flex: 1; padding: 6px 8px; font-size: 0.8125rem; }
   .mode-btn.active {
     background: #F5A800;
     color: #1a1a18;
@@ -129,14 +129,14 @@
 
   <div id="monPanel" style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;min-height:180px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <span id="monLabel" style="font-size:13px;color:var(--text-secondary);">Clap monitor</span>
-      <span style="font-size:12px;font-family:var(--font-mono);color:var(--text-secondary);">r=<span id="rOut" style="color:var(--text-primary);">0.00</span></span>
+      <span id="monLabel" style="font-size:0.8125rem;color:var(--text-secondary);">Clap monitor</span>
+      <span style="font-size:0.75rem;font-family:var(--font-mono);color:var(--text-secondary);">r=<span id="rOut" style="color:var(--text-primary);">0.00</span></span>
     </div>
     <canvas id="ekg" style="width:100%;flex:1;"></canvas>
   </div>
 
   <div id="phasePanel" style="background:var(--surface-1);border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;">
-    <span style="font-size:13px;color:var(--text-secondary);align-self:flex-start;margin-bottom:2px;">Phase e<sup>i&theta;</sup></span>
+    <span style="font-size:0.8125rem;color:var(--text-secondary);align-self:flex-start;margin-bottom:2px;">Phase e<sup>i&theta;</sup></span>
     <svg id="circ" viewBox="-110 -110 220 220" width="170" height="170" aria-hidden="true">
       <line x1="-100" y1="0" x2="100" y2="0" stroke="var(--border)" stroke-width="1"/>
       <line x1="0" y1="-100" x2="0" y2="100" stroke="var(--border)" stroke-width="1"/>
@@ -148,27 +148,27 @@
       <circle id="mfDot" cx="85" cy="0" r="4" fill="var(--text-primary)"/>
       <g id="dots"></g>
     </svg>
-    <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">&mdash; r&middot;e<sup>i&psi;</sup> mean field</span>
+    <span style="font-size:0.6875rem;color:var(--text-muted);font-family:var(--font-mono);">&mdash; r&middot;e<sup>i&psi;</sup> mean field</span>
   </div>
 </div>
 
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
   <button id="toggle">Pause</button>
   <button id="reset">Reset</button>
-  <label style="font-size:14px;color:var(--text-secondary);">Count</label>
+  <label style="font-size:0.875rem;color:var(--text-secondary);">Count</label>
   <select id="nsel">
     <option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option>
   </select>
-  <label style="font-size:14px;color:var(--text-secondary);">Coupling K</label>
+  <label style="font-size:0.875rem;color:var(--text-secondary);">Coupling K</label>
   <input type="range" id="k" min="0" max="10" step="0.1" value="0" style="flex:1;min-width:110px;max-width:170px;">
-  <span id="kOut" style="font-size:14px;font-weight:500;min-width:66px;">0.0 rad/s</span>
-  <label style="font-size:14px;color:var(--text-secondary);">Reset every</label>
+  <span id="kOut" style="font-size:0.875rem;font-weight:500;min-width:66px;">0.0 rad/s</span>
+  <label style="font-size:0.875rem;color:var(--text-secondary);">Reset every</label>
   <input type="range" id="sweep" min="1" max="12" step="0.5" value="5" style="flex:1;min-width:70px;max-width:110px;">
-  <span id="sweepOut" style="font-size:14px;font-weight:500;min-width:32px;">5 s</span>
-  <label style="font-size:14px;color:var(--text-secondary);">Speed</label>
+  <span id="sweepOut" style="font-size:0.875rem;font-weight:500;min-width:32px;">5 s</span>
+  <label style="font-size:0.875rem;color:var(--text-secondary);">Speed</label>
   <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1" style="flex:1;min-width:70px;max-width:110px;">
-  <span id="speedOut" style="font-size:14px;font-weight:500;min-width:34px;">1.0&times;</span>
-  <span id="syncBadge" style="font-size:12px;padding:4px 12px;border-radius:var(--radius);background:var(--bg-warning);color:var(--text-warning);">not locked</span>
+  <span id="speedOut" style="font-size:0.875rem;font-weight:500;min-width:34px;">1.0&times;</span>
+  <span id="syncBadge" style="font-size:0.75rem;padding:4px 12px;border-radius:var(--radius);background:var(--bg-warning);color:var(--text-warning);">not locked</span>
 </div>
 
 <script>
@@ -248,8 +248,8 @@ function build(){
     const panel = document.createElement('div');
     panel.style.cssText = 'background:var(--surface-1);border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;flex:1;min-height:' + (h+8) + 'px;';
     panel.innerHTML = svgFor(mode, c, h) +
-      '<span style="position:absolute;top:3px;left:8px;font-size:11px;color:' + dc + ';font-weight:500;">' + (i+1) + '</span>' +
-      '<span class="fq" style="position:absolute;bottom:2px;right:8px;font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);">' + f.toFixed(2) + ' Hz</span>';
+      '<span style="position:absolute;top:3px;left:8px;font-size:0.6875rem;color:' + dc + ';font-weight:500;">' + (i+1) + '</span>' +
+      '<span class="fq" style="position:absolute;bottom:2px;right:8px;font-size:0.625rem;font-family:var(--font-mono);color:var(--text-secondary);">' + f.toFixed(2) + ' Hz</span>';
     col.appendChild(panel);
     if (mode === 'neurons'){
       const ax = panel.querySelector('.axon');
@@ -535,6 +535,23 @@ function postHeight(){
 window.addEventListener('load', postHeight);
 window.addEventListener('resize', postHeight);
 if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
 </script>
 </body>
 </html>

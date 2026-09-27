@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A two-level predictive coding hierarchy — Interactive</title>
+<link rel="stylesheet" href="demo-shared.css">
+<style>
+  :root {
+    --bg: transparent; --panel: #ffffff; --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25); --surface-1: #f5f4ee;
+    --text: #1a1a18; --muted: #5f5e5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --panel: #262624; --border: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.3); --surface-1: #262624;
+      --text: #f0efea; --muted: #b4b2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px 20px;
+         background: var(--bg); color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .controls { margin-bottom: 14px; }
+  .row { display: grid; grid-template-columns: 6.5rem 1fr 3.875rem; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 0.8125rem; }
+  .row .val { font-size: 0.75rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #F5A800; }
+  .statusbar { display: flex; align-items: baseline; gap: 10px; font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .statusbar button { font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--border-strong);
+                      border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+  .statusbar button#newx { margin-left: auto; }
+  .statusbar button:hover { background: var(--surface-1); }
+  .canvas-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel); }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+
+<h1>What travels up the stream is the error, not the activity</h1>
+<div class="panel">
+  <div class="controls">
+    <div class="row">
+      <label for="p1">precision &Pi;&#8321;</label>
+      <input type="range" id="p1" min="0.1" max="4" step="0.05" value="1">
+      <span class="val" id="p1-out">1.00</span>
+    </div>
+    <div class="row">
+      <label for="p2">precision &Pi;&#8322;</label>
+      <input type="range" id="p2" min="0.1" max="4" step="0.05" value="1">
+      <span class="val" id="p2-out">1.00</span>
+    </div>
+    <div class="row">
+      <label for="spd">settling rate</label>
+      <input type="range" id="spd" min="0.2" max="3" step="0.1" value="1">
+      <span class="val" id="spd-out">1.0&times;</span>
+    </div>
+    <div class="statusbar">
+      <span id="verdict">&nbsp;</span>
+      <button id="newx">New input</button>
+      <button id="reset">Reset beliefs</button>
+      <button id="pause">Pause</button>
+    </div>
+  </div>
+  <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = 900, H = 560, DPR = window.devicePixelRatio || 1;
+cv.width = W * DPR; cv.height = H * DPR; ctx.scale(DPR, DPR);
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+let obsCol, hCol, errCol, predCol, gridCol, axisCol, textCol, fCol;
+function setColors(){
+  const d = mq.matches;
+  obsCol  = d ? 'rgba(99,179,255,1)'     : 'rgba(47,109,240,1)';
+  hCol    = 'rgba(255,140,0,1)';
+  errCol  = d ? 'rgba(255,64,150,1)'     : 'rgba(214,0,98,1)';
+  predCol = d ? 'rgba(239,159,39,0.85)'  : 'rgba(239,159,39,0.95)';
+  gridCol = d ? 'rgba(160,160,155,0.12)' : 'rgba(95,94,90,0.10)';
+  axisCol = d ? 'rgba(160,160,155,0.34)' : 'rgba(95,94,90,0.30)';
+  textCol = d ? 'rgba(240,239,234,0.88)' : 'rgba(26,26,24,0.82)';
+  fCol    = d ? 'rgba(93,202,165,1)'     : 'rgba(29,158,117,0.95)';
+}
+setColors();
+if (mq.addEventListener) mq.addEventListener('change', setColors);
+
+// ---- model -----------------------------------------------------------------
+const N0 = 8, N1 = 5, N2 = 3;
+let p1 = 1, p2 = 1, rate = 1, paused = false;
+let W1, W2, x, h1, h2, e1, e2, phase = 0;
+const histF = [];
+
+function gauss(){ let u=0,v=0; while(!u) u=Math.random(); while(!v) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185307*v); }
+function randMat(r, c){                        // r x c, columns normalised
+  const M = [];
+  for (let i=0;i<r;i++){ const row=[]; for (let j=0;j<c;j++) row.push(gauss()); M.push(row); }
+  for (let j=0;j<c;j++){
+    let n=0; for (let i=0;i<r;i++) n += M[i][j]*M[i][j];
+    n = Math.sqrt(n) || 1;
+    for (let i=0;i<r;i++) M[i][j] /= n;
+  }
+  return M;
+}
+function mv(M, v){ const r=M.length, out=new Float64Array(r);
+  for (let i=0;i<r;i++){ let s=0; const row=M[i]; for (let j=0;j<row.length;j++) s += row[j]*v[j]; out[i]=s; } return out; }
+function mtv(M, v){ const c=M[0].length, out=new Float64Array(c);
+  for (let i=0;i<M.length;i++){ const row=M[i]; for (let j=0;j<c;j++) out[j] += row[j]*v[i]; } return out; }
+
+function initWeights(){ W1 = randMat(N0, N1); W2 = randMat(N1, N2); }
+function newInput(){
+  // an input the hierarchy can partly explain: W1 W2 z + noise
+  const z = new Float64Array(N2); for (let i=0;i<N2;i++) z[i] = gauss()*1.6;
+  const g = mv(W2, z), base = mv(W1, g);
+  x = new Float64Array(N0);
+  for (let i=0;i<N0;i++) x[i] = base[i]*1.3 + gauss()*0.10;
+  resetBeliefs();
+}
+function resetBeliefs(){
+  h1 = new Float64Array(N1); h2 = new Float64Array(N2);
+  histF.length = 0; phase = 0;
+}
+initWeights(); newInput();
+
+function residuals(){
+  const pred1 = mv(W1, h1);                  // W1 h1  predicts x
+  const pred2 = mv(W2, h2);                  // W2 h2  predicts h1
+  e1 = new Float64Array(N0); for (let i=0;i<N0;i++) e1[i] = x[i]  - pred1[i];
+  e2 = new Float64Array(N1); for (let i=0;i<N1;i++) e2[i] = h1[i] - pred2[i];
+}
+function freeEnergy(){
+  let a=0,b=0;
+  for (let i=0;i<N0;i++) a += e1[i]*e1[i];
+  for (let i=0;i<N1;i++) b += e2[i]*e2[i];
+  return 0.5*(p1*a + p2*b);
+}
+function step(){
+  const dt = 0.055 * rate;
+  for (let k=0;k<3;k++){
+    residuals();
+    const up1 = mtv(W1, e1);                 // W1^T e1
+    const up2 = mtv(W2, e2);                 // W2^T e2
+    for (let i=0;i<N1;i++) h1[i] += dt*(p1*up1[i] - p2*e2[i]);
+    for (let i=0;i<N2;i++) h2[i] += dt*(p2*up2[i]);
+  }
+  residuals();
+  histF.push(freeEnergy());
+  if (histF.length > 420) histF.shift();
+  phase += 0.018 * rate;
+}
+
+// ---- drawing ---------------------------------------------------------------
+const COLX = [96, 246, 432, 600, 766];       // x, e1, h1, e2, h2
+const TOPY = 118, DY = 34, RAD = 12;
+
+function colY(n, i){ return TOPY + (i - (n-1)/2)*DY + 116; }
+
+function drawCol(cx, vec, n, col, label, sub){
+  for (let i=0;i<n;i++){
+    const y = colY(n, i), v = vec[i], a = Math.min(1, Math.abs(v)/1.6);
+    ctx.beginPath(); ctx.arc(cx, y, RAD, 0, 6.2832);
+    ctx.fillStyle = col; ctx.globalAlpha = 0.14 + 0.8*a; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.55; ctx.stroke(); ctx.globalAlpha = 1;
+    if (v < 0){
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.moveTo(cx-5, y); ctx.lineTo(cx+5, y); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+  ctx.fillStyle = col; ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(label, cx, colY(n, 0) - 30);
+  ctx.fillStyle = textCol; ctx.globalAlpha = 0.65; ctx.font = '11px system-ui, sans-serif';
+  ctx.fillText(sub, cx, colY(n, n-1) + 32);
+  ctx.globalAlpha = 1;
+}
+
+function flowArrow(x0, x1, y, col, label, mag, dir){
+  ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.55;
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); ctx.globalAlpha = 1;
+  const hx = x1, hl = 9 * dir;
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(hx, y); ctx.lineTo(hx - hl, y - 5); ctx.lineTo(hx - hl, y + 5); ctx.closePath(); ctx.fill();
+  // travelling packets, brightness tracks the magnitude being carried
+  const nP = 4, span = x1 - x0;
+  for (let i=0;i<nP;i++){
+    let f = (phase*0.9 + i/nP) % 1;
+    const px = x0 + f*span;
+    ctx.fillStyle = col;
+    ctx.globalAlpha = Math.min(0.95, 0.12 + mag) * Math.sin(Math.PI*f);
+    ctx.beginPath(); ctx.arc(px, y, 4.2, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = col; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(label, (x0+x1)/2, y - 11);
+}
+
+function norm(v){ let s=0; for (let i=0;i<v.length;i++) s += v[i]*v[i]; return Math.sqrt(s); }
+
+function drawF(){
+  const R = {x: 96, y: 452, w: 700, h: 82};
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(R.x, R.y); ctx.lineTo(R.x, R.y+R.h); ctx.lineTo(R.x+R.w, R.y+R.h); ctx.stroke();
+  let mx = 0.4; for (const v of histF) mx = Math.max(mx, v);
+  if (histF.length > 1){
+    ctx.strokeStyle = fCol; ctx.lineWidth = 2.2; ctx.beginPath();
+    for (let i=0;i<histF.length;i++){
+      const px = R.x + i/(histF.length-1)*R.w;
+      const py = R.y + R.h - Math.min(1, histF[i]/mx)*R.h;
+      i ? ctx.lineTo(px,py) : ctx.moveTo(px,py);
+    }
+    ctx.stroke();
+  }
+  ctx.fillStyle = fCol; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('free energy  F = ½Π₁‖ε₁‖² + ½Π₂‖ε₂‖²', R.x, R.y - 8);
+  ctx.fillStyle = textCol; ctx.globalAlpha = 0.65; ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'right'; ctx.fillText(mx.toFixed(2), R.x - 7, R.y + 4);
+  ctx.fillText('0', R.x - 7, R.y + R.h + 4);
+  ctx.textAlign = 'center'; ctx.fillText('settling time →', R.x + R.w/2, R.y + R.h + 18);
+  ctx.globalAlpha = 1;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const n1 = norm(e1), n2 = norm(e2);
+
+  // flows between the columns: predictions run leftward, errors run rightward
+  flowArrow(COLX[2] - 20, COLX[1] + 22, 96, predCol, 'W₁h₁   prediction', 0.55, 1);
+  flowArrow(COLX[1] + 22, COLX[2] - 20, 400, errCol, 'Π₁W₁ᵀε₁   error', Math.min(0.9, n1/2), 1);
+  flowArrow(COLX[4] - 20, COLX[3] + 22, 96, predCol, 'W₂h₂   prediction', 0.55, 1);
+  flowArrow(COLX[3] + 22, COLX[4] - 20, 400, errCol, 'Π₂W₂ᵀε₂   error', Math.min(0.9, n2/2), 1);
+  // x feeds e1, h1 feeds e2
+  ctx.strokeStyle = axisCol; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(COLX[0]+20, 248); ctx.lineTo(COLX[1]-20, 248); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(COLX[2]+20, 248); ctx.lineTo(COLX[3]-20, 248); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  drawCol(COLX[0], x,  N0, obsCol, 'x',  'observation');
+  drawCol(COLX[1], e1, N0, errCol, 'ε₁', 'x − W₁h₁');
+  drawCol(COLX[2], h1, N1, hCol,   'h₁', 'level 1 belief');
+  drawCol(COLX[3], e2, N1, errCol, 'ε₂', 'h₁ − W₂h₂');
+  drawCol(COLX[4], h2, N2, hCol,   'h₂', 'level 2 belief');
+
+  ctx.fillStyle = textCol; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+  ctx.globalAlpha = 0.6;
+  ctx.fillText('top-down: each level predicts the one below', 96, 66);
+  ctx.fillText('bottom-up: only what could not be predicted is passed on', 96, 430);
+  ctx.globalAlpha = 1;
+
+  drawF();
+
+  const F = histF.length ? histF[histF.length-1] : 0;
+  document.getElementById('verdict').innerHTML =
+    '‖ε₁‖ = ' + n1.toFixed(3) + ' &nbsp;·&nbsp; ‖ε₂‖ = ' + n2.toFixed(3) +
+    ' &nbsp;·&nbsp; F = ' + F.toFixed(3) +
+    (F < 0.05 ? ' &nbsp;·&nbsp; <strong>settled</strong>' : '');
+}
+
+// ---- controls --------------------------------------------------------------
+function bind(id, fn, fmt){
+  const el = document.getElementById(id), out = document.getElementById(id+'-out');
+  el.addEventListener('input', e => { fn(+e.target.value); out.textContent = fmt(+e.target.value); });
+  out.textContent = fmt(+el.value);
+}
+bind('p1',  v => { p1 = v; }, v => v.toFixed(2));
+bind('p2',  v => { p2 = v; }, v => v.toFixed(2));
+bind('spd', v => { rate = v; }, v => v.toFixed(1) + '×');
+document.getElementById('newx').addEventListener('click', () => { initWeights(); newInput(); });
+document.getElementById('reset').addEventListener('click', resetBeliefs);
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused; e.currentTarget.textContent = paused ? 'Play' : 'Pause';
+});
+
+function loop(){ if (!paused) step(); else residuals(); draw(); requestAnimationFrame(loop); }
+
+function postHeight(){
+  if (window.parent === window) return;
+  window.parent.postMessage({type:'demo-embed-height', height: document.documentElement.scrollHeight}, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+// Embedded, `vw` here measures the iframe, not the monitor, so the parent page
+// sends its own computed root size and we adopt it; demo chrome then scales in
+// step with the prose around it. Standalone, the clamp in demo-shared.css wins.
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    if (typeof fit === 'function') { try { fit(); } catch (err) {} }
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+
+
+residuals();
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>

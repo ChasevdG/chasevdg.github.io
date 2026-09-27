@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neurons that fire together, wire together</title>
+<link rel="stylesheet" href="demo-shared.css">
+<style>
+  body { margin: 0; padding: 0; background: transparent; }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+<canvas id="cv" role="img"
+  aria-label="Three presynaptic neurons connect to one postsynaptic neuron. Spike trains scroll in from the right, and each neuron lights up as its spike crosses a cyan line. An input that fires together with the postsynaptic neuron has its connection strengthened, shown in green; one that fires while the postsynaptic neuron is silent has it weakened, shown in red. Inputs 1 and 2 fire together, so their connections thicken; input 3 fires on its own and its connection thins."></canvas>
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const DPR = window.devicePixelRatio || 1;
+let W = 640, H = 330;
+
+// palette taken from the Hopfield slides: lit neurons orange, resting ones peach, gold connections
+const ON = '#FFA200', ON_EDGE = '#D98A00', OFF = '#FBDDB9', OFF_EDGE = '#DDB88A';
+const EDGE = 'rgba(176,132,52,0.78)', SHADE = 'rgba(255,162,0,0.20)';
+const UP = [46,170,98], DOWN = [214,72,72];     // strengthening green, weakening red
+const INK = '#2b2a27', MUTED = '#8a857c', BASE = 'rgba(120,112,100,0.45)';
+
+// ---- the model: three inputs, one output, spikes in discrete time bins ----
+const N = 3, W0 = 0.6, ETA = 0.12, W_MAX = 2.0, W_MIN = 0.05;
+const LTD = 0.5;    // input fires, y silent: weaken by this fraction of ETA
+const P_PAIR = 0.14, P_ALONE = 0.03, P_3 = 0.16, BIN = 0.18;   // seconds per bin
+let w, bins, flash, fsign, lit, holdT, fadeT, seen;
+function reset(){
+  w = new Array(N).fill(W0); bins = []; flash = new Array(N).fill(0); fsign = new Array(N).fill(1);
+  lit = new Array(N + 1).fill(0); holdT = 0; fadeT = 0; seen = 0;
+}
+reset();
+
+function stepBin(){
+  const pair = Math.random() < P_PAIR;
+  const s = [
+    pair ? Math.random() < 0.95 : Math.random() < P_ALONE,
+    pair ? Math.random() < 0.95 : Math.random() < P_ALONE,
+    !pair && Math.random() < P_3          // x3 fires at other times than the pair
+  ];
+  const y = pair ? Math.random() < 0.9 : Math.random() < 0.03;   // y fires with the pair
+  bins.push({ s, y, done: false });   // the weights are updated when the bin reaches the cyan line
+  if (bins.length > 70) bins.shift();
+}
+// the moment a bin crosses the cyan line: the neuron responds and the synapses update
+function evaluate(b){
+  const s = b.s;
+  b.done = true;
+  // fired with y: stronger.  fired while y stayed silent: weaker.  silent input: unchanged.
+  b.d = s.map(on => on ? (b.y ? 1 : -1) : 0);
+  if (holdT === 0) for (let i = 0; i < N; i++) if (s[i]) {
+    w[i] = Math.max(W_MIN, w[i] + (b.y ? ETA : -LTD * ETA)); flash[i] = 1; fsign[i] = b.d[i];
+  }
+  for (let i = 0; i < N; i++) if (s[i]) lit[i] = 1;
+  if (b.y) lit[N] = 1;
+  seen++;
+  if (holdT === 0 && (Math.max(...w) >= W_MAX || seen > 140)) holdT = 1e-6;   // start the hold
+}
+function binX(k, scroll){ return RX1 - (bins.length - 1 - k) * BIN_PX - scroll * BIN_PX; }
+function crossLine(scroll){
+  for (let k = 0; k < bins.length; k++)
+    if (!bins[k].done && binX(k, scroll) <= NOW_X) evaluate(bins[k]);
+}
+// fill the stretch to the right of the line so upcoming inputs are visible from the start
+function prefill(){
+  const m = Math.floor((RX1 - NOW_X) / BIN_PX);
+  for (let k = 0; k < m; k++) stepBin();
+}
+
+// ---- layout: side by side when there is room, stacked on a phone ----
+let PRE, POST, RX0, RX1, ROWS, NOW_X, narrow = null;
+const RP = 25, RY = 31, BIN_PX = 12;
+function setLayout(){
+  const n = (cv.parentElement.clientWidth || 640) < 480;
+  if (n === narrow) return;
+  narrow = n;
+  if (!narrow) {
+    W = 640; H = 330;
+    PRE = [[62, 78], [62, 165], [62, 252]]; POST = [232, 165];
+    RX0 = 336; RX1 = 628; ROWS = [78, 165, 252, 306];
+    NOW_X = 470;
+  } else {
+    W = 360; H = 560;
+    PRE = [[70, 62], [70, 150], [70, 238]]; POST = [250, 150];
+    RX0 = 52; RX1 = 350; ROWS = [352, 410, 468, 530];
+    NOW_X = 190;
+  }
+  cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (typeof postHeight === 'function') postHeight();
+}
+setLayout();
+prefill();
+window.addEventListener('resize', setLayout);
+
+function node(x, y, r, on, label){
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = on > 0 ? mix(OFF, ON, on) : OFF;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = on > 0.5 ? ON_EDGE : OFF_EDGE; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+  sym(label, x, y + 6, 20);
+}
+function mix(a, b, t){
+  const pa = [1,3,5].map(k => parseInt(a.substr(k,2),16)), pb = [1,3,5].map(k => parseInt(b.substr(k,2),16));
+  return 'rgb(' + pa.map((v,k) => Math.round(v + (pb[k]-v)*t)).join(',') + ')';
+}
+// italic letter with a numeric subscript, e.g. sym('x1', ...)
+function sym(label, x, y, size, color, align){
+  const base = label[0], sub = label.slice(1);
+  ctx.fillStyle = color || INK;
+  ctx.font = 'italic ' + size + 'px "Times New Roman", Times, serif';
+  const bw = ctx.measureText(base).width;
+  ctx.font = (size * 0.65) + 'px "Times New Roman", Times, serif';
+  const sw = sub ? ctx.measureText(sub).width : 0;
+  let x0 = align === 'right' ? x - bw - sw : align === 'left' ? x : x - (bw + sw) / 2;
+  ctx.textAlign = 'left';
+  ctx.font = 'italic ' + size + 'px "Times New Roman", Times, serif'; ctx.fillText(base, x0, y);
+  if (sub) { ctx.font = (size * 0.65) + 'px "Times New Roman", Times, serif'; ctx.fillText(sub, x0 + bw, y + size * 0.25); }
+}
+
+function draw(scroll){
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalAlpha = fadeT > 0 ? Math.max(0, 1 - fadeT) : 1;
+
+  // --- network ---
+  for (let i = 0; i < N; i++) {
+    const [x, y] = PRE[i], dx = POST[0] - x, dy = POST[1] - y, L = Math.hypot(dx, dy);
+    const ux = dx / L, uy = dy / L;
+    const ax = x + ux * RP, ay = y + uy * RP, bx = POST[0] - ux * RY, by = POST[1] - uy * RY;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = EDGE; ctx.lineWidth = 1.5 + 7 * Math.min(1, w[i] / W_MAX);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    if (flash[i] > 0) {
+      const c = fsign[i] > 0 ? UP : DOWN;
+      ctx.strokeStyle = 'rgba(' + c.join(',') + ',' + (0.85 * flash[i]) + ')'; ctx.lineWidth = 3 + 7 * Math.min(1, w[i] / W_MAX);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    }
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    sym('w' + (i + 1), mx - uy * 20, my + ux * 20 - (i === 1 ? 4 : 0), 18, MUTED);
+  }
+  for (let i = 0; i < N; i++) node(PRE[i][0], PRE[i][1], RP, lit[i], 'x' + (i + 1));
+  node(POST[0], POST[1], RY, lit[N], 'y');
+
+  // --- spike trains: newest at the right edge, scrolling left ---
+  const n = bins.length;
+  for (let k = 0; k < n; k++) {
+    const b = bins[k], x = binX(k, scroll);
+    if (x < RX0) continue;
+    if (b.y) { ctx.fillStyle = SHADE; ctx.fillRect(x - 6, ROWS[0] - 34, 12, ROWS[3] - ROWS[0] + 42); }
+  }
+  ctx.strokeStyle = BASE; ctx.lineWidth = 1.2;
+  ROWS.forEach(r => { ctx.beginPath(); ctx.moveTo(RX0, r); ctx.lineTo(RX1 + 4, r); ctx.stroke(); });
+  for (let k = 0; k < n; k++) {
+    const b = bins[k], x = binX(k, scroll);
+    if (x < RX0) continue;
+    for (let i = 0; i <= N; i++) {
+      const on = i < N ? b.s[i] : b.y;
+      if (!on) continue;
+      const d = i < N && b.d ? b.d[i] : 0;   // once decided, input spikes take the colour of their update
+      ctx.strokeStyle = i === N ? ON_EDGE : d > 0 ? 'rgb(' + UP.join(',') + ')' : d < 0 ? 'rgb(' + DOWN.join(',') + ')' : 'rgba(90,82,70,0.9)';
+      ctx.lineWidth = d ? 2 : 1.6;
+      const r = ROWS[i], h = i < N ? 26 : 30;
+      ctx.beginPath(); ctx.moveTo(x - 3, r); ctx.lineTo(x, r - h); ctx.lineTo(x + 3, r); ctx.stroke();
+    }
+  }
+  // fade the oldest spikes into the margin
+  const g = ctx.createLinearGradient(RX0, 0, RX0 + 30, 0);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = g; ctx.fillRect(RX0 - 2, ROWS[0] - 40, 32, ROWS[3] - ROWS[0] + 50);   // only over the raster
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < N; i++) sym('x' + (i + 1), RX0 - 10, ROWS[i] + 6, 19, MUTED, 'right');
+  sym('y', RX0 - 10, ROWS[3] + 6, 19, ON_EDGE, 'right');
+  ctx.strokeStyle = 'rgba(120,112,100,0.25)'; ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.moveTo(RX0, (ROWS[2] + ROWS[3]) / 2 + 4); ctx.lineTo(RX1 + 4, (ROWS[2] + ROWS[3]) / 2 + 4); ctx.stroke();
+  ctx.setLineDash([]);
+  // the present moment: spikes light the neurons on the left as they cross this line
+  ctx.strokeStyle = '#11B5D4'; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(NOW_X, ROWS[0] - 38); ctx.lineTo(NOW_X, ROWS[3] + 10); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+// ---- loop ----
+let last = performance.now(), acc = 0;
+function frame(now){
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  acc += dt;
+  while (acc >= BIN) { acc -= BIN; stepBin(); }
+  crossLine(acc / BIN);
+  for (let i = 0; i < N; i++) flash[i] = Math.max(0, flash[i] - dt * 2.2);
+  for (let i = 0; i <= N; i++) lit[i] = Math.max(0, lit[i] - dt * 3.0);
+  if (holdT > 0) { holdT += dt; if (holdT > 3.0) fadeT += dt * 1.5; if (fadeT >= 1) { reset(); prefill(); } }
+  draw(acc / BIN);
+  requestAnimationFrame(frame);
+}
+
+if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  // no animation: run the model forward and show a single representative moment
+  for (let k = 0; k < 80 && holdT === 0; k++) { stepBin(); crossLine(0); }
+  lit.fill(0); flash.fill(0); draw(0);
+} else {
+  requestAnimationFrame(frame);
+}
+
+function postHeight(){
+  if (window.parent === window) return;
+  // the canvas is shorter than the iframe's 400px fallback, so measure the content, not the viewport
+  window.parent.postMessage({type:'demo-embed-height', height: Math.ceil(document.body.getBoundingClientRect().height)}, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+
+// --- Fluid type [FLUID-DEMO-v1] -------------------------------------------------
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (d && d.type === 'demo-embed-rootsize' && typeof d.size === 'number' && d.size > 0) {
+    document.documentElement.style.fontSize = d.size + 'px';
+    postHeight();
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'demo-embed-ready' }, '*');
+}
+</script>
+</body>
+</html>

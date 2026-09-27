@@ -1,0 +1,1487 @@
+<!-- status: published -->
+<div class="subtab-about-header" style="text-align: center;">
+  <h1>Regularization</h1>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+      <p>
+        Regularization is a word that gets thrown around without a lot of precision.
+        Where old school machine learning used to have rigorous definitions of regularization for their model, modern deep learning just uses weight decay and assume it is regularizing in the attended way.
+        This is particularly relevant in the use of niche mechanisms, such as Clifford layers and complex-valued weights, which to my knowledge have not been studied in the context of regularization.
+      </p>
+      <p>
+        In this post, I will connect the goal of L2 regularization to gradient conditioning. 
+        From this perspective of regularization, I show that for a deep neural network should <i>not</i> be regularized with standard L2 weight decay.
+        Rather than regularizing the weights to zero, a network layer should be regularized to the identity, which is the natural generalization of zero for a linear operator.
+        For this angle, residual connections naturally arise as a method to regularize.
+      </p>
+      <p>
+        This perspective then leads to a form of Oja's rule, which has deeper connections to mutual information and the information bottleneck.
+        By generalizing the notion of Oja's rule to complex- and Clifford-valued weights, we can show that Oja's rule becomes the update rule of a Kuramoto oscillator or akin to Lohe oscillators.
+        These prospective do not account for the non-linearities in the network.
+      </p>
+      <p>
+        By accounting for the non-linearities and using entropy as a metric, one can arrive at a form of predictive coding loss.
+        In a future post, I will elaborate further on predictive coding, its connections to physics and wave equations, and its promises for local learning.
+      </p>
+    </div>
+  </div>
+</div>
+
+<h2>Why do we care?</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+  </div>
+</div>
+
+<div class="post-part-nav">
+  <span class="post-part-nav-label">Part Navigator</span>
+  <div class="post-part-links">
+    <a class="post-part-link" href="#conditioning">Part I: Gradient Conditioning</a>
+    <a class="post-part-link" href="#oja">Part II: Oja's Rule</a>
+    <a class="post-part-link" href="#clifford">Part III: Complex and Clifford Weights</a>
+    <a class="post-part-link" href="#predictive">Part IV: Predictive Coding</a>
+  </div>
+</div>
+
+<h1 id="conditioning">I. Regularization as Gradient Conditioning</h1>
+
+<h2>Reviewing Regularization</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      When talking about regularization, the most common thing that comes to mind is ridge regression or LASSO from classical statistics.
+      In these methods, the mean squared error loss is augmented with a penalty term that is proportional to the L2 or L1 norm of the weights, respectively.
+      The ridge regression loss is given by,
+      $$
+        \mathcal{L} = \sum_{i=1}^N \frac{1}{N} \|y_i - f(\vec{x}_i; \vec{w})\|^2 + \lambda \|\vec{w}\|_2^2 ,
+      $$
+      where $f(\vec{x}_i; \vec{w})$ is the model prediction for input $\vec{x}_i$ with weights $\vec{w}$ and is given by $\vec{x}^\top\vec{w} + b$, and $\lambda$ is a hyperparameter that controls the strength of the regularization.
+      Much like linear regression has two interpretations, one of maximum likelihood from a probabilistic perspective and one of solving the normal equations from a linear algebra perspective, regularization can be derived from both the linear algebra and probabilistic viewpoints.
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Linear Algebra Derivation </summary>
+    <p>
+      Linear algebra phrases linear regression as solving the linear system,
+      $$
+        \vec{y} = X\vec{w}
+      $$
+      where $\vec{y} \in \mathbb{R}^{N}$ is the data labels, $\vec{w} \in \mathbb{R}^{in}$ is the weight vector, and $X \in \mathbb{R}^{N \times in}$ is the features of each data point -- where $N$ is the number of data points and $in$ is the number of input features.
+      To solve for $\vec{w}$, we trivially just need to invert $X$ and multiply it by $\vec{y}$
+      $$
+        \vec{w} = X^{-1}\vec{y},
+      $$
+      but this is rarely possible. Trivially, $X$ is not guaranteed to be square.
+      One can make $X$ square by multiplying both sides by $X^\top$, which gives the normal equations,
+      $$
+        X^\top \vec{y} = X^\top X \vec{w}.
+      $$
+      then solve for $\vec{w}$ by inverting $X^\top X$,
+      $$
+        \vec{w} = (X^\top X)^{-1} X^\top \vec{y}.
+      $$
+    </p>
+    <p>
+      One convenient way to solve this inverse computationally is to notice that $X^\top X$ is symmetric and positive semi-definite, so it can be diagonalized by an orthogonal matrix $Q$,
+      $$
+        X^\top X = Q D Q^\top,
+      $$
+      where $D$ is a diagonal matrix of the eigenvalues of $X^\top X$.
+      Then the inverse can be computed as
+      $$
+        (X^\top X)^{-1} = Q D^{-1} Q^\top,
+      $$
+      where $D^{-1}$ is the diagonal matrix of the inverse eigenvalues, which ammounts to taking the reciprocal of each eigenvalue -- $\mu_i \mapsto \frac{1}{\mu_i}$.
+    </p>
+    <p>
+      From this perspective, there is a clear problem with the normal equations: if any of the eigenvalues of $X^\top X$ are zero, then the inverse does not exist -- $\mu_i = 0 \mapsto \frac{1}{\mu_i} = \infty$.
+      These are called <strong>singular</strong> directions, and they correspond to directions in the input space that are not represented in the data.
+    </p>
+    <p>
+      When do singular directions occur? Exactly when the data fails to span the input space, so that the rows of $X$ lie in a proper subspace of $\mathbb{R}^{in}$ and $X^\top X$ is rank deficient.
+      Intuitively, imagine giving the model the same feature twice.
+      No matter what two weights are given to those features, the only thing that matters is the sum of the two weights, since the features are identical.
+      This means there is no unique solution for the weights, since any two weights that sum to the same value will give the same output.
+      This is signified by the fact that $X^\top X$ has a zero eigenvalue, whose eigenvector is the direction in which the two weights differ -- moving along it trades one weight for the other and leaves every prediction unchanged.
+      </p>
+    <p>
+      Because multiple weights result in the same predictions, there are multiple solutions.
+      When the solution is unique, the weights are said to be <strong>identifiable</strong>
+    </p>
+    <p style="color:#d13b3b">
+      It is worth separating two words that are easy to run together here, because they describe different failures and only one of them is the one you will actually meet.
+      <strong>Singular</strong> is a yes-or-no property of the matrix: some eigenvalue is exactly zero, the inverse does not exist, and the set of least-squares solutions is a flat affine subspace rather than a point.
+      <strong>Ill-conditioned</strong> is a matter of degree: every eigenvalue is strictly positive, the inverse exists and the solution is unique, but the smallest eigenvalue is minuscule next to the largest, so $D^{-1}$ multiplies that one direction by an enormous number.
+      Nothing breaks. You simply get an answer you should not believe.
+    </p>
+    <p style="color:#d13b3b">
+      Exact singularity is also the case you will almost never encounter with real data.
+      Duplicate a feature and then perturb it by a hair of measurement noise and the zero eigenvalue becomes $10^{-9}$ rather than $0$; the system is now formally invertible, and that is worse rather than better.
+      Instead of refusing to answer, it returns a large and confident $\vec{w}$ in which the two nearly-identical features carry huge coefficients of opposite sign that almost cancel, a solution driven almost entirely by whichever noise happened to break the tie.
+      Singularity announces itself by failing; ill-conditioning quietly hands you noise dressed as signal.
+    </p>
+    <p style="color:#d13b3b">
+      What ties them together is that singularity is the limit of ill-conditioning rather than a separate phenomenon -- the condition number runs off to infinity precisely as the smallest eigenvalue reaches zero -- and that a single $\lambda$ cures both.
+      Adding $\lambda$ to the diagonal sends $\mu_i \mapsto \mu_i + \lambda$, which lifts an exactly zero eigenvalue off zero and at the same time caps the reciprocal of every small eigenvalue at $1/\lambda$.
+      Ridge never has to decide which of the two problems it is facing, because the same shift fixes either one.
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> What a condition number actually measures </summary>
+    <p style="color:#d13b3b">
+      For an invertible matrix $A$ the <strong>condition number</strong> is the ratio of its largest to its smallest singular value,
+      $$
+        \kappa(A) = \frac{\sigma_{\max}(A)}{\sigma_{\min}(A)} = \|A\|\,\|A^{-1}\| .
+      $$
+      For a symmetric positive-definite matrix such as $X^\top X$ the singular values are the eigenvalues, so $\kappa = \mu_{\max}/\mu_{\min}$.
+      Always $\kappa \ge 1$; it equals $1$ exactly for a scalar multiple of an orthogonal matrix, and it diverges to $\infty$ as the matrix approaches singularity.
+    </p>
+    <p style="color:#d13b3b">
+      <strong>Geometrically</strong>, $A$ carries the unit sphere to an ellipsoid whose semi-axes are the singular values, and $\kappa$ is that ellipsoid's aspect ratio.
+      A well-conditioned map returns something round; an ill-conditioned one returns a pancake.
+      This is worth holding onto, because the regularizer this post eventually argues for is precisely a penalty on that aspect ratio.
+    </p>
+    <p style="color:#d13b3b">
+      <strong>Operationally</strong>, $\kappa$ is the worst-case factor by which solving $A\vec{w} = \vec{y}$ amplifies relative error in the data.
+      Perturb the right-hand side by $\delta\vec{y}$ and the solution moves by $\delta\vec{w} = A^{-1}\delta\vec{y}$, so
+      $$
+        \|\delta\vec{w}\| \;\le\; \|A^{-1}\|\,\|\delta\vec{y}\| = \frac{\|\delta\vec{y}\|}{\sigma_{\min}} ,
+      $$
+      while $\|\vec{y}\| = \|A\vec{w}\| \le \sigma_{\max}\|\vec{w}\|$ gives $\frac{1}{\|\vec{w}\|} \le \frac{\sigma_{\max}}{\|\vec{y}\|}$.
+      Multiplying the two,
+      $$
+        \frac{\|\delta\vec{w}\|}{\|\vec{w}\|} \;\le\; \kappa(A)\, \frac{\|\delta\vec{y}\|}{\|\vec{y}\|} .
+      $$
+      A condition number of $10^{6}$ means a part-per-million wobble in the labels can move the fitted weights by a whole part in one.
+      The usual rule of thumb follows: you lose roughly $\log_{10}\kappa$ significant digits, so in double precision, which carries about sixteen, a $\kappa$ beyond $10^{16}$ leaves nothing at all.
+    </p>
+    <p style="color:#d13b3b">
+      One consequence is worth flagging, since the derivation above walks straight into it.
+      Because the singular values of $X^\top X$ are the squares of those of $X$, $\kappa(X^\top X) = \kappa(X)^2$: forming the normal equations <i>doubles</i> the number of digits you lose.
+      A design matrix with $\kappa(X) = 10^{8}$ is perfectly workable directly, but $X^\top X$ is numerically singular.
+      This is why the normal equations are a good way to understand least squares and a poor way to compute it, and why in practice one factors $X$ itself, by QR or SVD, instead.
+    </p>
+    <p style="color:#d13b3b">
+      Two facts about $\kappa$ carry the rest of this post.
+      The first is that it is <strong>submultiplicative</strong>, $\kappa(AB) \le \kappa(A)\kappa(B)$, with equality when the singular directions of the two matrices happen to align -- which is what makes conditioning a problem that compounds with depth rather than one that averages out.
+      The second is what ridge does to it: since $\lambda$ shifts every eigenvalue,
+      $$
+        \kappa\!\left(X^\top X + \lambda \eye\right) = \frac{\mu_{\max} + \lambda}{\mu_{\min} + \lambda} ,
+      $$
+      which decreases monotonically from $\kappa(X^\top X)$ at $\lambda = 0$ towards $1$ as $\lambda \to \infty$.
+      The regularization strength is, read this way, a dial that sets the conditioning of the problem directly, and the bias it introduces is the price of turning that dial.
+    </p>
+    </details>
+      <p>
+      This is where regularization comes in.
+      Since $X^\top X$ is positive semi-definite, one can add a positive constant to the diagonal of $X^\top X$ to make it positive definite, which guarantees that all eigenvalues are strictly positive and therefore invertible.
+      This is done by taking $X^\top X$ and adding a constant $\lambda \mathbb{I}$ to $D$, where $\mathbb{I}$ is the identity matrix and $\lambda$ is a positive constant.
+      Since $X^\top X$ is symmetric and therefore has a spectral decomposition (as we have already used), we can write
+      $$
+        Q (D + \lambda \mathbb{I}) Q^\top = Q D Q^\top + \lambda Q \mathbb{I} Q^\top = X^\top X + \lambda \mathbb{I},
+      $$
+      giving us the final closed-form of the ridge regression solution,
+      $$
+        \vec{w} = (X^\top X + \lambda \mathbb{I})^{-1} X^\top \vec{y},
+      $$
+      which is the exact minimizer of the ridge regression loss function.
+    </p>
+    <p>
+      This regularization form is classically called <strong>Tikhonov regularization</strong> which is a generalization of (and predated) ridge regression to arbitrary linear systems.
+    </p>
+
+    </details>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Probabilistic Derivation </summary>
+    <p style="color:#d13b3b">
+      The probabilistic view starts by treating the labels as random rather than the weights as unknown.
+      Assume the data is generated by the model plus independent Gaussian noise,
+      $$
+        y_i = f(\vec{x}_i; \vec{w}) + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2),
+      $$
+      which is the same as saying that each label is drawn from a Gaussian centred on the model prediction,
+      $$
+        p(y_i \mid \vec{x}_i, \vec{w}) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{\left( y_i - f(\vec{x}_i; \vec{w}) \right)^2}{2\sigma^2} \right).
+      $$
+      Since the data points are independent, the probability of the whole dataset -- the <strong>likelihood</strong> -- is the product over data points,
+      $$
+        p(\vec{y} \mid X, \vec{w}) = \prod_{i=1}^N p(y_i \mid \vec{x}_i, \vec{w}).
+      $$
+    </p>
+    <p style="color:#d13b3b">
+      <strong>Maximum likelihood estimation</strong> picks the weights that make the observed data most probable,
+      $$
+        \vec{w}_{\mathrm{MLE}} = \arg\max_{\vec{w}} \; p(\vec{y} \mid X, \vec{w}).
+      $$
+      Products of many small numbers are awkward to work with, so one maximizes the logarithm instead, which is monotonic and therefore has the same maximizer,
+      $$
+        \log p(\vec{y} \mid X, \vec{w}) = -\frac{1}{2\sigma^2} \sum_{i=1}^N \left( y_i - f(\vec{x}_i; \vec{w}) \right)^2 - N \log \sqrt{2\pi\sigma^2}.
+      $$
+      The second term does not depend on $\vec{w}$, and the first is a negative multiple of the squared error, so maximizing the likelihood is exactly minimizing
+      $$
+        \sum_{i=1}^N \left( y_i - f(\vec{x}_i; \vec{w}) \right)^2 ,
+      $$
+      which is the least squares problem that the normal equations solve.
+      From this prospective, the squared error loss is an arbitrary choice of distance -- it is what the Gaussian noise assumption looks like after taking a logarithm.
+    </p>
+    <p style="color:#d13b3b">
+      Maximum likelihood also inherits the same failure.
+      In the degenerate case -- two identical features, or fewer data points than features -- the likelihood is flat along the singular directions, since moving $\vec{w}$ along them changes no prediction and therefore does not change the probability of the data.
+      There is no single most likely $\vec{w}$, only a flat subspace of equally likely ones, and maximum likelihood has nothing to say about which of them to take.
+    </p>
+    <p style="color:#d13b3b">
+      The fix is to inject information about $\vec{w}$ before seeing any data at all.
+      Treat the weights as a random variable with a <strong>prior</strong> $p(\vec{w})$, and Bayes' rule gives the <strong>posterior</strong>,
+      $$
+        p(\vec{w} \mid X, \vec{y}) = \frac{p(\vec{y} \mid X, \vec{w}) \, p(\vec{w})}{p(\vec{y} \mid X)} \propto p(\vec{y} \mid X, \vec{w}) \, p(\vec{w}),
+      $$
+      where the denominator does not depend on $\vec{w}$ and can be dropped.
+      <strong>Maximum a posteriori estimation</strong> takes the peak of this distribution rather than the peak of the likelihood,
+      $$
+        \vec{w}_{\mathrm{MAP}} = \arg\max_{\vec{w}} \; \log p(\vec{y} \mid X, \vec{w}) + \log p(\vec{w}).
+      $$
+    </p>
+    <p style="color:#d13b3b">
+      Take the prior to be a zero-mean isotropic Gaussian, $p(\vec{w}) = \mathcal{N}(\vec{0}, \tau^2 \mathbb{I})$, which is the statement that the weights are expected to be small with no direction preferred,
+      $$
+        \log p(\vec{w}) = -\frac{1}{2\tau^2} \|\vec{w}\|_2^2 + \mathrm{const}.
+      $$
+      Substituting both logarithms and multiplying through by $-2\sigma^2$ turns the maximization into a minimization,
+      $$
+        \vec{w}_{\mathrm{MAP}} = \arg\min_{\vec{w}} \; \sum_{i=1}^N \left( y_i - f(\vec{x}_i; \vec{w}) \right)^2 + \frac{\sigma^2}{\tau^2} \|\vec{w}\|_2^2 ,
+      $$
+      which is the ridge regression loss with
+      $$
+        \lambda = \frac{\sigma^2}{\tau^2}.
+      $$
+      The regularization strength is a ratio of variances -- how noisy the data is, against how confident one was about the weights beforehand.
+      Noisy data or a tight prior pulls harder, clean data or a vague prior pulls less, and $\tau \to \infty$, a prior that says nothing, recovers maximum likelihood.
+    </p>
+    <p style="color:#d13b3b">
+      Swapping the prior swaps the penalty.
+      A Laplace prior, $p(\vec{w}) \propto \exp\left( -\|\vec{w}\|_1 / b \right)$, gives a penalty $\lambda \|\vec{w}\|_1$ and therefore LASSO, and the sparsity it is known for is the statement that a distribution sharply peaked at zero with heavy tails expects most weights to be negligible and a few to be large.
+    </p>
+
+    </details>
+
+
+    <p>
+    These are two useful derivations that will come up again throughout this post, but we will instead use a third perspective to the ridge regression equation.
+    </p>
+    </div>
+    </div>
+    <h2> Regularization and the Heat Equation </h2>    
+    <div class="subtab-about-content">
+      <div class="subtab-about-text">
+    <p>
+      One can observe that the gradient of our model with respect to the data $\vec{x}$ is given by
+      $$
+        \nabla_{\vec{x}} f(\vec{x}; \vec{w}) = \nabla_{\vec{x}} (\vec{x}^\top \vec{w}) = \vec{w},
+      $$
+      thus we can rewrite our loss function as
+      $$
+        \mathcal{L} = \frac{1}{N}\sum_{i=1}^N \left( \|y_i - f(\vec{x}_i; \vec{w})\|_2^2 + \lambda \|\nabla_{\vec{x}} f(\vec{x}_i; \vec{w})\|_2^2 \right).
+      $$
+      That is, the regularization term can be viewed as a penalty on the gradient of the model with respect to the input data.
+      This quantity $\|\nabla_{\vec{x}} f(\vec{x}; \vec{w})\|_2^2$ is known as the Dirichlet energy of the function $f$ and is a measure of how much the function varies with respect to the input.
+    </p>
+    <p>
+      Because $f(\vec{x}; \vec{w})$ is linear, $\nabla_{\vec{x}} f(\vec{x}_i; \vec{w}) = \vec{w}$ for all $\vec{x}_i$, so the Dirichlet energy is constant across the input space and the regularization term is equivalent to a penalty on the weights.
+    </p>
+
+
+    <details class="dropdown">
+      <summary data-tag="Optional"> Lipschitz Continuity Perspective </summary>
+        <p style="color:#d13b3b">
+          This constancy is what makes the linear case a good place to see the connection to <strong>smoothness</strong>.
+          The gradient norm at a point is the local rate of change of the function, and the largest rate of change anywhere is the <strong>Lipschitz constant</strong>,
+          $$
+            \|f(\vec{x}) - f(\vec{x}')\|_2 \le \mathrm{Lip}(f)\, \|\vec{x} - \vec{x}'\|_2 ,
+            \qquad
+            \mathrm{Lip}(f) = \sup_{\vec{x}} \|\nabla_{\vec{x}} f(\vec{x}; \vec{w})\|_2 .
+          $$
+          For a linear model the supremum (maximum) is attained everywhere at once, so $\mathrm{Lip}(f) = \|\vec{w}\|_2$ and ridge regression is <i>literally</i> a penalty on the Lipschitz constant of the model.
+          Shrinking the weights and forbidding the function from changing quickly are not two facts about ridge regression, they are one fact stated in two vocabularies.
+        </p>
+        <p style="color:#d13b3b">
+          Away from the linear case the two part company, and the way they part is the interesting bit.
+          Lipschitz smoothness is a statement about the supremum -- an $L^\infty$ bound that must hold at every point of the input space, including the parts of it the data never visits.
+          The Dirichlet energy is an $L^2$ average taken against the data distribution,
+          $$
+            \mathcal{E}[f] = \mathbb{E}_{\vec{x} \sim p}\left[ \|\nabla_{\vec{x}} f(\vec{x}; \vec{w})\|_2^2 \right] \approx \frac{1}{N}\sum_{i=1}^N \|\nabla_{\vec{x}} f(\vec{x}_i; \vec{w})\|_2^2 ,
+          $$
+          which is the softer requirement: it tolerates a steep cliff somewhere, provided the cliff is narrow or sits where the data is sparse.
+          A Lipschitz constraint buys uniform control at the cost of being blind to where the function is actually used; the Dirichlet energy buys sensitivity to the data distribution at the cost of guaranteeing nothing pointwise.
+          One is enforced by construction -- spectral normalization, weight clipping -- and the other by a penalty term, which is the practical reason the penalty is the one that ends up in the loss function.
+        </p>
+        <p style="color:#d13b3b">
+          That last word, <i>penalty</i>, is itself a choice of formulation rather than a fact.
+          What one usually wants to say is not ``pay $\lambda$ per unit of roughness'' but ``be as accurate as possible while staying at least this smooth'', which is a constrained problem,
+          $$
+            \min_{\vec{w}} \; \frac{1}{N}\sum_{i=1}^N \|y_i - f(\vec{x}_i; \vec{w})\|_2^2
+            \quad \text{subject to} \quad
+            \frac{1}{N}\sum_{i=1}^N \|\nabla_{\vec{x}} f(\vec{x}_i; \vec{w})\|_2^2 \le C .
+          $$
+          Attaching a <strong>Lagrange multiplier</strong> $\lambda \ge 0$ to the constraint gives
+          $$
+            \mathcal{L}(\vec{w}, \lambda) = \frac{1}{N}\sum_{i=1}^N \|y_i - f(\vec{x}_i; \vec{w})\|_2^2 + \lambda \left( \frac{1}{N}\sum_{i=1}^N \|\nabla_{\vec{x}} f(\vec{x}_i; \vec{w})\|_2^2 - C \right),
+          $$
+          and since $C$ is constant in $\vec{w}$, minimizing this over $\vec{w}$ is exactly the regularized loss we have been writing all along.
+          The penalized and constrained problems are the same problem, and $\lambda$ then has the interpretation as the dual variable of a smoothness budget.
+        </p>
+        <details class="dropdown">
+        <summary data-tag="Optional"> Bi-Lipschitz maps, or the missing lower bound </summary>
+        <p style="color:#d13b3b">
+          Everything above is a bound from one side only. The Lipschitz condition says that no pair of points is pushed <i>further apart</i> than $M$ times their original distance, and says nothing whatever about points being pushed together.
+          A map is <strong>bi-Lipschitz</strong> when it is bounded from both sides,
+          $$
+            m\,\|\vec{x} - \vec{x}'\| \;\le\; \|f(\vec{x}) - f(\vec{x}')\| \;\le\; M\,\|\vec{x} - \vec{x}'\| ,
+            \qquad 0 < m \le M < \infty .
+          $$
+          The upper constant is the familiar $\mathrm{Lip}(f)$. The lower constant is the interesting one: it forbids the map from collapsing any direction, and it does so quantitatively rather than merely asserting injectivity.
+          A map with $m > 0$ is invertible on its image with $\mathrm{Lip}(f^{-1}) \le 1/m$, so the lower bound is exactly a Lipschitz bound on the inverse.
+        </p>
+        <p style="color:#d13b3b">
+          Two conventions are in circulation here and it is worth saying how they line up, since the more common one carries a single constant,
+          $$
+            \frac{1}{C}\,\|\vec{x} - \vec{x}'\| \;\le\; \|f(\vec{x}) - f(\vec{x}')\| \;\le\; C\,\|\vec{x} - \vec{x}'\| ,
+            \qquad C \ge 1 ,
+          $$
+          which is the two-constant condition with $m$ pinned to $1/M$.
+          They are the same condition up to a choice of scale. A pair $(m, M)$ carries two independent pieces of information -- an overall <strong>gain</strong> $\sqrt{mM}$ and a <strong>distortion</strong> $\sqrt{M/m}$ -- and rescaling $f \mapsto f/\sqrt{mM}$ sets the gain to one, after which the two constants are reciprocal by construction and
+          $$
+            C = \sqrt{\frac{M}{m}} = \sqrt{\kappa} .
+          $$
+          Read the other way, a map given in the symmetric form has $m = 1/C$ and $M = C$, so $\kappa = C^2$ immediately: <strong>the single bi-Lipschitz constant is the square root of the condition number</strong>.
+          That convention is the standard one for a good reason -- $\kappa$ is scale invariant, $\kappa(cW) = \kappa(W)$, whereas $m$ and $M$ separately are not, so normalizing the gain away is exactly quotienting out the parameter metric geometry does not care about.
+        </p>
+        <p style="color:#d13b3b">
+          It is not a parameter <i>this</i> post can quotient out, which is why I have kept both constants.
+          The gain and the distortion are precisely the two failure modes the previous section had to separate: $\sqrt{mM}$ is what vanishes or explodes with depth, and $\sqrt{M/m}$ is what ill-conditions the map.
+          Writing bi-Lipschitzness with one constant has already normalized the first of these away, so it measures conditioning and is silent about scale -- fine when the objects of study are metric spaces up to rescaling, unhelpful when the object of study is a signal that has to survive a hundred layers at roughly unit size.
+          The residual block below makes the gap concrete: with $m = 1 - L$ and $M = 1 + L$ one has $m < 1/M$, since $(1-L)(1+L) = 1 - L^2 < 1$, so the block does not satisfy the symmetric form as written.
+          It is bi-Lipschitz with $C = \sqrt{(1+L)/(1-L)}$ only after being scaled up by $1/\sqrt{1 - L^2}$, and a deep network has to get that factor from somewhere -- absorbing it is arguably a large part of what normalization layers are doing.
+        </p>
+        <p style="color:#d13b3b">
+          For a linear map the sharpest constants are the extreme singular values, $M = \sigma_{\max}(W)$ and $m = \sigma_{\min}(W)$, and therefore
+          $$
+            \frac{M}{m} \;=\; \frac{\sigma_{\max}(W)}{\sigma_{\min}(W)} \;=\; \kappa(W) .
+          $$
+          The condition number <i>is</i> the bi-Lipschitz ratio. This is worth stating plainly, because it explains why the Lipschitz framing above, taken alone, cannot see the problem the rest of this post is about: $\mathrm{Lip}(f) = \|W\|$ is the numerator and nothing else.
+          Worse, a one-sided bound is trivially satisfied by collapse. The cheapest way to make a map $1$-Lipschitz is to make it the zero map, which sends $m \to 0$ and $\kappa \to \infty$ -- the ideal smooth function and the worst-conditioned one are the same function.
+          Penalizing $\|W\|$ tightens the upper bound while actively destroying the lower one, which is the failure of measuring from zero, stated in metric rather than spectral language.
+        </p>
+        <p style="color:#d13b3b">
+          Away from the linear case the constants become extrema of the Jacobian's spectrum over the domain,
+          $$
+            m = \inf_{\vec{x}} \sigma_{\min}\!\left( J_f(\vec{x}) \right) ,
+            \qquad
+            M = \sup_{\vec{x}} \sigma_{\max}\!\left( J_f(\vec{x}) \right) ,
+          $$
+          so $M/m$ is the worst-case condition number of the map anywhere the data might land.
+          Note that this is genuinely stronger than asking the Jacobian to be invertible pointwise: a map can be a local diffeomorphism everywhere and still fail to be globally injective, and it can be injective with $\sigma_{\min}$ approaching zero along a sequence, in which case the inverse exists but is not continuous in any useful sense.
+          Bi-Lipschitz is the hypothesis that rules out both.
+        </p>
+        <p style="color:#d13b3b">
+          The constants compose the way one would hope: $m_g m_f \le m_{g \circ f}$ and $M_{g \circ f} \le M_g M_f$, so ratios multiply and we recover $\kappa(AB) \le \kappa(A)\kappa(B)$ from the metric side.
+          A depth-$L$ stack is then bi-Lipschitz with $m = \prod_\ell m_\ell$ and $M = \prod_\ell M_\ell$, and the two failure modes of the previous section acquire clean names: exploding gradients are $M \to \infty$, vanishing gradients are $m \to 0$, and ill-conditioning is the gap between them widening even when their product behaves.
+          <strong>Bi-Lipschitz with constants uniformly near one</strong> is the precise form of the otherwise vague demand that the layer spectra sit near one, and dynamical isometry <cite data-ref="saxe2014exact"></cite><cite data-ref="pennington2017resurrecting"></cite> is its limiting case $m = M = 1$, where the map is an isometry outright.
+        </p>
+        <p style="color:#d13b3b">
+          This distinction sorts the constraints people actually impose.
+          Spectral normalization <cite data-ref="miyato2018spectral"></cite> divides by $\sigma_{\max}$ and so caps $M$ while leaving $m$ entirely free -- it buys smoothness and no conditioning.
+          Parseval networks <cite data-ref="cisse2017parseval"></cite> and unitary recurrent weights <cite data-ref="arjovsky2016unitary"></cite> instead push the whole spectrum to one, which is a bi-Lipschitz constraint with $m = M = 1$, and the fact that these behave so differently in deep stacks despite both being called ``Lipschitz control'' is the distinction doing visible work.
+          The residual case is the one I find most suggestive: for $f(\vec{x}) = \vec{x} + g(\vec{x})$ with $\mathrm{Lip}(g) = L < 1$ the reverse triangle inequality gives $m \ge 1 - L$ and $M \le 1 + L$, hence
+          $$
+            \kappa(f) \;\le\; \frac{1 + L}{1 - L} ,
+          $$
+          which is the invertibility condition of invertible residual networks <cite data-ref="behrmann2019invertible"></cite>.
+          A residual block hands you the lower bound for free, and the branch only has to be kept from cancelling it -- one more reading of why the identity is the right origin to measure from.
+        </p>
+        <p style="color:#d13b3b">
+          It also matters downstream of training. A feature extractor with $m = 0$ can map an input arbitrarily far from the training data onto a point sitting right on top of it, and nothing later in the network can recover the difference, which is why distance-aware uncertainty estimation asks for a bi-Lipschitz encoder rather than merely a smooth one <cite data-ref="liu2020simple"></cite>.
+          The same observation in information-theoretic dress is that $m > 0$ means no direction is annihilated and the map is therefore lossless, which is the quantity the information bottleneck discussion in Part II eventually turns on.
+        </p>
+        </details>
+    </details>
+    <p>
+      For a practical trick to minimize the Dirichlet energy, one can add Gaussian noise to the input and penalize the difference between the model output on the clean and the noisy input.
+      This costs two forward passes and no Jacobian, and it works for a reason that is pure Taylor expansion rather than anything probabilistic.
+      For $\vec{\varepsilon} \sim \mathcal{N}(\vec{0}, \sigma_x^2 \mathbb{I})$,
+      $$
+        \mathbb{E}_{\vec{\varepsilon}}\left[ \left\| f(\vec{x} + \vec{\varepsilon}; \vec{w}) - f(\vec{x}; \vec{w}) \right\|_2^2 \right]
+        = \sigma_x^2 \left\| \nabla_{\vec{x}} f(\vec{x}; \vec{w}) \right\|_2^2 + \mathcal{O}(\sigma_x^4),
+      $$
+      since to first order the difference is $\nabla_{\vec{x}} f \cdot \vec{\varepsilon}$ and $\mathbb{E}[\vec{\varepsilon} \vec{\varepsilon}^\top] = \sigma_x^2 \mathbb{I}$.
+      The consistency penalty is a stochastic finite-difference estimator of the Dirichlet energy, with the noise variance playing the role of the regularization strength, $\lambda = \sigma_x^2$.
+      One does not even need the explicit difference term: training on noised inputs under plain squared error already produces this penalty to second order, which is Bishop's observation that training with noise is Tikhonov regularization <cite data-ref="bishop1995training"></cite>.
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Heat Kernels, Green's functions and the Uncertainty Principle </summary>
+    <p>
+      The Gaussian is not an arbitrary choice of noise.
+      Averaging the model over noised inputs can be expressed as a convolution,
+      $$
+        \mathbb{E}_{\vec{\varepsilon}}\left[ f(\vec{x} + \vec{\varepsilon}) \right] = \left( f * G_{\sigma_x} \right)(\vec{x}),
+      $$
+      and the Gaussian $G$ is precisely the Green's function of the heat equation $\partial_t u = \Delta u$, whose solution is $u_t = f * G_{\sqrt{2t}}$.
+      The heat equation is in turn the $L^2$ gradient flow of the Dirichlet energy, $\partial_t u = -\nabla_u \mathcal{E}[u]$.
+      So noising, averaging and repeating is not merely a way of <i>estimating</i> the Dirichlet energy -- it is gradient descent on it, and the noise variance is the time one has let the function diffuse.
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Green's functions </summary>
+    <p style="color:#d13b3b">
+      Write $\mathcal{D}$ for a linear differential operator -- $\mathcal{D} = -\Delta$, say -- and suppose we want to solve $\mathcal{D}u = f$ for $u$ given a source $f$.
+      Because $\mathcal{D}$ is linear, it is enough to solve the problem once, for the most concentrated source there is.
+      The <strong>Green's function</strong> $G(\vec{x}, \vec{x}')$ is the response at $\vec{x}$ to a unit point source placed at $\vec{x}'$,
+      $$
+        \mathcal{D}\,G(\vec{x}, \vec{x}') = \delta(\vec{x} - \vec{x}') ,
+      $$
+      and every other source is then handled by superposition,
+      $$
+        u(\vec{x}) = \int G(\vec{x}, \vec{x}')\, f(\vec{x}')\, d\vec{x}' ,
+      $$
+      which solves the original equation because $\mathcal{D}$ passes under the integral sign and collapses the delta back onto $f$.
+      In one sentence: $G$ is the integral kernel of $\mathcal{D}^{-1}$, the inverse of a differential operator written out as a kernel.
+    </p>
+    <p style="color:#d13b3b">
+      The finite-dimensional picture is worth keeping in mind, because it is the same object.
+      Replace functions by vectors and $\mathcal{D}$ by a matrix $A$: solving $A\vec{u} = \vec{f}$ means $\vec{u} = A^{-1}\vec{f}$, and the entry $(A^{-1})_{ij}$ is precisely the response at coordinate $i$ to a unit input at coordinate $j$ -- the delta is the basis vector $\vec{e}_j$, and $G(\vec{x}, \vec{x}')$ is the continuum version of that matrix entry.
+      Everything from the ridge discussion transfers intact. $G$ exists when $\mathcal{D}$ is invertible; it fails to be unique when $\mathcal{D}$ has a null space, since any solution of $\mathcal{D}v = 0$ can be added to it, and one pins it down with boundary conditions in exactly the way ridge pins down a choice among flat directions.
+    </p>
+    <p style="color:#d13b3b">
+      When $\mathcal{D}$ has constant coefficients it commutes with translations, so $G$ can only depend on the separation, $G(\vec{x}, \vec{x}') = G(\vec{x} - \vec{x}')$, and the superposition integral collapses to a convolution $u = G * f$.
+      This is also the quickest route to computing one. The Fourier transform diagonalizes any such operator, replacing it by multiplication by its <strong>symbol</strong> -- $\nabla \mapsto i\vec{\omega}$, and hence $-\Delta \mapsto \|\vec{\omega}\|^2$ -- so that
+      $$
+        \hat{G}(\vec{\omega}) = \frac{1}{m(\vec{\omega})} ,
+      $$
+      the Green's function being the inverse transform of the reciprocal symbol.
+      For $-\Delta$ on $\mathbb{R}^3$ with decay imposed at infinity this gives the familiar $G(\vec{x}) = 1/(4\pi\|\vec{x}\|)$, the Newtonian potential of a point mass, and the observation that a differential operator with a rapidly growing symbol has a smooth, rapidly decaying inverse kernel is the whole reason smoothing operators look the way they do.
+    </p>
+    <p style="color:#d13b3b">
+      One point of vocabulary, since this post uses the term in both of its senses.
+      For a time evolution such as the heat equation the relevant object is the <strong>fundamental solution</strong>: the state at time $t$ started from a point source, which for $\partial_t u = \Delta u$ is the Gaussian
+      $$
+        G_t(\vec{x}) = \left( 4\pi t \right)^{-n/2} \exp\!\left( -\frac{\|\vec{x}\|^2}{4t} \right) ,
+      $$
+      a normalized density of variance $2t$ per coordinate -- which is the $G_{\sqrt{2t}}$ of the paragraph above, and the reason the noise scale and the diffusion time are the same parameter.
+      This is the kernel of $e^{t\Delta}$ rather than of $(-\Delta)^{-1}$, and the two are related by integrating over all times,
+      $$
+        \mathcal{D}^{-1} = \int_0^{\infty} e^{-t\mathcal{D}}\, dt ,
+      $$
+      which for $\mathcal{D} = -\Delta$ in three dimensions returns $1/(4\pi\|\vec{x}\|)$ exactly. The resolvent is the heat kernel summed over the whole flow.
+    </p>
+    <p style="color:#d13b3b">
+      This is what makes the Poggio and Girosi statement below work.
+      Minimizing $\|y - f\|^2 + \lambda\|\Gamma f\|^2$ gives an Euler-Lagrange equation with $\Gamma^\top\Gamma$ acting on $f$ and a sum of deltas at the data points on the right, so the minimizer is a superposition of Green's functions of $\Gamma^\top\Gamma$ centred on the samples -- which is to say a kernel method whose kernel is that Green's function.
+      Choosing a regularizer and choosing a kernel are the same act performed in reciprocal domains: a penalty with symbol $m(\vec{\omega})$ is a kernel with spectrum $1/m(\vec{\omega})$, and the harder the penalty leans on high frequencies, the faster the kernel's spectrum falls away and the smoother the functions one is left with.
+    </p>
+    </details>
+    <p style="color:#d13b3b">
+      In the Fourier domain is also interesting to observe as it diagonalizes the $\nabla$ operator.
+      Plancherel turns the Dirichlet energy into a frequency-weighted power,
+      $$
+        \mathcal{E}[f] \;\propto\; \int \|\vec{\omega}\|_2^2 \, |\hat{f}(\vec{\omega})|^2 \, d\vec{\omega} ,
+      $$
+      so penalizing it is penalizing high frequencies quadratically, and the heat flow implements this by multiplying $\hat{f}$ by $e^{-t\|\vec{\omega}\|_2^2}$ -- a Gaussian low-pass filter.
+      The Gaussian is the kernel that saturates the uncertainty inequality $\Delta x \, \Delta \omega \ge \tfrac{1}{2}$, with equality attained by Gaussians alone, which is the same minimum-uncertainty property that makes coherent states Gaussian in quantum mechanics -- the Schrödinger equation being the heat equation in imaginary time.
+      Concretely it means Gaussian smoothing is the gentlest low-pass available: a kernel localized in frequency and space simultaneously, non-negative, and monotone in $\|\vec{\omega}\|$, so it attenuates roughness without the ringing a sharper filter would introduce.
+      The Gaussian is not the noise one happens to reach for, it is the noise the Dirichlet energy asks for.
+    </p>
+    <p>
+      More generally, for Tikhanov regularization, the penalty term is given by 
+      $$
+        \mathcal{L} = \frac{1}{N}\sum_{i=1}^N \left( \|y_i - f(\vec{x}_i; \vec{w})\|_2^2 + \lambda \|\Gamma f\|_2^2 \right).
+      $$
+      where $\Gamma$ is a linear operator known as the stabilizing operator that can be chosen to enforce different types of ``smoothness".
+      The Dirichlet energy is the special case where $\Gamma = \nabla_{\vec{x}}$, but one could also choose $\Gamma = \Delta_{\vec{x}}$ to penalize the Laplacian of the function, or $\Gamma = \nabla_{\vec{x}}^k$ to penalize the $k$-th derivative of the function.
+      This results in different types of splines depending on which differential operator is chosen, as formalized in Poggio and Girosi <cite data-ref="poggio1990regularization"></cite>.
+    </p>
+    <p>
+      Poggio and Girosi also show that the Green's function of the operator $\Gamma^\top \Gamma$ is the kernel that implements the same regularization as the penalty term.
+      Intuitively, the stabilizing operator should not be the gradient with respect to the full input space, but rather the gradient with respect to the data manifold.
+      The operator on the manifold (if it was known) then becomes the Laplace-Beltrami operator -- which is the generalization of the Laplacian to a manifold -- and the Green's function of the Laplace-Beltrami operator is the heat kernel on the manifold.
+      The problem is of course that the data manifold is not known a priori, so the stabilizing operator is chosen in the ambient space of the data distribution.
+    </p>
+    <p>
+      We can also use this stabilizing operator to move away from heat equation-like regularization and towards wave equation-like regularization.
+      We will eventually see why we would like to do this \moon.
+    </p>
+    </details>
+    <p>
+      Why is there a connection between regularization and the heat equation?
+      It turns out that solving the variational problem of minimizing the Dirichlet energy is equivalent to solving $\Delta u = 0$ -- i.e. solving for the steady-states of the heat equation.
+      So one can view the predicition part of the loss function as enforcing boundary conditions -- i.e. <strong>clamping</strong> the function to the data points --  on the data and the regularization part of the loss function as enforcing smoothness in between the data points.
+      If the boundary conditions are enforced, then the heat equation gives the gradient flow of the Dirichlet energy.
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Connections to Graph Laplacians and Graph Convolutions </summary>
+    <p style="color:#d13b3b">
+      Everything above was written for a function on a continuous domain, but the same variational problem has a
+      discrete twin, and it is the one that most of deep learning on graphs turns out to be doing.
+      Take a weighted graph with adjacency $A$, degrees $D$, and a signal $\vec{f}$ that assigns a value to each node.
+      The Dirichlet energy becomes a sum over edges rather than an integral,
+      $$
+        \mathcal{E}[\vec{f}] = \frac{1}{2}\sum_{i,j} w_{ij}\left( f_i - f_j \right)^2 = \vec{f}^\top L \vec{f},
+        \qquad L = D - A,
+      $$
+      where $L$ is the <strong>graph Laplacian</strong>.
+      This is the same object as before: $\int \|\nabla f\|^2$ asks how much $f$ changes between nearby points,
+      and $\vec{f}^\top L \vec{f}$ asks how much it changes across edges.
+      $L$ is symmetric positive semi-definite, and its null space is spanned by vectors constant on each connected
+      component -- the discrete statement that $\nabla(\mathrm{const}) = 0$.
+    </p>
+    <p style="color:#d13b3b">
+      The clamping story carries over verbatim.
+      Minimizing $\vec{f}^\top L \vec{f}$ while holding $\vec{f}$ fixed on the labelled nodes gives
+      $(L\vec{f})_i = 0$ at every free node, which is to say
+      $$
+        f_i = \frac{1}{d_i}\sum_j w_{ij} f_j ,
+      $$
+      every unlabelled value is the weighted average of its neighbours.
+      That is a <i>harmonic</i> function on the graph -- the discrete steady state of the heat equation, with the
+      labels as boundary conditions -- and it is exactly label propagation for semi-supervised learning
+      <cite data-ref="zhu2003semi"></cite>.
+      The gradient flow is $\dot{\vec{f}} = -L\vec{f}$, whose solution $\vec{f}(t) = e^{-tL}\vec{f}(0)$ is the graph
+      heat kernel, the discrete Green's function of the same operator.
+    </p>
+    <p style="color:#d13b3b">
+      This also gives a partial answer to the problem raised above, that the stabilizing operator really wants to be
+      the Laplace-Beltrami operator of the data manifold, which we do not know.
+      Build a $k$-nearest-neighbour graph on the samples and its Laplacian converges, under suitable conditions and
+      with the right edge weights, to the Laplace-Beltrami operator of the manifold the samples were drawn from
+      <cite data-ref="belkin2003laplacian"></cite>.
+      The graph is an <i>estimate</i> of the geometry we could not write down, assembled from the data itself, and
+      penalizing $\vec{f}^\top L \vec{f}$ with unlabelled points included is manifold regularization
+      <cite data-ref="belkin2006manifold"></cite>.
+      The stabilizing operator stops being a modelling choice made in the ambient space and becomes something
+      estimated from the sample.
+    </p>
+    <p style="color:#d13b3b">
+      Graph convolutions come from filtering in the eigenbasis of this operator.
+      Diagonalizing $L = U \Lambda U^\top$, a spectral filter is
+      $$
+        g(L) = U\, g(\Lambda)\, U^\top ,
+      $$
+      which acts on each eigenvector by a scalar, exactly as the Fourier picture earlier multiplied $\hat{f}$ by
+      $e^{-t\|\vec{\omega}\|^2}$ -- the eigenvalues of $L$ play the role of $\|\vec{\omega}\|^2$, and low eigenvalues
+      are smooth signals on the graph.
+      Learning $g$ freely gives the original spectral networks <cite data-ref="bruna2014spectral"></cite>, restricting
+      it to a Chebyshev polynomial of $L$ makes it localized and cheap to apply
+      <cite data-ref="defferrard2016convolutional"></cite>, and truncating that to first order gives the graph
+      convolutional network <cite data-ref="kipf2017semi"></cite>,
+      $$
+        H^{(\ell+1)} = \sigma\!\left( \hat{A}\, H^{(\ell)} W^{(\ell)} \right),
+        \qquad \hat{A} = \tilde{D}^{-1/2}\left(A + \eye\right)\tilde{D}^{-1/2} .
+      $$
+    </p>
+    <p style="color:#d13b3b">
+      The point worth drawing out is what $\hat{A}H$ is doing.
+      Averaging each node with its neighbours is one explicit Euler step of $\dot{\vec{f}} = -L\vec{f}$, so a graph
+      convolution layer <i>is</i> a step of Laplacian smoothing <cite data-ref="li2018deeper"></cite>.
+      Message passing does not merely resemble the regularizer; it is the regularizer, applied as architecture rather
+      than paid for as a penalty in the loss.
+      This is the same move as residual connections and equivariant layers elsewhere in this post: the constraint is
+      built into the map instead of being bought with a gradient.
+    </p>
+    <p style="color:#d13b3b">
+      And it fails in the way one would now predict.
+      A smoothing operator applied once is a regularizer; applied without limit it is a contraction onto the null
+      space of $L$.
+      Stacking layers drives the Dirichlet energy down exponentially in depth,
+      $$
+        \mathcal{E}\!\left[\vec{f}^{(\ell)}\right] \;\le\; \left(1 - \lambda_2\right)^{2\ell}\, \mathcal{E}\!\left[\vec{f}^{(0)}\right],
+      $$
+      with $\lambda_2$ the spectral gap, so node representations collapse toward a constant per connected component
+      and stop being distinguishable at all -- <strong>oversmoothing</strong>
+      <cite data-ref="oono2020graph"></cite><cite data-ref="cai2020note"></cite><cite data-ref="rusch2023survey"></cite>.
+      This is the graph version of the complaint in Part I that zero is the wrong origin: an operator that destroys
+      information is useful in small doses and fatal in the limit, and depth is what turns the dose up.
+    </p>
+    <p style="color:#d13b3b">
+      Except that the collapse is not forced on us by message passing, which is the point Di Giovanni and
+      collaborators make by reading the layer as a gradient flow <cite data-ref="digiovanni2023energies"></cite>.
+      A convolutional layer descends an energy, and whether that energy rewards agreement or disagreement between
+      neighbours is decided by the spectrum of the channel-mixing matrix: positive eigenvalues make the flow
+      attractive and the layer a low-pass filter, negative eigenvalues make it repulsive and the layer
+      <i>sharpens</i> edges instead of blurring them.
+      So oversmoothing is not a property of convolution, it is a property of the weights one lets convolution use --
+      the same lesson as everywhere else here, that the spectrum of the operator decides what the operator does.
+    </p>
+    <p style="color:#d13b3b">
+      The dual failure is more interesting, and it is where the graph picture comes back to meet Part I.
+      A node cannot be influenced by another one $r$ hops away until the network is at least $r$ layers deep, but
+      the sensitivity of a node's final representation to a distant input,
+      $$
+        \left\| \frac{\partial \vec{h}_v^{(L)}}{\partial \vec{x}_u} \right\| ,
+      $$
+      decays with that distance, and how fast it decays is set jointly by width, depth and the topology of the graph
+      <cite data-ref="digiovanni2023oversquashing"></cite>.
+      Topping, Di Giovanni and coauthors locate the obstruction geometrically: a discrete Ricci curvature on edges
+      identifies the bottlenecks through which too many messages must pass, and rewiring the negatively curved edges
+      relieves the squeeze <cite data-ref="topping2022curvature"></cite>.
+      The consequence is not merely practical -- what a message passing network can compute at all is bounded by it
+      <cite data-ref="digiovanni2024power"></cite>.
+    </p>
+    <p style="color:#d13b3b">
+      Notice what that quantity is.
+      $\partial \vec{h}_v^{(L)} / \partial \vec{x}_u$ is a product of layer Jacobians along the paths joining $u$ to $v$, so
+      <strong>oversquashing is the conditioning problem of this post, transcribed onto a graph</strong>: the same
+      product of operators, the same exponential decay, with hop count in place of depth and the adjacency
+      structure deciding which products exist.
+      Oversmoothing is then the other half of the same story, the spectrum dragged toward zero.
+      The two pull against each other -- depth is what lets distant nodes communicate, and depth is what collapses
+      the representations -- so the graph has its own knife edge at one, for the same reason the deep linear stack
+      did.
+      Giving the edges a richer structure than a scalar weight, a sheaf rather than a graph, is one way to move the
+      null space so that smoothing no longer means collapsing to a constant
+      <cite data-ref="bodnar2022sheaf"></cite>.
+    </p>
+    <p style="color:#d13b3b">
+      Which is the concrete reason to want the wave equation rather than the heat equation.
+      Replacing the first-order flow with a second-order one,
+      $$
+        \ddot{\vec{f}} = -L\vec{f} ,
+      $$
+      gives dynamics that oscillate rather than dissipate: the energy is conserved instead of decaying, so depth no
+      longer implies collapse, and the network can be made arbitrarily deep without the representations washing out
+      <cite data-ref="rusch2022graph"></cite>.
+      The resulting layers are coupled oscillators on the graph, which is the same object that shows up in Part III.
+    </p>
+    <p style="color:#d13b3b">
+      The honest caveat is that this relocates the problem rather than solving it.
+      The graph is only as good as the edge weights chosen to build it, and choosing $w_{ij}$ -- a kernel, a
+      neighbourhood size, a similarity measure -- is the same arbitrary choice as picking $\Gamma$ in the ambient
+      space, now made one level down.
+      What it buys is that the choice is at least informed by the sample rather than by the coordinates the data
+      happened to arrive in.
+    </p>
+    </details>
+    </div>
+    </div>
+    <div class="subtab-about-content">
+      <div class="subtab-about-text">
+    <p>
+    One caveat is that adding noise this way is adding noise to the input, which is in the ambient space of the data distribution.
+    Ideally, one would like to add noise in the <i>tangent space</i> of the data manifold, which is the space of directions that are actually relevant to the data.
+    One can view augmentation as doing this, but it is not a perfect solution since the tangent space is not known a priori and augmentation is a heuristic.
+    </p>
+    <p>
+      As an example, consider if our data manifold is a circle in $\mathbb{R}^2$. 
+      Then if we add Gaussian noise to the input, we will be adding noise in the radial direction, which is not tangent to the circle. 
+      This will result in a penalty that is not relevant to the data manifold.
+      Moreover, the Gaussian noise in the tangent direction would create a <i>von Mises distribution</i>, which is the circular analogue of a Gaussian (though this is not particularly relevant I just like talking about von Mises distributions).
+    </p>
+    </div>
+    <div class="subtab-about-image" style="--image-padding: 12px;">
+      <figure>
+        <iframe class="demo-embed" src="content/blogs/demo/ambient_vs_tangent.html"
+          title="Noise in the ambient space versus the tangent space of the data manifold"
+          loading="lazy" scrolling="no"></iframe>
+        <figcaption><strong>Fig 1:</strong> The data manifold is a circle, drawn dotted. Each of the $N$ data points on it gets its own colour, and the $M$ translucent samples around it are that point noised. Noise added in the <strong>ambient</strong> space makes every cloud a ball straddling the circle -- most of each cloud lies off the manifold, and in $\mathbb{R}^3$ it leaves the circle's plane entirely. Noise added in the <strong>tangent</strong> space moves only along the manifold, so every cloud is an arc lying exactly on it. The $\mathbb{R}^3$ view rotates, with nearer samples drawn larger and denser. </figcaption>
+      </figure>
+    </div>
+
+  </div>
+
+<h2>Regularization in Neural Networks</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The probabilistic and linear algebra derivations are nice for the classical linear case, but they do not generalize to deep networks.
+      The Dirichlet energy perspective does generalize to any type of model -- for example polynomial regression -- but is not fully prescriptive for deeper networks.
+      The Dirichlet energy is a penalty to the full model, but does not constrain the individual layers.
+    </p>
+    <p>
+      If one has an RNN, one can unroll it into a deep network with shared weights across each layer.
+      This maps the time index to the layer index.
+      From this perspective, a deep model is like introducing a new time coordinate, $t$,into your function.
+      That is, we can view the layer of a deep neural network as a function, $f : \mathbb{R}^n \times [0, T] \cap \mathbb{Z} \mapsto \mathbb{R}^m$, where $t\in [0, T] \cap \mathbb{Z}$ is the layer index.
+      Then the full model is the composition of all the layers, which can be written as
+      $$f(\vec{x}, t;\mathbf{W}) := f_{t-1}\circ f_{t-2}\circ \cdots \circ f_1(\vec{x})$$
+
+      </p>
+      <details class="dropdown">
+      <summary data-tag="Optional"> ODE Perspective </summary>
+        <p>
+        We can take the limit as the number of layers goes to infinity, and the layer index becomes a continuous variable, $t \in [0, T]$.
+        Then the full model is given by the solution to an ODE,
+        $$\frac{d}{dt}f(\vec{x}, t; \mathbf{W}) = F(f(\vec{x}, t; \mathbf{W}), t; \mathbf{W})$$
+        where $F$ is a function that describes the dynamics of the system.
+        This is the ODE perspective of deep networks, which has been explored in the literature <cite data-ref="chen2018neural"></cite> under the name Neural ODEs.
+      </p>
+      </details>
+    <p>
+      The Dirichlet energy of the full model is then given by
+      $$
+        \mathcal{E}[f] = \mathbb{E}_{\vec{x} \sim p}\left[ \|\nabla_{\vec{x}} f(\vec{x}, t; \mathbf{W})\|_2^2 \right] \approx \frac{1}{N}\sum_{i=1}^N \|\nabla_{\vec{x}} f(\vec{x}_i, t; \mathbf{W})\|_2^2 ,
+      $$
+      which is a penalty on the gradient of the full model with respect to the input.
+      However, this does not constrain the individual layers, and it is possible for the full model to have a small Dirichlet energy while some layers have large gradients.
+    </p>
+    <p>
+      Rather than only penalizing the gradient in the data direction, one can also penalize the gradient in the layer direction.
+      That is, we would like for each layer to change its input as little as possible, creating a smooth trajectory through the layers from the data to the labels.
+      This is equivalent to saying that each layer should be as close to the <i>identity</i> as possible.
+    </p>
+    <p>
+      Why would we want this? 
+      One of the benefits of learning the identity map is that the gradient of the loss with respect to the input is preserved through the layers.
+      This makes it so the model is robust to depth, and the gradient does not vanish or explode as it is backpropagated through the layers.
+      We will explore this this using the linear case in the next section.
+    </p>
+  </div>
+</div>
+
+<h2>The Conditioning Problem</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      It is well known that deep networks experience a vanishing or exploding gradient problem which is caused by a conditioning problem from repeated matrix applications <cite data-ref=pascanu2013difficulty></cite> <cite data-ref=bengio1994learning></cite> (or if you are Schmidhuber <cite data-ref=hochreiter1991untersuchungen></cite><cite data-ref=hochreiter1998vanishing></cite> \cool).
+    </p>
+    <p>
+      To understand the conditioning problem, let us take the cleanest case, a deep linear network $\vec{h}_\ell = W_\ell \vec{h}_{\ell-1}$ with $\vec{h}_0 = \vec{x}$.
+      The gradient at layer $\ell$ is the outer product
+      $$
+        \nabla_{W_\ell} L = \vec{\delta}_\ell\, \vec{h}_{\ell-1}^\top ,
+        \qquad
+        \vec{\delta}_\ell = \left(W_{\ell+1}^\top W_{\ell+2}^\top \cdots W_L^\top\right)\nabla_{\vec{h}_L} L ,
+      $$
+      so the signal reaching layer $\ell$ has been through the product of every weight matrix below it on the way forward and every one above it on the way back.
+      Bounding crudely by the operator norms,
+      $$
+        \left\|\nabla_{W_\ell} L\right\|
+        \;\le\;
+        \left(\prod_{k > \ell}\|W_k\|\right)\left(\prod_{k < \ell}\|W_k\|\right)\left\|\nabla_{\vec{h}_L}L\right\|\,\|\vec{x}\| .
+      $$
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Where that bound comes from </summary>
+    <p style="color:#d13b3b">
+      Throughout, $\|\cdot\|$ is the spectral norm on matrices and the Euclidean norm on vectors, so that
+      $\|A\vec{v}\| \le \|A\|\,\|\vec{v}\|$ and $\|A^\top\| = \|A\|$.
+      The bound is three steps, and only one of them is an inequality.
+    </p>
+    <p style="color:#d13b3b">
+      <strong>The gradient is rank one.</strong>
+      $\nabla_{W_\ell} L = \vec{\delta}_\ell \vec{h}_{\ell-1}^\top$ is an outer product, and for any such matrix
+      $$
+        \left(\vec{a}\vec{b}^\top\right)^\top\left(\vec{a}\vec{b}^\top\right) = \vec{b}\,\vec{a}^\top \vec{a}\,\vec{b}^\top = \|\vec{a}\|^2\, \vec{b} \vec{b}^\top ,
+      $$
+      whose only nonzero eigenvalue is $\|\vec{a}\|^2\|\vec{b}\|^2$. So $\|\vec{a}\vec{b}^\top\| = \|\vec{a}\|\,\|\vec{b}\|$ -- an equality, not a bound.
+      (A rank-one matrix has a single nonzero singular value, so its Frobenius and spectral norms agree and the
+      argument is the same in either.) Hence
+      $$
+        \left\|\nabla_{W_\ell} L\right\| = \|\vec{\delta}_\ell\|\,\|\vec{h}_{\ell-1}\| .
+      $$
+    </p>
+    <p style="color:#d13b3b">
+      <strong>The forward factor.</strong>
+      $\vec{h}_{\ell-1} = W_{\ell-1}\cdots W_1 \vec{x}$, so applying $\|A\vec{v}\| \le \|A\|\|\vec{v}\|$ once per layer gives
+      $$
+        \|\vec{h}_{\ell-1}\| \;\le\; \left(\prod_{k < \ell}\|W_k\|\right)\|\vec{x}\| .
+      $$
+      <strong>The backward factor.</strong>
+      The same argument applied to
+      $$
+        \vec{\delta}_\ell = W_{\ell+1}^\top \cdots W_L^\top \nabla_{\vec{h}_L}L ,
+      $$
+      together with $\|A^\top\| = \|A\|$, gives
+      $$
+        \|\vec{\delta}_\ell\| \;\le\; \left(\prod_{k > \ell}\|W_k\|\right)\left\|\nabla_{\vec{h}_L}L\right\| .
+      $$
+      Multiplying the two is the bound.
+    </p>
+    <p style="color:#d13b3b">
+      Two things are worth reading off it.
+      The forward product has $\ell - 1$ factors and the backward product has $L - \ell$, so together there are
+      exactly $L-1$ of them however deep into the stack the layer sits -- and $\|W_\ell\|$ itself never appears.
+      A layer's own weights do not enter the bound on its own gradient; only everything else does.
+    </p>
+    <p style="color:#d13b3b">
+      The honest caveat is that this is a worst case and usually a bad one.
+      The single inequality, $\|A\vec{v}\| \le \|A\|\|\vec{v}\|$, is tight only when $\vec{v}$ happens to be the top right-singular
+      vector of $A$, and chaining $L-1$ of them demands that every intermediate vector land on the next matrix's
+      leading singular direction in turn.
+      For independently drawn layers that essentially never happens, so the product of operator norms overstates the
+      true growth, often by a lot.
+      What actually governs the behaviour is the top Lyapunov exponent of the matrix product -- the average of
+      $\log\|W_k\|$-like quantities along the realised trajectory rather than the supremum -- which is the quantity
+      the figure below measures by propagating an orthonormal frame.
+      The bound establishes that the failure is exponential in depth; it does not tell you the rate.
+    </p>
+    </details>
+    <p>
+      This is a product of $L-1$ numbers.
+      If the average weight matrix norm sits below one the gradient vanishes exponentially in depth; if it sits above one it explodes.
+      This is especially troublesome for a recurrent neural network where the same weight matrix is applied repeatedly.
+    </p>
+    <p>
+      Even with the unit matrix norm, the model can still suffer from ill-conditioned matrices.
+      The condition number is the ratio of the largest to the smallest <i>singular</i> value, $\kappa(W) = \sigma_{\max}/\sigma_{\min}$.
+      The total (worst-case) condition number when two matrices are multiplied will be the product of the two condition numbers.
+      The norm product can be unit, but, due to high condition and numerical precision, the network could destroy information.
+    </p>
+    <p>
+      The health of training is governed by how close the layer spectra are to one, and weight decay is a force pulling every spectrum toward <i>zero</i>.
+      Whatever else weight decay is doing, it is pushing against the condition that makes the network trainable at all.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/conditioning_spectrum.html"
+        title="Gradient norm against depth for different weight spectra" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 2:</strong> Forward and backward signal through a deep linear stack. Drag the mean singular value through $1$ and both curves flip from exponential decay to exponential growth. The per-layer gradient $\|\nabla_{W_\ell}L\| = \|\vec{\delta}_\ell\|\,\|\vec{h}_{\ell-1}\|$ is actually <i>flat</i> in $\ell$ -- the forward and backward products trade off exactly -- so what vanishes or explodes is set by the depth alone, as $\bar\sigma^{\,L-1}$. Widen the spectrum spread and the shaded band opens: at mean $\sigma = 1$ the individual directions still drift apart, which is the failure dynamical isometry asks you to prevent.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Zero Is the Wrong Origin</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      A penalty $\|W\|_F^2$ pulls $W$ toward $0$, and $0$ is the identity element of the matrices <strong>under addition</strong>.
+      But we never add layers. We compose them.
+      The identity element of the thing we actually do is $\eye$.
+    </p>
+    <p>
+      "Regularize toward the origin" is a statement that only means something once you say which group operation the origin belongs to.
+      For a coefficient in a linear model, addition is the right operation and $0$ is the right origin: a coefficient of zero means "this feature does not contribute".
+      For a layer, composition is the right operation, and the map that "does not contribute" is not the one that sends everything to zero -- that map destroys the input.
+      It is the map that passes the input through unchanged.
+      <strong>Zero is the most destructive linear operator there is, and $L^2$ weight decay aims every layer at it.</strong>
+    </p>
+    <p>
+      As an analogy that makes the mismatch obvious, suppose your layer is a rotation $R \in SO(n)$ and you want to penalize "how much it rotates".
+      The Frobenius norm is useless: $\|R\|_F = \sqrt{n}$ for <i>every</i> rotation, the identity included.
+      It cannot see the quantity you are asking about.
+      What can see it is $\|R - \eye\|_F$, which is zero exactly when nothing happens and grows with the rotation angle.
+      The norm that measures "amount of transformation" is a distance from the identity, not a distance from zero.
+      Note that this <i>is</i> still ``regularize toward zero'', with the zero taken in the right place: the neutral element of the group is the identity, and the zero matrix is not an element of the group at all.
+      The norm, $\|R\|_F = \sqrt{n}$, is telling us -- the ambient origin sits equidistant from every rotation, so it cannot distinguish them.
+    </p>
+    </div>
+
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/identity_vs_zero.html"
+        title="Layer spectra under zero, identity and isometry penalties" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 3:</strong> The same layer flowed under three penalties. $L^2$ collapses the image of the unit circle to a point and $|\det W| \to 0$ -- the layer destroys what it was given. $\|W - \eye\|^2$ converges to the do-nothing map, removing the rotation along with everything else. $\|W^\top W - \eye\|^2$ pulls both singular values to $1$ while the marked point keeps its angle: it penalizes departure from isometry, and nothing else.</figcaption>
+    </figure>
+  </div>
+  </div>
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+  <p>
+      To have a layer with a good condition number, the network can be punished in two ways, 
+      $$
+        R_{\mathrm{id}}(W) = \left\|W - \eye\right\|_F^2 ,
+        \qquad
+        R_{\mathrm{iso}}(W) = \left\|W^\top W - \eye\right\|_F^2 ,
+      $$
+      The $R_{\mathrm{id}}$ is a very nice loss function because it also removes the permutation invariance of the NN.
+      However, it is very strict as it requires $W$ to be square.
+      $R_{\mathrm{iso}}$ asks only that the layer be an <strong>isometry</strong>, which is invariant under $W \mapsto QW$ for orthogonal $Q$ and therefore penalizes exactly the thing conditioning cares about: departure of the singular values from one, and nothing else.
+      Its minimizers are the orthogonal group, or the <i>Stiefel manifold</i> when the layer is not square.
+      Since it doesn't need to be square, we can reduce dimensionality between layers.
+    </p>
+    <p>
+      Since orthogonal weight matrices are desirable, old work used to initialize weight matrices to be orthonormal <cite data-ref="saxe2014exact"></cite> or parameterizing them so that they are constrained to be orthonormal/unitary (unitary RNNs) <cite data-ref="arjovsky2016unitary"></cite><cite data-ref="mhammedi2017efficient"></cite>. 
+      Spectral regularization/normalization <cite data-ref="yoshida2017spectral"></cite><cite data-ref="miyato2018spectral"></cite> also fall into this area, but more direct orthogonality penalties have been discussed in this work <cite data-ref="bansal2018can"></cite>.
+    </p>
+  </div>
+  </div>
+<h2>Residual Connections Are Identity Regularization</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Regularizing towards the identity can easily down using skip connections.
+      We simply need to write the layer as a perturbation of the identity, $W_t = \eye + \Delta_t$.
+      Then
+      $$
+        R_{\mathrm{id}}(W) = \left\|W - \eye\right\|_F^2 = \left\|\Delta\right\|_F^2 ,
+      $$
+      which is ordinary $L^2$ regularization <i>on $\Delta$</i>.
+      A residual block $\vec{h} \mapsto \vec{h} + f(\vec{h})$ with standard weight decay on the parameters of $f$ is a layer regularized toward the identity, implemented by moving the origin rather than by changing the penalty.
+    </p>
+    <p>
+      One can also view this from the Jacobian with respect to time perspective.
+      We can write the Jacobian wrt time as 
+      $$
+        \nabla_t f(\vec{x},t;W_t) = f(\vec{x},t+1) - f(\vec{x}, t) =  (f(\vec{x}, t) + \Delta_t f(\vec{x}, t)) - f(\vec{x}, t) = \Delta_t f(\vec{x}, t)
+      $$
+      Thus, $L^2$ regularization on the weights of $\Delta_t$ with a skip connection is like regularizing the Jacobian of the new added parameter $t$ (our layer index) to our function.
+      Notice that, like $L^2$ regularization, is hard coded for linear regression $\|\nabla_t f\|$ is defined for any layer type -- which lets us include non-linearities. 
+      Moreover, we can once again generalize this from $\|\nabla_t f\|$ to $\|\Gamma_t f\|$ where $\Gamma_t$ is some arbitrary stability operator that measures smoothness across layers.
+    </p>
+    <p>
+      Taking this to be continuous let's you ground it a bit more in literature since you can view the residual blocks as an explicit Euler step -- i.e. the Neural ODE perspective <cite data-ref="haber2017stable"></cite><cite data-ref="chen2018neural"></cite>.
+      If we let $f(\vec{x},t) = \vec{h}_t$, $\vec{h}_{t+\Delta t} = \vec{h}_t + \sigma(\vec{h}_t)\Delta t$ is an Euler method role out with $\sigma$ being the layer/block application and $\dot{\vec{h}} = \sigma(\vec{h})$.
+      By applying this to every layer, one punishes $\int_t \|\dot{\vec{h}}(t)\|^2 dt$, which one might recognize from Riemannian geometry that this is the calculation of a path length.
+      In other words, this asks the trajectory to be short and smooth, not for the endpoint to be near the origin.
+      This has two effects: the internal layers will not jump around unnecessarily and the amount of work in each layer should be mostly distributed evenly (though I'm not 100% on what "work" or "evenly" means because it might be $\sigma$ dependent).
+    </p>
+  </div>
+</div>
+
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <details class="dropdown">
+    <summary data-tag="Optional"> Vanishing Gradients as Vanishing Information </summary>
+    <p style="color:#d13b3b">
+      Alongside the error-flow bound -- the product of $F'W$ factors, which for the logistic sigmoid decays whenever $|w_{ij}| < 4$ -- Hochreiter's analysis of the vanishing gradient offers a second reading of the same problem: <i>the vanishing gradient corresponds to vanishing information in the internal states</i> <cite data-ref="hochreiter1998vanishing"></cite>.
+      Treat consecutive states of a recurrent net as random variables related by $\vec{Y}(t) = G\left(\vec{Y}(t-1)\right) = F\left(W \vec{Y}(t-1)\right)$.
+      The information carried from one step to the next is the mutual information
+      $$
+        I\left(\vec{Y}(t); \vec{Y}(t-1)\right) = H\left(\vec{Y}(t)\right) - H\left(\vec{Y}(t) \mid \vec{Y}(t-1)\right) ,
+      $$
+      and the entropy of the state can grow by no more than the expected log-volume change of the map,
+      $$
+        H\left(\vec{Y}(t)\right) \;\le\; H\left(\vec{Y}(t-1)\right) + \mathbb{E}\left[ \log\left|\det J_G\left(\vec{Y}(t-1)\right)\right| \right] .
+      $$
+    </p>
+    <p style="color:#d13b3b">
+      The dilemma is then the same one Bengio et al. found in the language of attractors <cite data-ref="bengio1994learning"></cite>.
+      A net that is stable -- resistant to noise, so that small input changes do not drive it into very different states -- needs $|\det J| \le 1$, and in practice the determinant sits strictly below one.
+      Every step then removes a fixed amount of entropy, so information about an input decays geometrically with the lag, at the same exponential rate as the gradient, because it is the same Jacobian doing both.
+      The only exit is to enforce $\det J = 1$ exactly, a <strong>volume-conserving</strong> mapping <cite data-ref="deco1995nonlinear"></cite>, and a volume-conserving map restricted to a single internal state is, in Hochreiter's own description, the main idea of LSTM <cite data-ref="hochreiter1997long"></cite>.
+    </p>
+    <p style="color:#d13b3b">
+      One point the argument leaves implicit is worth making explicit, because it is where the dilemma actually bites.
+      For a deterministic map of continuous variables $H\left(\vec{Y}(t) \mid \vec{Y}(t-1)\right) = -\infty$ and the mutual information is formally infinite; the argument only has content once there is noise, which is exactly what the stability requirement is about.
+      With $\vec{Y}(t) = G\left(\vec{Y}(t-1)\right) + \vec{\varepsilon}$ the conditional entropy is just $H(\vec{\varepsilon})$, a constant, so
+      $$
+        I\left(\vec{Y}(t); \vec{Y}(t-1)\right) = H\left(\vec{Y}(t)\right) - H(\vec{\varepsilon}) ,
+      $$
+      and it is the shrinking $H\left(\vec{Y}(t)\right)$ that does the damage: a contracting map packs the states into a region smaller than the noise, and what is left to read off is mostly noise.
+      Noise robustness and memory are being bought with the same contraction.
+      LSTM's answer is to stop asking one mechanism to do both jobs -- the constant error flow stores, while multiplicative gates are what keep irrelevant inputs from perturbing the stored state.
+    </p>
+    <p style="color:#d13b3b">
+      The condition also sits in a precise place relative to the rest of this post.
+      Since $\log|\det J| = \sum_i \log \sigma_i(J)$, volume conservation constrains the <i>sum</i> of the log singular values -- the gain half of the gain-and-distortion split from the Lipschitz section -- and says nothing about their spread.
+      A Jacobian $J = \mathrm{diag}(100, 0.01)$ has $\det J = 1$ and $\kappa(J) = 10^4$: iterated, it conserves volume in aggregate while the gradient along one direction explodes and along the other vanishes.
+      Over time the statement is that the Lyapunov exponents sum to zero, not that each one is zero, so $\det J = 1$ is necessary for healthy gradient flow but not sufficient; the sufficient condition is the isometry.
+      The constant error carousel escapes the gap by being one-dimensional. A single linear unit whose self-connection is fixed at one has $J = 1$, and in one dimension volume-conserving and isometric are the same condition.
+      The identity $h(W\vec{x}) = h(\vec{x}) + \log|\det W|$ returns in Part II as the reason weight decay destroys information; this paper is an early place it appears as an argument about gradients.
+    </p>
+    </details>
+    <details class="dropdown">
+    <summary data-tag="Optional"> An Aside on Why Nobody Noticed </summary>
+    <p style="color:#d13b3b">
+      If $L^2$ weight decay aims at the wrong origin, why does it appear to work everywhere?
+      Mostly because in a normalized network it is not doing what the name says.
+      A layer followed by batch or layer normalization is scale invariant -- $\mathrm{BN}(\alpha W \vec{x}) = \mathrm{BN}(W\vec{x})$ for $\alpha > 0$ <cite data-ref="ioffe2015batch"></cite><cite data-ref="ba2016layer"></cite> -- so the norm of $W$ does not change the function the network computes <i>at all</i>.
+      What it changes is the effective learning rate, since the gradient on the unit sphere scales as $1/\|W\|$ <cite data-ref="vanlaarhoven2017l2"></cite><cite data-ref="zhang2019three"></cite>.
+      Weight decay in a modern architecture is very largely a learning-rate schedule wearing a statistician's coat.
+    </p>
+    <p style="color:#d13b3b">
+      The AdamW correction <cite data-ref="loshchilov2019decoupled"></cite> is the same story at a smaller scale: putting $\lambda\|W\|^2$ through an adaptive preconditioner decays parameters in inverse proportion to their accumulated gradient magnitude, which nobody intends and which decoupling fixes.
+      Both facts point the same way.
+      The quantity we call regularization strength has been interacting with training through the optimizer rather than through the hypothesis class for about a decade, and the vocabulary has not caught up.
+      That is the imprecision I want to replace, and the replacement is: <strong>a regularizer is a statement about the conditioning of the map, so it should be measured from the identity</strong>.
+    </p>
+    </details>
+  </div>
+</div>
+
+<h1 id="oja">II. From Isometry to Oja's Rule</h1>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      So far we have been discussing deep neural networks, but I would like to transition toward local learning and Hebbian rules.
+      Notice that the main problems with having poorly conditioned layers is that we use global backprop whose conditioning dependent on the conditioning of every layer.
+      That is, the main reason we care is that backprop stops working with many layers -- this is why vanishing <i>gradients</i> is the main issue.
+    </p>
+    <p>
+      If we were to have local weight updates, then this Jacobian would not be as unwieldy to deal with.
+    </p>
+</div>
+</div>
+<h2>Hebbian Learning</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Let's start by reviewing notation from Hebbian learning.
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Hebbian terminology review </summary>
+    <p style="color:#d13b3b">
+      Take a single neuron that receives input from a few others (Fig 4).
+      The neurons sending the signal are <strong>presynaptic</strong> and the one receiving it is <strong>postsynaptic</strong>.
+      Each presynaptic neuron $i$ has an <strong>activity</strong> $x_i$ and is connected through a synapse of strength $w_i$, the <strong>synaptic weight</strong>.
+      The postsynaptic activity is the weighted sum $y = \sum_i w_i x_i$.
+    </p>
+    <figure style="margin: 18px 0 20px;">
+      <iframe class="demo-embed" src="content/blogs/demo/hebbian_terms.html"
+        title="A neuron and its abstraction, with the terms used in this section" loading="lazy" scrolling="no"
+        style="display:block;width:100%;height:360px;border:none;overflow:hidden;background:transparent;"></iframe>
+      <figcaption style="margin-top: 6px; font-size: .95em; color: #666; font-style: italic;"><strong>Fig 4:</strong> Left, a sketch of real neurons: presynaptic axons end in synapses on the dendrites of a postsynaptic neuron, whose cell body sums the input and whose axon carries the output. Right, the same neuron abstracted: the weights $w_i$ are the synapses, the pre-activation $z = \sum_i w_i x_i$ is the summed input and the post-activation $y = \sigma(z)$ is the output. The bottom row gives the same quantities in the layer notation of Part I.</figcaption>
+    </figure>
+    <p style="color:#d13b3b">
+      Two more terms come from machine learning rather than neuroscience, and they are easy to mix up with the two above.
+      A neuron's <strong>pre-activation</strong> is its summed input before any nonlinearity, $z = \sum_i w_i x_i$, and its <strong>post-activation</strong> is what it outputs afterwards, $y = \sigma(z)$.
+      So pre-/post-<i>synaptic</i> says which side of a synapse a neuron is on, while pre-/post-<i>activation</i> says before or after the nonlinearity inside a single neuron; the postsynaptic neuron has both.
+      Throughout this part the neuron is linear, $\sigma(z) = z$, so the two coincide and $y = \sum_i w_i x_i$ is both.
+    </p>
+    <p style="color:#d13b3b">
+      These are the same objects as in Part I, written one neuron at a time.
+      For layer $\ell$ the pre-activation is $W_\ell \vec{h}_{\ell-1}$ and the post-activation is $\vec{h}_\ell = \sigma(W_\ell \vec{h}_{\ell-1})$, which in the deep linear network of Part I is simply $\vec{h}_\ell = W_\ell \vec{h}_{\ell-1}$.
+      The dictionary is:
+    </p>
+    <ul>
+      <li style="color:#d13b3b">presynaptic activities $\vec{x}$ &nbsp;&harr;&nbsp; the previous layer's output $\vec{h}_{\ell-1}$,</li>
+      <li style="color:#d13b3b">the weight $w_i$ from neuron $i$ onto neuron $j$ &nbsp;&harr;&nbsp; the matrix entry $(W_\ell)_{ji}$,</li>
+      <li style="color:#d13b3b">postsynaptic activity $y$ &nbsp;&harr;&nbsp; one component of this layer's output $\vec{h}_\ell$,</li>
+      <li style="color:#d13b3b">a single linear neuron $y = \vec{w}^\top \vec{x}$ &nbsp;&harr;&nbsp; the linear model $f(\vec{x}; \vec{w}) = \vec{x}^\top \vec{w}$ of the ridge regression section.</li>
+    </ul>
+    <p style="color:#d13b3b">
+      Written for a whole layer, Hebb's rule is $\Delta W_\ell = \eta\, \vec{h}_\ell\, \vec{h}_{\ell-1}^\top$.
+      Compare the gradient from Part I, $\nabla_{W_\ell} L = \vec{\delta}_\ell\, \vec{h}_{\ell-1}^\top$: both are an outer product of something postsynaptic with the presynaptic activity.
+      Backpropagation puts the error $\vec{\delta}_\ell$ in the postsynaptic slot, and that has to be carried back through every layer above; Hebb's rule puts the neuron's own activity there instead.
+    </p>
+    </details>
+
+    </div>
+  </div>
+
+  <div class="subtab-about-content">
+    <div class="subtab-about-text">
+    <p>
+      Hebbian learning is synonymous with  <i>neurons that fire together, wire together</i>; That is, a synapse strengthens when its input and the output are active at the same time.
+      Learning means changing the weights, and Hebb's rule changes each one in proportion to how active its two ends are at the same moment,
+      $$
+        \Delta w_i = \eta\, x_i\, y ,
+      $$
+      with a small learning rate $\eta$.
+      Note that Hebbian learning defaults to the binary, firing/not firing setting, where firing is $+1$ and not firing is $-1$ by convention.
+      If $y$ is measured relative to its usual level, the same product also weakens a synapse whose input fires while $y$ stays silent.
+      In Fig 5, $x_1$ and $x_2$ tend to fire at the same moment as $y$, so both of their synapses grow (green).
+      $x_3$ fires on its own, mostly while $y$ is silent, so its synapse weakens (red).
+    </p>
+    </div>
+    <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/hebbian_update.html"
+        title="Neurons that fire together, wire together" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 5:</strong> Hebbian learning. Spikes scroll in from the right, and each neuron on the left lights up as its spike crosses the cyan line. At that moment every input that fired is updated: its synapse strengthens (green) if $y$ fired too (shaded), and weakens (red) if $y$ stayed silent. $x_1$ and $x_2$ fire together and their synapses thicken; $x_3$ fires alone and its synapse thins.</figcaption>
+    </figure>
+    </div>
+    </div>
+    <div class="subtab-about-content">
+      <div class="subtab-about-image" style="--image-padding: 12px;">
+        <figure style="margin-top: 24px;">
+          <iframe class="demo-embed" src="content/blogs/demo/hebbian_recurrent.html"
+            title="Hebbian learning in a fully connected network" loading="lazy" scrolling="no"></iframe>
+          <figcaption><strong>Fig 6:</strong> Hebbian learning with no output neuron. Every pair of neurons is connected, and as each moment crosses the cyan line all six connections update at once: green where both ends fired, red where only one did. $x_1, x_2$ and $x_3, x_4$ fire as two groups, so $w_{12}$ and $w_{34}$ thicken and the connections between the groups thin away.</figcaption>
+        </figure>
+      </div>
+      <div class="subtab-about-text">
+        <p>
+          Nothing in the rule needs a designated output.
+          In a recurrent network every neuron is both presynaptic and postsynaptic, every pair $i, j$ is connected by a weight $w_{ij}$, and all of the weights are updated together by the same rule,
+          $$
+            \Delta w_{ij} = \eta\, x_i\, x_j .
+          $$
+          In Fig 6, $x_1, x_2$ fire together and so do $x_3, x_4$.
+          The connections inside each group grow, and the connections between the groups, whose ends rarely fire at the same time, fade away.
+          The network has stored the two groups as patterns, which is the idea behind the Hopfield network <cite data-ref="hopfield1982neural"></cite>.
+        </p>
+        <p>
+          The Hebbian rule is <strong>local</strong>: each weight only needs the activity at its own two ends.
+          Backpropagation instead needs $\vec{\delta}_\ell = W_{\ell+1}^\top \cdots W_L^\top \nabla_{\vec{h}_L}L$, the product of Jacobians from Part I; a local rule never forms it, so there is nothing to vanish or explode.
+          The catch, as we will see, is that nothing in the rule keeps the weights from growing forever.
+        </p>
+  </div>
+</div>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      When $\eta$ is small, $\vec{w}$ only moves over many samples. 
+      With many samples, the noisy updates average out and the trajectory follows the mean update.
+      For a linear model, $y = \vec{w}^\top \vec{x}$ that mean is $\mathbb{E}[y\vec{x}] = \mathbb{E}[\vec{x}\vec{x}^\top]\,\vec{w} = C\vec{w}$, which is the ODE $\dot{\vec{w}} = C\vec{w}$ (and $C$ is the covariance when the inputs are centred).
+       Since $\nabla_{\vec{w}} \tfrac12 y^2 = y\,\vec{x}$, the Hebbian update is stochastic gradient <i>ascent</i> on
+      $$
+        \tfrac12\,\mathbb{E}\left[y^2\right] = \tfrac{1}{2}\, \vec{w}^\top C\, \vec{w} ,
+      $$
+      the output variance.
+    </p>
+    </div>
+    </div>
+  <div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      This objective is unbounded -- doubling $\vec{w}$ quadruples the update speed.
+      Restricted to the weights to the unit sphere $\|\vec{w}\| = 1$, give the same objective as maximizing the Rayleigh quotient, whose maximizer is given by the top eigenvector of $C$.
+    </p>
+    <p>
+      Oja's rule <cite data-ref="oja1982simplified"></cite> fixes the unboundedness by subtracting a term proportional to the unit's own output:
+      $$
+        \Delta \vec{w} = \eta\, y\left(\vec{x} - y\,\vec{w}\right) = \eta\left(y \vec{x} - y^2 \vec{w}\right).
+      $$
+      </p>
+      <details class="dropdown">
+    <summary data-tag="Optional"> Where Oja's correction comes from </summary>
+    <p style="color:#d13b3b">
+      The most direct way to put the constraint back is to enforce it by hand: take a Hebbian step, then renormalize,
+      $$
+        \vec{w} \;\leftarrow\; \frac{\vec{w} + \eta\, y\, \vec{x}}{\left\|\vec{w} + \eta\, y\, \vec{x}\right\|} .
+      $$
+      This is stable but not local, since the denominator needs every synapse onto the unit at once. Oja's derivation <cite data-ref="oja1982simplified"></cite> is to expand it for small $\eta$.
+      With $\|\vec{w}\| = 1$ and $\vec{w}^\top \vec{x} = y$,
+      $$
+        \left\|\vec{w} + \eta\, y\, \vec{x}\right\|^2 = 1 + 2\eta\, y^2 + \mathcal{O}(\eta^2)
+        \quad\Longrightarrow\quad
+        \left\|\vec{w} + \eta\, y\, \vec{x}\right\|^{-1} = 1 - \eta\, y^2 + \mathcal{O}(\eta^2) ,
+      $$
+      and multiplying out,
+      $$
+        \vec{w} \;\leftarrow\; \vec{w} + \eta\left(y\,\vec{x} - y^2\, \vec{w}\right) + \mathcal{O}(\eta^2) .
+      $$
+      The first-order footprint of the renormalization is the decay term $-\eta\, y^2 \vec{w}$, and dropping the $\mathcal{O}(\eta^2)$ remainder gives Oja's rule exactly.
+    </p>
+    <p style="color:#d13b3b">
+      Two things follow.
+      The first is that the non-local normalization has become local: $y^2$ is available at the postsynaptic cell and $w_i$ at the synapse, so each synapse can apply its share of the correction on its own.
+      The second is that a normalization step, to first order, is a projection: the bracket equals $\left(\eye - \vec{w} \vec{w}^\top\right)(y\,\vec{x})$, the Hebbian drive with its component along $\vec{w}$ removed.
+      That observation is the one the rest of this part is built on, and it gets its own section below.
+    </p>
+    </details>
+    <p>
+      The second term is a form of <i>weight decay</i>. The $-\eta\,y^2 \vec{w}$ term acts as a form of attraction which pulls the weights back toward the origin proportional to $\vec{w}$.
+      The brake is applied hard when the unit is responding strongly and released when it is not, and the fixed point is $\|\vec{w}\| = 1$ with $\vec{w}$ the leading eigenvector of $C$.
+      Oja's rule is Hebbian learning plus a data-dependent weight decay, and that decay drives it toward the <i>unit sphere</i>.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/oja_subspace.html"
+        title="Hebbian divergence versus Oja convergence to the principal subspace" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 7:</strong> Hebbian learning against Oja's rule on the same data. Hebb gets the direction right and the magnitude unbounded; Oja stops on the unit circle with the isometry residual $\big|\,\|\vec{w}\|^2 - 1\big|$ at zero. The arrows at the tip of $\vec{w}$ decompose the drive $C\vec{w}$ into the radial part that the $-y^2 \vec{w}$ term removes and the tangential part it keeps -- that projection is the object Part III generalizes.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Oja's Rule Is Isometry Regularization</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The connection to the Isometry Regularization from Part I becomes exact at the level of a whole layer.
+      Take $W \in \mathbb{R}^{m \times n}$ with $\vec{y} = W\vec{x}$ and write Oja's subspace rule <cite data-ref="oja1989neural"></cite> -- the generalization to multiple outputs,
+      $$
+        \Delta W = \eta\left(\vec{y} \vec{x}^\top - \vec{y} \vec{y}^\top W\right),
+      $$
+      whose expectation over the data is
+      $$
+        \dot W = W C - W C W^\top W .
+      $$
+      Now take the isometry penalty from Part I, with a convenient quarter out front:
+      $$
+        R(W) = \tfrac14\left\|W W^\top - \eye\right\|_F^2 ,
+        \qquad
+        \nabla_W R = \left(W W^\top - \eye\right) W .
+      $$
+      For whitened inputs, $C = \eye$, these are equivalent,
+      $$
+        \dot W = W - W W^\top W = -\left(W W^\top - \eye\right) W = -\,\nabla_W R .
+      $$
+      <strong>Oja's rule is gradient descent on the isometry penalty.</strong> For general $C$ the flow is that same gradient field preconditioned by the data covariance.
+    </p>
+    <details class="dropdown">
+    <summary data-tag="Optional"> Oja's rule as a Generalized Isometry Penalty </summary>
+    <p style="color:#d13b3b">
+      In Part 1, we teased that one should regularize over the data manifold rather than the ambient space.
+      That is precisely what this covariance term is doing.
+      The penalty $R(W) = \tfrac14\|W W^\top - \eye\|_F^2$ is ambient: up to a constant it equals $\tfrac14\|W^\top W - \eye\|_F^2$, which asks $W^\top W$ to act as the identity on every input direction, whether or not the data ever points that way.
+      Measure the same failure only on the inputs the data actually provides,
+      $$
+        R_C(W) = \tfrac14\,\mathbb{E}_{\vec{x}}\left\|\left(W^\top W - \eye\right)\vec{x}\right\|^2
+               = \tfrac14\operatorname{tr}\!\left[\left(W^\top W - \eye\right) C \left(W^\top W - \eye\right)\right] ,
+      $$
+      and the covariance appears exactly where Oja's rule has it. For whitened data, $C = \eye$, this is the ambient penalty again, up to a constant.
+    </p>
+    <p style="color:#d13b3b">
+      Differentiating and comparing with Oja's flow gives
+      $$
+        \dot W = W C - W C W^\top W = -\nabla_W R_C + \tfrac12\, W\left[W^\top W,\, C\right] ,
+      $$
+      with $[A, B] = AB - BA$.
+      The first term is gradient descent on the data-weighted isometry penalty.
+      The second vanishes whenever the row space of $W$ is invariant under $C$, and in particular at every fixed point, so it bends the path without changing where it ends.
+      The same flow can also be written as $\dot W = -\nabla_W R\; C + W\left[W^\top W,\, C\right]$, the ambient isometry gradient multiplied by the data covariance, which is the precise sense of "preconditioned by the data covariance" above.
+    </p>
+    <p style="color:#d13b3b">
+      On the constraint set, where the rows of $W$ are orthonormal, $W^\top W = P$ is the orthogonal projector onto the row space, and
+      $$
+        R_C = \tfrac14\,\mathbb{E}_{\vec{x}}\left\|\vec{x} - P\vec{x}\right\|^2
+      $$
+      is a quarter of the reconstruction error of the linear autoencoder $\vec{x} \mapsto W\vec{x} \mapsto W^\top W\vec{x}$.
+      To be an isometry on the data, a layer does not have to preserve every direction, only the ones the data occupies, and the cheapest way to fall short is to drop the directions with the least variance.
+      So the minimizer is the top-$m$ principal subspace, where $R_C$ is a quarter of the sum of the discarded eigenvalues of $C$.
+      That landscape has saddles but no spurious local minima <cite data-ref="baldi1989neural"></cite>, and Oja's direction of motion always has a positive component down it <cite data-ref="xu1993least"></cite>.
+    </p>
+    <p style="color:#d13b3b">
+      This is the linear version of the Part I contrast between the Lipschitz constant and the Dirichlet energy.
+      The ambient penalty is a uniform requirement over all of input space; $R_C$ is the same requirement averaged against the data distribution.
+      Along directions where the data is spread out, isometry is enforced hardest; along directions with no variance at all, the penalty only sees the weights through the damage they do to the reconstruction.
+      The "data manifold" here is only the span and shape of the data, the ellipsoid that $C$ describes -- the linear shadow of the manifold picture in Part I.
+    </p>
+    </details>
+  </div>
+</div>
+
+<h2>Information theory perspective</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p style="color:#d13b3b">
+      The conditioning argument was about the optimizer. Information theory gives a second reading of identity-versus-zero that does not mention optimization at all.
+      For an invertible linear map, differential entropy transforms as
+      $$
+        h(W\vec{x}) = h(\vec{x}) + \log\left|\det W\right| = h(\vec{x}) + \sum_i \log \sigma_i(W) .
+      $$
+      A contraction lowers the entropy of what the layer passes on, and an isometry leaves it exactly unchanged.
+      As in the Hochreiter dropdown, this only sees the product of the singular values -- the gain -- and not their spread.
+    </p>
+    <p style="color:#d13b3b">
+      Entropy alone cannot say how much the output tells you about the input; a deterministic invertible map carries infinitely much.
+      The quantity that can is the mutual information through a noisy channel.
+      For $\vec{y} = W\vec{x} + \vec{\xi}$ with Gaussian input of covariance $C$ and noise $\vec{\xi} \sim \mathcal{N}(\vec{0}, \sigma^2\eye)$,
+      $$
+        I(\vec{x}; \vec{y}) = \tfrac12 \log\det\!\left(\eye + \sigma^{-2}\, W C W^\top\right) .
+      $$
+      Two things follow straight away.
+      Shrinking the layer toward zero, $W = a\eye$ with $a \to 0$, sends the information to zero like $a^2 \operatorname{tr} C / 2\sigma^2$: the origin that weight decay aims at is the layer that transmits nothing.
+      And every orthogonal $W$ transmits exactly as much as the identity, because $W C W^\top$ then has the same eigenvalues as $C$.
+      The set the isometry penalty drives toward is a level set of information, and the rotation it leaves free costs nothing.
+    </p>
+    <p style="color:#d13b3b">
+      When the layer compresses, $m < n$, Oja's rule keeps the rows of $W$ orthonormal.
+      Among all such $W$ the information is largest when the rows span the top-$m$ principal subspace of $C$ -- Oja's stable fixed point -- and every rotation within that subspace transmits the same amount, which is why Oja's rule is content to land on any of them.
+      This is the linear, Gaussian case of Linsker's infomax principle <cite data-ref="linsker1988self"></cite>, which Bell and Sejnowski carried over to nonlinear units <cite data-ref="bell1995information"></cite>.
+      The isometry fixes the gain of the channel; the data decides which directions get to use it.
+    </p>
+    <p style="color:#d13b3b">
+      Weight decay has a clean reading here too, and it is more reasonable than it looks.
+      Maximizing $I(\vec{x}; \vec{y}) - \lambda\|W\|_F^2$ is a water-filling problem: along the principal direction $\vec{u}_i$ of $C$, with variance $\mu_i$, the optimal weight energy is
+      $$
+        \left\|W \vec{u}_i\right\|^2 = \left( \frac{1}{2\lambda} - \frac{\sigma^2}{\mu_i} \right)_+ .
+      $$
+      Every direction whose signal-to-noise ratio $\mu_i / \sigma^2$ falls below $2\lambda$ is switched off, and the rest receive nearly equal shares of the budget.
+      $L^2$ weight decay is a price per unit of weight, and the information-optimal response to that price is to stop transmitting the directions that cannot pay for themselves.
+      What it cannot do is ask which of those directions matter.
+    </p>
+    <p style="color:#d13b3b">
+      That question is the one the <strong>information bottleneck</strong> asks <cite data-ref="tishby1999information"></cite><cite data-ref="tishby2015deep"></cite>,
+      $$
+        \min_{p(\vec{h}\mid \vec{x})} \; I(\vec{x}; \vec{h}) - \beta\, I(\vec{h}; y) ,
+      $$
+      where the first term pays for everything the representation keeps and the second rewards only what predicts the target $y$.
+      For Gaussian variables it is solved exactly <cite data-ref="chechik2005information"></cite>: the optimal representation is a noisy projection onto eigenvectors of $\Sigma_{x|y}\Sigma_x^{-1}$, the canonical-correlation directions, switched on one at a time through a cascade of phase transitions as $\beta$ grows.
+      That has the same shape as the two answers above, a projection with a threshold, but the directions are ranked by task relevance rather than by variance.
+      This is the trade-off a regularization coefficient is meant to express, and $\lambda\|W\|^2$ can only express it when the directions that matter happen to be the ones with the most variance.
+      Oja's $y^2$ decay does not solve that either, but it is a step in the right direction: a decay rate that depends on what the unit is actually doing.
+    </p>
+  </div>
+</div>
+
+<h1 id="clifford">III. Complex and Clifford Weights</h1>
+
+<h2>The Decay Term Is a Tangent Projection</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Before generalizing, rewrite Oja's rule once more, because the form it takes is the whole reason the rest of this section works.
+      For a single unit,
+      $$
+        \dot{\vec{w}} = C \vec{w} - \left(\vec{w}^\top C \vec{w}\right) \vec{w} = \left(\eye - \vec{w} \vec{w}^\top\right) C \vec{w} .
+      $$
+      The matrix $\eye - \vec{w}\vec{w}^\top$ is the orthogonal projector onto the tangent space of the unit sphere at $\vec{w}$.
+      So Oja's rule says: <strong>take the Hebbian drive, and keep only the part of it that moves along the constraint surface.</strong>
+      The decay term is not a force pulling inward. It is the component of the drive that would have left the manifold, removed.
+    </p>
+    <p>
+      That is a structural description, and structural descriptions generalize.
+      Nothing in it mentions the sphere specifically.
+      Pick a different constraint manifold -- a different group of isometries -- keep the same recipe of "project the drive onto the tangent space", and you get the corresponding learning rule for free.
+      The rest of this part is that substitution carried out three times, and the punchline is that the resulting rules are not new to anybody. They are oscillator models.
+    </p>
+  </div>
+</div>
+
+<h2>Complex Weights Give You Kuramoto</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Take the weights to be complex with unit modulus, $z_j \in S^1 \subset \mathbb{C}$, driven by the other units through $I_j = \sum_k A_{jk} z_k$.
+      The tangent space to the circle at $z_j$ is spanned by $i z_j$, and the projection of a drive $v$ onto it is
+      $$
+        P_{z_j}(v) = v - \mathrm{Re}\!\left(\bar z_j v\right) z_j = \mathrm{Im}\!\left(\bar z_j v\right) i z_j ,
+      $$
+      where the first expression is Oja's rule written for a complex scalar -- the $\mathrm{Re}(\bar z v)$ is exactly the $y^2$ of the real case -- and the second is the same vector resolved along the tangent direction.
+      So the learning rule is
+      $$
+        \dot z_j = I_j - \mathrm{Re}\!\left(\bar z_j I_j\right) z_j .
+      $$
+    </p>
+    <p>
+      Now substitute $z_j = e^{i\theta_j}$.
+      The left side is $\dot z_j = i\,\dot\theta_j\, z_j$, so matching against the projected form gives $\dot\theta_j = \mathrm{Im}(\bar z_j I_j)$, and with real couplings $A_{jk}$,
+      $$
+        \dot\theta_j = \mathrm{Im}\!\left(\sum_k A_{jk} e^{i(\theta_k - \theta_j)}\right) = \sum_k A_{jk} \sin\!\left(\theta_k - \theta_j\right).
+      $$
+      Add a natural rotation $i\omega_j z_j$ to the drive and the $\omega_j$ comes along:
+      $$
+        \dot\theta_j = \omega_j + \sum_k A_{jk}\sin\!\left(\theta_k - \theta_j\right).
+      $$
+      This is the <strong>Kuramoto model</strong> <cite data-ref="kuramoto1975self"></cite>, exactly, with no approximation anywhere in the derivation.
+    </p>
+    <p>
+      I find this genuinely surprising even having worked through it.
+      The $\sin(\theta_k - \theta_j)$ coupling -- the thing that makes Kuramoto a synchronization model rather than a bank of independent clocks -- is not an extra ingredient someone added to describe fireflies.
+      It is what Oja's weight decay term <i>becomes</i> when the weight is constrained to a circle instead of a line.
+      Weight decay, pointed at the right origin and given a complex weight, is synchronization.
+      Everything in the <a href="#" onclick="showSubTab('Synchronization', 'content/blogs/Synchronization.html'); return false;">synchronization post</a> is therefore available as a statement about regularization, which is not a connection I expected to be able to make.
+      The empirical version of this idea -- building the oscillator dynamics into the units and training the result -- is what Miyato et al. do with Kuramoto neurons <cite data-ref="miyato2025artificial"></cite>.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/kuramoto.html"
+        title="The Kuramoto model — coupling strength against frequency spread" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 8:</strong> The Kuramoto model, reached here as complex Oja learning on the unit circle. Raising $K$ is raising the strength of the projected decay term; the order parameter $r$ climbing off zero is the layer's weights collapsing onto a shared phase, which is what "regularized to the identity" looks like on $S^1$.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Spheres, Stiefel and the Lohe Model</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/spherical_swarm.html"
+        title="Lohe oscillators on the sphere" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 9:</strong> Lohe oscillators on $S^2$. The coupling term $\vec{x}_k - \langle \vec{x}_j, \vec{x}_k\rangle \vec{x}_j$ driving the collapse is Oja's decay term verbatim, with the sphere's tangent projector in place of the circle's.</figcaption>
+    </figure>
+  </div>
+  <div class="subtab-about-text">
+    <p>
+      The same substitution on a higher-dimensional sphere is immediate.
+      For unit vectors $\vec{x}_j \in S^{d-1}$ the tangent projector is $\eye - \vec{x}_j \vec{x}_j^\top$, so a mean-field drive gives
+      $$
+        \dot{\vec{x}}_j = \Omega_j \vec{x}_j + \frac{K}{N}\sum_k \left(\eye - \vec{x}_j \vec{x}_j^\top\right) \vec{x}_k
+                 = \Omega_j \vec{x}_j + \frac{K}{N}\sum_k \left(\vec{x}_k - \left\langle \vec{x}_j, \vec{x}_k\right\rangle \vec{x}_j\right),
+      $$
+      which is the <strong>Lohe sphere model</strong> <cite data-ref="lohe2009nonabelian"></cite>.
+      The bracketed term is the multi-unit Oja decay, unchanged.
+    </p>
+    <p>
+      Going one level further up, take the constraint to be on the whole layer rather than on individual units.
+      $W^\top W = \eye$ puts $W$ on the orthogonal group, or on the Stiefel manifold if the layer is rectangular, and the projected flow is the matrix Lohe model on $O(n)$ or $U(n)$.
+      So there is a ladder, and it is the same rule at every rung:
+      a single complex weight on $S^1$ gives Kuramoto,
+      a unit vector on $S^{d-1}$ gives Lohe on the sphere,
+      and an isometric layer on $U(n)$ gives Lohe on the group.
+      In every case the object doing the work is the tangent projection, and in every case that projection started life in Part I as the isometry penalty.
+    </p>
+    <p>
+      What this reframing buys is a change in what the regularizer <i>is</i>.
+      In Part I it was a scalar cost added to a loss, with a coefficient someone tuned.
+      Here it is a coupling between units, with dynamics of its own -- it can synchronize, it can partially lock, it can sit in a chimera state where part of the layer is coherent and part is not.
+      A penalty has one degree of freedom, $\lambda$. A coupled oscillator system has a phase diagram.
+      Whether any of that structure is <i>useful</i> for learning is exactly the question I do not yet have an answer to, and it is the reason I find this direction worth pushing on.
+    </p>
+  </div>
+</div>
+
+<h2>Clifford Weights and Rotors</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The Clifford case is where the argument becomes most natural and also where I am least confident, so let me separate the two.
+      In a geometric algebra $\mathcal{G}(p,q)$, the unit-norm elements of the even subalgebra form the group $\mathrm{Spin}(p,q)$, whose elements -- rotors -- act on vectors through the sandwich product $\vec{x} \mapsto R\,\vec{x}\,\tilde{R}$.
+      That action is an isometry by construction, for every $R$ in the group.
+    </p>
+    <p>
+      Which means a Clifford layer parameterized by rotors <cite data-ref="brandstetter2023clifford"></cite><cite data-ref="ruhe2023geometric"></cite><cite data-ref="ruhe2023clifford"></cite> does not need the Part I penalty at all.
+      The conditioning constraint is not paid for by a gradient; it is built into the parameterization, in the same way that an equivariant architecture does not need to be told about the symmetry it already has.
+      $\|R\tilde R - 1\|^2$ is identically zero on the group, and the useful regularizer on such a layer is therefore a distance from the identity rotor <i>along the group</i> -- a bi-invariant metric, which for $\mathrm{Spin}$ is essentially the rotation angle -- rather than anything resembling $\|W\|_F^2$.
+      For $\mathcal{G}(3,0)^+ \cong \mathbb{H}$ the rotors are unit quaternions and the flow is a quaternionic oscillator, which connects to the rotation structure I used for positional encodings elsewhere <cite data-ref="van2026circular"></cite>.
+    </p>
+    <p>
+      Now the caveat, stated plainly because I would rather flag it than paper over it.
+      The sandwich product is <i>quadratic</i> in $R$, not linear, so "Oja's rule on a Clifford weight" is not literally the derivation I gave above -- the drive lives in a different space from the parameter, and the projection is onto the Lie algebra rather than onto a sphere in the ambient vector space.
+      The Lie-group analogue exists and is well studied as the non-abelian Lohe model <cite data-ref="lohe2009nonabelian"></cite>, but whether the data-preconditioning still picks out something like a principal subspace -- the property that made the real case interesting rather than merely well conditioned -- is not obvious to me, and I have not checked it.
+      It is the first thing I would want to work out.
+    </p>
+  </div>
+</div>
+
+<h1 id="predictive">IV. Nonlinearities and Predictive Coding</h1>
+
+<h2>Everything Above Was Linear</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      Every derivation so far has assumed the layer is a linear map, and none of the conclusions survive contact with $\phi$ unchanged.
+      The entropy identity is the place to look, because it is the one that generalizes cleanly.
+      For $\vec{h} = \phi(W\vec{x})$ the change of variables gives
+      $$
+        h\!\left(\phi(W\vec{x})\right) = h(\vec{x}) + \mathbb{E}\left[\log\left|\det \mathrm{diag}\!\left(\phi'\right) W\right|\right],
+      $$
+      and maximizing this is precisely the Bell-Sejnowski rule <cite data-ref="bell1995information"></cite>, whose solutions are independent components rather than principal ones.
+    </p>
+    <p>
+      What changes conceptually is that the constraint stops being a property of $W$ and becomes a property of $W$ <i>on the data distribution</i>.
+      The quantity you want near one is the expected log-Jacobian over the inputs you actually see, not the singular values of $W$ in the abstract.
+      A global isometry constraint is a cheap surrogate for that -- it enforces the condition everywhere, including on inputs that never occur, which is more than you need and costs capacity you might have wanted.
+      This is, I think, the right way to see why hard orthogonality constraints tend to underperform soft ones in practice: they are enforcing the correct condition on the wrong set.
+    </p>
+  </div>
+</div>
+
+<h2>Entropy Turns Into Prediction Error</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The last step is the one I am most interested in and will only sketch here.
+      Suppose a layer has to transmit $\vec{h}_\ell$ to the next one, and the receiver already has a prediction $\hat{\vec{h}}_\ell$ of what it is about to get.
+      Then the quantity that has to cross the channel is not $\vec{h}_\ell$ but the residual $\vec{\varepsilon}_\ell = \vec{h}_\ell - \hat{\vec{h}}_\ell$, and the cost is $H(\vec{\varepsilon}_\ell)$ rather than $H(\vec{h}_\ell)$.
+      Under a Gaussian model with precision $\Pi_\ell$ this is
+      $$
+        -\log p(\vec{\varepsilon}_\ell) = \tfrac12\,\vec{\varepsilon}_\ell^\top \Pi_\ell\, \vec{\varepsilon}_\ell - \tfrac12 \log\det \Pi_\ell + \mathrm{const},
+      $$
+      and summing over layers gives a precision-weighted sum of squared prediction errors -- the <strong>predictive coding</strong> objective <cite data-ref="rao1999predictive"></cite>, or Friston's free energy with the layers read as a hierarchy of generative models <cite data-ref="friston2010free"></cite>.
+    </p>
+    <p>
+      And the residual connection from Part I comes back with a second meaning.
+      $\vec{h}_{\ell+1} = \vec{h}_\ell + f(\vec{h}_\ell)$ says that what the layer computes and passes on is a <i>correction</i> to what the previous layer already had -- which is what a prediction error is.
+      Identity regularization and predictive coding turn out to be the same architectural instruction read at two different levels: keep the default behaviour "pass it through unchanged", and spend parameters only on the part you could not have predicted.
+      That the resulting updates are local, and approximate backprop closely enough to be interesting <cite data-ref="whittington2017approximation"></cite><cite data-ref="millidge2022predictive"></cite>, is what makes this the direction I actually care about.
+    </p>
+  </div>
+  <div class="subtab-about-image" style="--image-padding: 12px;">
+    <figure>
+      <iframe class="demo-embed" src="content/blogs/demo/predictive_coding.html"
+        title="A two-layer predictive coding hierarchy" loading="lazy" scrolling="no"></iframe>
+      <figcaption><strong>Fig 10:</strong> A two-level hierarchy settling. Top-down predictions run left, bottom-up errors run right, and the free energy $F$ falls as each level explains the one below. Raise one level's precision to watch it dominate the settled state. The quantity travelling up the stream is $\vec{\varepsilon}$, not $\vec{h}$.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>Where This Goes, and What I Am Unsure About</h2>
+<div class="subtab-about-content">
+  <div class="subtab-about-text">
+    <p>
+      The chain, compressed: conditioning says a layer's spectrum wants to sit near one; "near one" means near the identity, because layers compose rather than add; measuring from the identity makes residual connections a regularizer rather than a trick; the local learning rule that enforces it is Oja's; Oja's decay term is a tangent projection; changing the manifold turns that projection into Kuramoto, then Lohe, then a flow on $\mathrm{Spin}$; and putting the nonlinearity back turns the entropy bookkeeping into predictive coding.
+    </p>
+    <p>
+      What I think is solid: the identity-versus-zero argument, which is really just the observation that you have to say which group your origin belongs to; the residual reparameterization; and the Oja-as-isometry-gradient equivalence, which is an identity rather than an analogy.
+      What is suggestive but not established: that any of this yields a <i>better</i> regularizer in practice.
+      I have not run the experiment that would settle it, and the honest position is that the argument explains why weight decay behaves oddly in deep networks more convincingly than it predicts what to replace it with.
+    </p>
+    <p>
+      What is openly speculative: the Clifford case, for the reason given above, and the claim that the phase structure of the oscillator picture -- partial locking, chimeras -- is doing anything useful rather than merely being present.
+      In a later post I will take the predictive coding thread properly, including its connection to wave equations and to physics, and what it offers for local learning.
+      That one may take a while.
+    </p>
+  </div>
+</div>
+
+<div data-bib="content/blogs/Regularization_biblio.bib"></div>
